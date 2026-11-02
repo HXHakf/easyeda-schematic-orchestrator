@@ -11,6 +11,10 @@ from .workflow import Workflow, validate_plan
 
 
 def main(argv=None):
+    # Machine-readable JSON and Chinese summaries use UTF-8 on every platform.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     p = argparse.ArgumentParser(description="EasyEDA Schematic Orchestrator — requirements first")
     p.add_argument("--version", action="version", version="EasyEDA Schematic Orchestrator " + __version__)
     p.add_argument("--easyeda", default="easyeda", help="upstream executable (never auto-installs)")
@@ -66,7 +70,7 @@ def main(argv=None):
                 raise Refused("contract summary must not overwrite the machine contract")
             dump(args.out, output)
             summary.parent.mkdir(parents=True, exist_ok=True)
-            summary.write_text(contract_summary(output))
+            summary.write_text(contract_summary(output), encoding="utf-8")
             output = {"contract": str(Path(args.out).resolve()), "summary": str(summary.resolve()),
                       "sha256": digest(output), "state": "awaiting-human-confirmation"}
         elif args.command == "confirm":

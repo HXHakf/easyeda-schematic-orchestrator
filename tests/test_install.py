@@ -1,8 +1,11 @@
 """Installer safety checks; no pip network or EDA calls in unit tests."""
 import importlib.util
+import json
+import os
 from pathlib import Path
 import subprocess
 import tempfile
+import sys
 import unittest
 from unittest.mock import patch
 
@@ -23,6 +26,20 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(result["status"], "dry-run")
             self.assertEqual(list(root.iterdir()), [])
             run.assert_not_called()
+
+    def test_chinese_demo_and_contract_work_in_non_utf8_locale(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            env = dict(os.environ, LC_ALL="C", PYTHONUTF8="0", PYTHONCOERCECLOCALE="0", PYTHONIOENCODING="ascii")
+            commands = [
+                [sys.executable, str(ROOT / "scripts/demo_workflow.py"), "--out", str(root / "demo")],
+                [sys.executable, str(ROOT / "scripts/eso.py"), "contract", str(ROOT / "examples/requirements.json"), "--out", str(root / "contract.json")],
+                [sys.executable, str(ROOT / "scripts/eso.py"), "assess", str(ROOT / "examples/requirements.json")]]
+            for command in commands:
+                result = subprocess.run(command, env=env, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", errors="replace"))
+            self.assertIn("设计", (root / "contract.md").read_text(encoding="utf-8"))
+            self.assertTrue(json.loads(result.stdout.decode("utf-8"))["ready"])
 
     def test_unmanaged_skill_and_runtime_are_not_overwritten(self):
         with tempfile.TemporaryDirectory() as directory:

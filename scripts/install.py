@@ -131,6 +131,9 @@ def install(source, skill, runtime, bin_dir, replace=False, dry_run=False):
 
 
 def main(argv=None):
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     home = Path.home()
     parser.add_argument("--skill-dir", type=Path, default=home / ".agents/skills" / NAME)

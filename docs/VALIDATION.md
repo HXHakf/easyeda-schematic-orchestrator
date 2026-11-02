@@ -1,8 +1,9 @@
 # 发布与安装验证：0.2.1
 
-- 本机63项自动测试通过：60项单元/模拟测试（含6项安装器测试），3项真实上游CLI离线集成。
+- 本机64项自动测试通过：61项单元/模拟测试（含7项安装/编码测试），3项真实上游CLI离线集成。
 - 安装器已在隔离目录实际创建专用环境、安装依赖及完整Skill；launcher、离线Demo与缺参流程通过。
 - 安装覆盖拒绝覆盖未管理文件、备份与重复安装、路径交叠、pip失败保留旧Skill、含空格/引号的命令路径。
+- Windows 云端烟雾测试发现中文 Markdown 默认编码失败；新增非UTF-8环境回归并统一文件/JSON/上游输出为UTF-8。
 - GitHub Actions 配置 Python 3.10/3.13 单测，以及 Linux/macOS/Windows 安装与重复安装烟雾测试。
   云端实际结果见 [Actions](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions)，配置本身不代表通过。
 - 所有发布准备/安装测试均未向 EDA 写入电路；以下0.2.0和0.1是历史验证记录。

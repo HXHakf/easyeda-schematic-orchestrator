@@ -30,7 +30,7 @@ class EasyEDA:
         self.counter += 1
         started = now()
         try:
-            p = subprocess.run(argv, capture_output=True, text=True, env=env, timeout=timeout)
+            p = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", env=env, timeout=timeout)
             receipt = {"started_at": started, "argv": argv, "exit_code": p.returncode,
                        "stdout": p.stdout, "stderr": p.stderr, "completed_at": now()}
         except subprocess.TimeoutExpired as e:

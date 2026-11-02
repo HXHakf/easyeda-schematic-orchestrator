@@ -22,7 +22,7 @@ def load(path):
                 raise Refused(f"duplicate JSON key: {key}")
             result[key] = value
         return result
-    return json.loads(Path(path).read_text(), object_pairs_hook=unique,
+    return json.loads(Path(path).read_text(encoding="utf-8"), object_pairs_hook=unique,
                       parse_constant=lambda x: (_ for _ in ()).throw(Refused(f"invalid number {x}")))
 
 
