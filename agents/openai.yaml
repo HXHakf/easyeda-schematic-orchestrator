@@ -1,0 +1,4 @@
+interface:
+  display_name: "EasyEDA Schematic Orchestrator"
+  short_description: "画原理图时自动整理需求、追问缺参并编排绘图与验收"
+  default_prompt: "使用 $easyeda-schematic-orchestrator 帮我画原理图：先补问关键参数并确认 Design Contract，再复用 easyeda-agent 在获准测试工程绘图和验收。"

@@ -1,0 +1,11 @@
+This project interoperates with easyeda-agent by zhoushoujianwork and contributors:
+https://github.com/zhoushoujianwork/easyeda-agent
+
+The CLI, daemon, Connector extension, API catalog and upstream Skill remain
+separately distributed upstream. No compiled Connector or drawing engine is
+bundled here. Offline tests exercise its publicly documented composition and
+Connectivity IR interfaces using synthetic data.
+
+Upstream's overall MIT license has an Apache-2.0 exception for its beautify
+components. Redistribution of upstream bundles requires upstream LICENSE and
+NOTICE; see docs/RESEARCH.md. Manufacturer documents are linked, not redistributed.

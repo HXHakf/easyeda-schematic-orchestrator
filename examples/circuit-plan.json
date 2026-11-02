@@ -1,0 +1,797 @@
+{
+  "schema_version": 1,
+  "contract_sha256": "22299fbc9b7a2f6a83e121e8a83d893175a20ef815b7f9ee9bf92c9e9d517db3",
+  "template": "stm32f103-bmp280-v1",
+  "components": [
+    {
+      "id": "eso-u1",
+      "ref": "U1",
+      "query": "STM32F103C8T6",
+      "role": "MCU",
+      "module": "mcu",
+      "pins": [
+        {
+          "number": "1",
+          "name": "VBAT",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "PC13",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "3",
+          "name": "PC14",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "4",
+          "name": "PC15",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "5",
+          "name": "PD0",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "6",
+          "name": "PD1",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "7",
+          "name": "NRST",
+          "net": "NRST",
+          "nc_reason": null
+        },
+        {
+          "number": "8",
+          "name": "VSSA",
+          "net": "GND",
+          "nc_reason": null
+        },
+        {
+          "number": "9",
+          "name": "VDDA",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "10",
+          "name": "PA0",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "11",
+          "name": "PA1",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "12",
+          "name": "PA2",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "13",
+          "name": "PA3",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "14",
+          "name": "PA4",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "15",
+          "name": "PA5",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "16",
+          "name": "PA6",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "17",
+          "name": "PA7",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "18",
+          "name": "PB0",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "19",
+          "name": "PB1",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "20",
+          "name": "PB2",
+          "net": "BOOT1",
+          "nc_reason": null
+        },
+        {
+          "number": "21",
+          "name": "PB10",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "22",
+          "name": "PB11",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "23",
+          "name": "VSS",
+          "net": "GND",
+          "nc_reason": null
+        },
+        {
+          "number": "24",
+          "name": "VDD",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "25",
+          "name": "PB12",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "26",
+          "name": "PB13",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "27",
+          "name": "PB14",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "28",
+          "name": "PB15",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "29",
+          "name": "PA8",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "30",
+          "name": "PA9",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "31",
+          "name": "PA10",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "32",
+          "name": "PA11",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "33",
+          "name": "PA12",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "34",
+          "name": "PA13",
+          "net": "SWDIO",
+          "nc_reason": null
+        },
+        {
+          "number": "35",
+          "name": "VSS",
+          "net": "GND",
+          "nc_reason": null
+        },
+        {
+          "number": "36",
+          "name": "VDD",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "37",
+          "name": "PA14",
+          "net": "SWCLK",
+          "nc_reason": null
+        },
+        {
+          "number": "38",
+          "name": "PA15",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "39",
+          "name": "PB3",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "40",
+          "name": "PB4",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "41",
+          "name": "PB5",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "42",
+          "name": "PB6",
+          "net": "I2C_SCL",
+          "nc_reason": null
+        },
+        {
+          "number": "43",
+          "name": "PB7",
+          "net": "I2C_SDA",
+          "nc_reason": null
+        },
+        {
+          "number": "44",
+          "name": "BOOT0",
+          "net": "BOOT0",
+          "nc_reason": null
+        },
+        {
+          "number": "45",
+          "name": "PB8",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "46",
+          "name": "PB9",
+          "net": null,
+          "nc_reason": "unused in this reference design; configure unused GPIO in firmware"
+        },
+        {
+          "number": "47",
+          "name": "VSS",
+          "net": "GND",
+          "nc_reason": null
+        },
+        {
+          "number": "48",
+          "name": "VDD",
+          "net": "+3V3",
+          "nc_reason": null
+        }
+      ]
+    },
+    {
+      "id": "eso-u2",
+      "ref": "U2",
+      "query": "BMP280",
+      "role": "pressure sensor; I2C address 0x76",
+      "module": "sensor",
+      "pins": [
+        {
+          "number": "1",
+          "name": "GND",
+          "net": "GND",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "CSB",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "3",
+          "name": "SDI",
+          "net": "I2C_SDA",
+          "nc_reason": null
+        },
+        {
+          "number": "4",
+          "name": "SCK",
+          "net": "I2C_SCL",
+          "nc_reason": null
+        },
+        {
+          "number": "5",
+          "name": "SDO",
+          "net": "GND",
+          "nc_reason": null
+        },
+        {
+          "number": "6",
+          "name": "VDDIO",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "7",
+          "name": "GND",
+          "net": "GND",
+          "nc_reason": null
+        },
+        {
+          "number": "8",
+          "name": "VDD",
+          "net": "+3V3",
+          "nc_reason": null
+        }
+      ]
+    },
+    {
+      "id": "eso-j1",
+      "ref": "J1",
+      "query": "PinHeader 1x02 2.54",
+      "role": "regulated power input",
+      "module": "power",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ]
+    },
+    {
+      "id": "eso-j2",
+      "ref": "J2",
+      "query": "PinHeader 1x05 2.54",
+      "role": "custom SWD header; VTref only",
+      "module": "debug",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        },
+        {
+          "number": "3",
+          "name": "3",
+          "net": "SWDIO",
+          "nc_reason": null
+        },
+        {
+          "number": "4",
+          "name": "4",
+          "net": "SWCLK",
+          "nc_reason": null
+        },
+        {
+          "number": "5",
+          "name": "5",
+          "net": "NRST",
+          "nc_reason": null
+        }
+      ]
+    },
+    {
+      "id": "eso-r1",
+      "ref": "R1",
+      "query": "4700ohm 0603 1%",
+      "role": "I2C pullup",
+      "module": "sensor",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "I2C_SCL",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "+3V3",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U2",
+        "pin_number": "4"
+      }
+    },
+    {
+      "id": "eso-r2",
+      "ref": "R2",
+      "query": "4700ohm 0603 1%",
+      "role": "I2C pullup",
+      "module": "sensor",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "I2C_SDA",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "+3V3",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U2",
+        "pin_number": "3"
+      }
+    },
+    {
+      "id": "eso-r3",
+      "ref": "R3",
+      "query": "10kohm 0603 1%",
+      "role": "reset/boot bias",
+      "module": "mcu",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "NRST",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "+3V3",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U1",
+        "pin_number": "7"
+      }
+    },
+    {
+      "id": "eso-r4",
+      "ref": "R4",
+      "query": "10kohm 0603 1%",
+      "role": "reset/boot bias",
+      "module": "mcu",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "BOOT0",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U1",
+        "pin_number": "44"
+      }
+    },
+    {
+      "id": "eso-r5",
+      "ref": "R5",
+      "query": "10kohm 0603 1%",
+      "role": "reset/boot bias",
+      "module": "mcu",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "BOOT1",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U1",
+        "pin_number": "20"
+      }
+    },
+    {
+      "id": "eso-c1",
+      "ref": "C1",
+      "query": "100nF 0603 X7R 16V",
+      "role": "supply decoupling",
+      "module": "mcu",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U1",
+        "pin_number": "24"
+      }
+    },
+    {
+      "id": "eso-c2",
+      "ref": "C2",
+      "query": "100nF 0603 X7R 16V",
+      "role": "supply decoupling",
+      "module": "mcu",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U1",
+        "pin_number": "36"
+      }
+    },
+    {
+      "id": "eso-c3",
+      "ref": "C3",
+      "query": "100nF 0603 X7R 16V",
+      "role": "supply decoupling",
+      "module": "mcu",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U1",
+        "pin_number": "48"
+      }
+    },
+    {
+      "id": "eso-c4",
+      "ref": "C4",
+      "query": "100nF 0603 X7R 16V",
+      "role": "supply decoupling",
+      "module": "mcu",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U1",
+        "pin_number": "9"
+      }
+    },
+    {
+      "id": "eso-c5",
+      "ref": "C5",
+      "query": "4.7uF 0603 X5R 10V",
+      "role": "input bulk",
+      "module": "power",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "J1",
+        "pin_number": "1"
+      }
+    },
+    {
+      "id": "eso-c6",
+      "ref": "C6",
+      "query": "100nF 0603 X7R 16V",
+      "role": "reset filter",
+      "module": "mcu",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "NRST",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U1",
+        "pin_number": "7"
+      }
+    },
+    {
+      "id": "eso-c7",
+      "ref": "C7",
+      "query": "100nF 0603 X7R 16V",
+      "role": "sensor decoupling",
+      "module": "sensor",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U2",
+        "pin_number": "8"
+      }
+    },
+    {
+      "id": "eso-c8",
+      "ref": "C8",
+      "query": "100nF 0603 X7R 16V",
+      "role": "sensor decoupling",
+      "module": "sensor",
+      "pins": [
+        {
+          "number": "1",
+          "name": "1",
+          "net": "+3V3",
+          "nc_reason": null
+        },
+        {
+          "number": "2",
+          "name": "2",
+          "net": "GND",
+          "nc_reason": null
+        }
+      ],
+      "attach": {
+        "pin": "1",
+        "ref": "U2",
+        "pin_number": "6"
+      }
+    }
+  ],
+  "modules": [
+    {
+      "id": "power",
+      "core_ref": "J1",
+      "title": "3V3 INPUT"
+    },
+    {
+      "id": "mcu",
+      "core_ref": "U1",
+      "title": "STM32 MCU"
+    },
+    {
+      "id": "sensor",
+      "core_ref": "U2",
+      "title": "BMP280 I2C"
+    },
+    {
+      "id": "debug",
+      "core_ref": "J2",
+      "title": "SWD DEBUG"
+    }
+  ],
+  "evidence": [
+    {
+      "url": "https://www.st.com/resource/en/datasheet/stm32f103c8.pdf",
+      "section": "LQFP48 pinout, power supply scheme, HSI/SWD"
+    },
+    {
+      "url": "https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmp280-ds001.pdf",
+      "section": "5.2 and 6.1-6.3"
+    }
+  ],
+  "notes": [
+    "HSI 8MHz; no USB or crystal",
+    "SWD connector: 1 VTref, 2 GND, 3 SWDIO, 4 SWCLK, 5 NRST",
+    "Address 0x76; CSB high; SDO low",
+    "All physical pins accounted for; library pinout still requires live verification"
+  ]
+}

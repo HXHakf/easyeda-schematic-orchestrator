@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "requirements": {
+    "schema_version": 1,
+    "raw_request": "STM32F103C8T6 + BMP280 裸芯片，外部稳压 3.3V，I2C 100kHz，内部时钟，SWD，仅 ESO-TEST-STM32",
+    "mcu": "STM32F103C8T6",
+    "sensor": "BMP280",
+    "input_voltage_v": 3.3,
+    "power_source": "external-regulated",
+    "target_project": "ESO-TEST-STM32",
+    "sensor_form": "bare-chip",
+    "circuit_type": "mcu-sensor",
+    "passive_package": "0603",
+    "clock": "internal",
+    "debug": "swd",
+    "logic_voltage_v": 3.3,
+    "bus": "i2c",
+    "bus_speed_hz": 100000,
+    "i2c_pullups": "new",
+    "pullup_ohm": 4700,
+    "default_provenance": [
+      {
+        "field": "circuit_type",
+        "value": "mcu-sensor",
+        "reason": "根据已给出的 MCU 与传感器识别类型",
+        "depends_on": {
+          "mcu": "STM32F103C8T6",
+          "sensor": "BMP280"
+        }
+      },
+      {
+        "field": "passive_package",
+        "value": "0603",
+        "reason": "初始装配封装候选，需在设计摘要确认",
+        "depends_on": {
+          "circuit_type": "mcu-sensor"
+        }
+      },
+      {
+        "field": "clock",
+        "value": "internal",
+        "reason": "STM32 内部时钟初始候选，执行前核实资料",
+        "depends_on": {
+          "mcu": "STM32F103C8T6"
+        }
+      },
+      {
+        "field": "debug",
+        "value": "swd",
+        "reason": "STM32 初始保留 SWD",
+        "depends_on": {
+          "mcu": "STM32F103C8T6"
+        }
+      },
+      {
+        "field": "logic_voltage_v",
+        "value": 3.3,
+        "reason": "外部稳压 3.3V 直接供逻辑电源",
+        "depends_on": {
+          "power_source": "external-regulated",
+          "input_voltage_v": 3.3
+        }
+      },
+      {
+        "field": "bus",
+        "value": "i2c",
+        "reason": "当前传感器流程的接口候选",
+        "depends_on": {
+          "circuit_type": "mcu-sensor"
+        }
+      },
+      {
+        "field": "bus_speed_hz",
+        "value": 100000,
+        "reason": "初始标准模式候选",
+        "depends_on": {
+          "bus": "i2c"
+        }
+      },
+      {
+        "field": "i2c_pullups",
+        "value": "new",
+        "reason": "裸芯片候选新增上拉，仍需确认总线已有器件",
+        "depends_on": {
+          "circuit_type": "mcu-sensor",
+          "sensor_form": "bare-chip"
+        }
+      },
+      {
+        "field": "pullup_ohm",
+        "value": 4700,
+        "reason": "短总线 100kHz 初始候选，非通用保证",
+        "depends_on": {
+          "i2c_pullups": "new",
+          "bus_speed_hz": 100000,
+          "sensor_form": "bare-chip"
+        }
+      }
+    ]
+  },
+  "defaults": [
+    {
+      "field": "circuit_type",
+      "value": "mcu-sensor",
+      "reason": "根据已给出的 MCU 与传感器识别类型",
+      "depends_on": {
+        "mcu": "STM32F103C8T6",
+        "sensor": "BMP280"
+      }
+    },
+    {
+      "field": "passive_package",
+      "value": "0603",
+      "reason": "初始装配封装候选，需在设计摘要确认",
+      "depends_on": {
+        "circuit_type": "mcu-sensor"
+      }
+    },
+    {
+      "field": "clock",
+      "value": "internal",
+      "reason": "STM32 内部时钟初始候选，执行前核实资料",
+      "depends_on": {
+        "mcu": "STM32F103C8T6"
+      }
+    },
+    {
+      "field": "debug",
+      "value": "swd",
+      "reason": "STM32 初始保留 SWD",
+      "depends_on": {
+        "mcu": "STM32F103C8T6"
+      }
+    },
+    {
+      "field": "logic_voltage_v",
+      "value": 3.3,
+      "reason": "外部稳压 3.3V 直接供逻辑电源",
+      "depends_on": {
+        "power_source": "external-regulated",
+        "input_voltage_v": 3.3
+      }
+    },
+    {
+      "field": "bus",
+      "value": "i2c",
+      "reason": "当前传感器流程的接口候选",
+      "depends_on": {
+        "circuit_type": "mcu-sensor"
+      }
+    },
+    {
+      "field": "bus_speed_hz",
+      "value": 100000,
+      "reason": "初始标准模式候选",
+      "depends_on": {
+        "bus": "i2c"
+      }
+    },
+    {
+      "field": "i2c_pullups",
+      "value": "new",
+      "reason": "裸芯片候选新增上拉，仍需确认总线已有器件",
+      "depends_on": {
+        "circuit_type": "mcu-sensor",
+        "sensor_form": "bare-chip"
+      }
+    },
+    {
+      "field": "pullup_ohm",
+      "value": 4700,
+      "reason": "短总线 100kHz 初始候选，非通用保证",
+      "depends_on": {
+        "i2c_pullups": "new",
+        "bus_speed_hz": 100000,
+        "sensor_form": "bare-chip"
+      }
+    }
+  ],
+  "scope": "test-project-only",
+  "acceptance": [
+    "exact-pin-net-nc",
+    "native-drc",
+    "structural-check",
+    "bridge-check",
+    "geometry",
+    "save-reload-readback"
+  ],
+  "exclusions": [
+    "pcb",
+    "firmware",
+    "hardware-validation"
+  ]
+}

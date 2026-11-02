@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "raw_request": {
+      "type": "string",
+      "maxLength": 20000
+    },
+    "mcu": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sensor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_voltage_v": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 60
+    },
+    "logic_voltage_v": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 12
+    },
+    "power_source": {
+      "type": "string",
+      "enum": [
+        "external-regulated",
+        "usb",
+        "battery"
+      ]
+    },
+    "target_project": {
+      "type": "string",
+      "pattern": "^ESO-TEST-[A-Za-z0-9_-]+$"
+    },
+    "bus": {
+      "type": "string",
+      "enum": [
+        "i2c"
+      ]
+    },
+    "bus_speed_hz": {
+      "type": "integer",
+      "minimum": 10000,
+      "maximum": 400000
+    },
+    "i2c_pullups": {
+      "type": "string",
+      "enum": [
+        "new",
+        "existing"
+      ]
+    },
+    "pullup_ohm": {
+      "type": "number",
+      "minimum": 100,
+      "maximum": 100000
+    },
+    "bus_capacitance_pf": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 400
+    },
+    "clock": {
+      "type": "string",
+      "enum": [
+        "internal",
+        "external-crystal"
+      ]
+    },
+    "crystal_hz": {
+      "type": "integer",
+      "minimum": 1000000,
+      "maximum": 50000000
+    },
+    "debug": {
+      "type": "string",
+      "enum": [
+        "swd",
+        "none"
+      ]
+    },
+    "passive_package": {
+      "type": "string",
+      "enum": [
+        "0603",
+        "0805"
+      ]
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "question",
+          "reason"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "minLength": 1
+          },
+          "question": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "sensor_form": {
+      "type": "string",
+      "enum": [
+        "bare-chip",
+        "module"
+      ]
+    },
+    "default_provenance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "value",
+          "reason"
+        ],
+        "properties": {
+          "field": {
+            "type": "string"
+          },
+          "value": {},
+          "reason": {
+            "type": "string"
+          },
+          "depends_on": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "circuit_type": {
+      "type": "string",
+      "enum": [
+        "mcu-sensor",
+        "mcu-minimum",
+        "ldo-power",
+        "generic"
+      ]
+    },
+    "function_description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "selection_requests": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "mcu",
+          "sensor",
+          "regulator_model"
+        ]
+      }
+    },
+    "output_voltage_v": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 60
+    },
+    "output_current_ma": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 20000
+    },
+    "regulator_model": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "schema_version"
+  ],
+  "additionalProperties": false
+}

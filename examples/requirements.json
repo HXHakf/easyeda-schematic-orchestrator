@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "raw_request": "STM32F103C8T6 + BMP280 裸芯片，外部稳压 3.3V，I2C 100kHz，内部时钟，SWD，仅 ESO-TEST-STM32",
+  "mcu": "STM32F103C8T6",
+  "sensor": "BMP280",
+  "input_voltage_v": 3.3,
+  "power_source": "external-regulated",
+  "target_project": "ESO-TEST-STM32",
+  "sensor_form": "bare-chip"
+}

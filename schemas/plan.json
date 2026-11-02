@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "template": {
+      "type": "string"
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ref": {
+            "type": "string",
+            "pattern": "^[A-Z]+[0-9]+$"
+          },
+          "query": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string"
+          },
+          "module": {
+            "type": "string"
+          },
+          "pins": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "number": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "net": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "nc_reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "number",
+                "name",
+                "net",
+                "nc_reason"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1
+          },
+          "attach": {
+            "type": "object",
+            "properties": {
+              "pin": {
+                "type": "string"
+              },
+              "ref": {
+                "type": "string"
+              },
+              "pin_number": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "pin",
+              "ref",
+              "pin_number"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "ref",
+          "query",
+          "role",
+          "module",
+          "pins"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "core_ref": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "core_ref",
+          "title"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "section": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "section"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "contract_sha256",
+    "template",
+    "components",
+    "modules",
+    "evidence",
+    "notes"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+runs/
+.easyeda/
+.DS_Store
+.eso-install.json
+.env
+.env.*
+!.env.example

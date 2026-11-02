@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "easyeda-schematic-orchestrator"
+version = "0.2.1"
+description = "Requirements and evidence orchestration over easyeda-agent"
+requires-python = ">=3.10"
+dependencies = ["jsonschema>=4.18,<5"]
+license = "MIT"
+
+[project.urls]
+Repository = "https://github.com/HXHakf/easyeda-schematic-orchestrator"
+Documentation = "https://github.com/HXHakf/easyeda-schematic-orchestrator/blob/main/docs/AI-SETUP.md"
+Issues = "https://github.com/HXHakf/easyeda-schematic-orchestrator/issues"
+
+[project.scripts]
+eso = "eso.cli:main"
+
+[tool.setuptools]
+packages = ["eso"]
+
+[tool.setuptools.data-files]
+"share/eso/schemas" = ["schemas/*.json"]
