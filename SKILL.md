@@ -28,6 +28,10 @@ metadata:
 
 ## 工作流
 
+实际绘图时同时读取已安装的 `schematic-verified-layout/SKILL.md`，按其全部文字、模块边界与保存重开
+验收执行；通过宿主技能目录定位，不猜安装路径。现场写入前和失败恢复前读取
+[现场经验与恢复约束](references/live-recovery.md)。维护本仓库保持离线。
+
 1. **识别意图与电路类型**。先区分 MCU 最小系统、MCU + 传感器、LDO 电源或其他电路。
    只规划时可离线开始；不要为一张 LDO 电路追问 MCU/传感器。触发代表进入需求流程，不代表已获绘图授权。
 2. **理解与分轮补问**。读 [输入与追问](references/input-and-questions.md)。宿主模型复核原文的
@@ -47,6 +51,7 @@ metadata:
    [测量衔接](references/measurement-bridge.md)，按需读取上游 `schematic-data.md` / `auto-layout-sop.md`。
    `stage` 仅在已确认的空白测试页调用上游 materialize/apply 初始放置；写前检查兼容性，失败不盲重试。
    `collect` 回读本轮实例、位号 bbox、原始官方 SVG，生成保留原始观测的派生布局输入，调用上游 lib-layout。
+   原始属性可见性为 null 或缺 bbox 时复用安装态布局技能的隔离 SVG 测量，保留 raw 值并核对完整文字清单；测量依赖及限制见可靠性说明。
    `prepare --placement-run` 核验归属及快照后，以 preserve-instances 编译无损队列；dry-run 后才 execute。
    不重写求解/绘图，不抹掉未支持的快照字段；已有其他器件/线条的页面不自动清理。
 7. **复验并使旧结论失效**。`verify` 开始即撤销上轮通过状态；显式 saved:true → real reload

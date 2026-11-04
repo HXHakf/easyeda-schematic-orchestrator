@@ -182,6 +182,8 @@ class FakeBridgeAdapter:
         elif args[:2]==['sch','lib-layout']:
             source=load(args[args.index('--from')+1]);dump(args[args.index('--out')+1],{'schemaVersion':1,'connectivity':source['connectivity']})
         elif args[:2]==['sch','compose']:
+            if self.old_incompatible and 'pins' in load(args[args.index('--before')+1])['result']['pagePrimitives']:
+                raise Refused('incomplete class inventory')
             dump(args[args.index('--out')+1],{'synthetic':True})
             dump(args[args.index('--playbook')+1],{'version':1,'meta':{'project':TARGET['project_uuid'],'doc':TARGET['document_uuid']},'steps':[{'id':'save','action':'schematic.save'}]})
         return {'exit_code':0,'stdout':'synthetic receipt','stderr':''}

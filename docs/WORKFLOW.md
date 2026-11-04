@@ -1,5 +1,8 @@
 # 原理图工作流 0.2
 
+绘图前读取安装态 schematic-verified-layout，并按 [现场经验与恢复约束](../references/live-recovery.md)
+执行能力预检、元数据先行、变更失效及部分 Apply 恢复。默认使用 typed CLI，不直接控制屏幕。
+
 ## 阶段与退出条件
 
 | 阶段 | 产物 | 退出条件 |
@@ -36,3 +39,7 @@
 分类、回合更新、计划/确认、模拟 stage→collect→prepare、复验失效和交付证据核验有自动测试。
 测量适配输出已被真实上游 lib-layout 接受；materialize、compose 和 apply dry-run 也有离线集成。
 十类/十一类快照兼容问题仍阻断当前发布版现场闭环，不能把接口实现或模拟通过写成硬件完成。
+下层 typed 链的现场绘图验证与 ESO 标准自动链验收分别记录。collect 已支持 nullable 属性/
+缺 bbox 的原生 SVG 测量回放，保留 raw 值并核对完整文字清单；依赖安装态布局技能及 Chromium。
+完整 STM32 模块的上游布局仍可能耗尽搜索预算，不能将采集修复说成全自动布局保证。
+保存重开后的属性 ID 重建可用独立语义对账辅助审查，不能替代完整验收。

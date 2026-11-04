@@ -2,6 +2,21 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "nets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "role": {"enum": ["power", "ground", "signal"]},
+          "scope": {"enum": ["global", "local"]},
+          "voltage_v": {"type": "number"}
+        },
+        "required": ["name", "role", "scope"],
+        "allOf": [{"if": {"properties": {"role": {"enum": ["power", "ground"]}}}, "then": {"required": ["voltage_v"]}}],
+        "additionalProperties": false
+      }
+    },
     "schema_version": {
       "const": 1
     },

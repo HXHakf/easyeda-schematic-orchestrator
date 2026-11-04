@@ -12,6 +12,8 @@ from .reconcile import reconcile
 
 def validate_plan(plan, contract):
     validate(plan, "plan")
+    from .planner import net_definitions
+    net_definitions(plan)
     if plan["contract_sha256"] != digest(contract):
         raise Refused("plan refers to an old contract")
     if not evaluate(contract["requirements"])["ready"]:
@@ -60,6 +62,16 @@ def check_source(plan, source, target):
     if ir.get("schemaVersion") != "1.4" or ir.get("projectId") != target["project_uuid"] or ir.get("documentId") != target["document_uuid"]:
         raise Refused("composition needs canonical 1.4 connectivity with exact target identity")
     canonical = ir.get("components", [])
+    from .reconcile import checked_inventory
+    from .planner import net_definitions
+    try:
+        checked_inventory(ir)
+    except (ValueError, KeyError, TypeError, AttributeError) as error:
+        raise Refused('invalid composition connectivity: ' + str(error)) from error
+    definitions = net_definitions(plan)
+    if {n['name']: (n.get('scope'), n.get('role')) for n in ir['nets']} != {
+            name: (n['scope'], n['role']) for name, n in definitions.items()}:
+        raise Refused('composition net role/scope inventory differs from reviewed plan')
     if len(canonical) != len(plan["components"]):
         raise Refused("composition component inventory differs from reviewed plan")
     by_id = {c["id"]: c for c in canonical}
@@ -186,7 +198,8 @@ class Workflow:
                 raise Refused("measurement manifest changed after layout")
             measurements = load(measurement_manifest)
             required_measurements = {"measured-snapshot.json", "designators.json", "measured-sheet.svg", "sheet-export.json", "sheet-geometry.json", "layout-input.json"}
-            if set(measurements.get("files", {})) != required_measurements:
+            native_measurements = required_measurements | {"native-text-measurements.json", "native-text-coverage.json"}
+            if set(measurements.get("files", {})) not in (required_measurements, native_measurements):
                 raise Refused("measurement manifest is incomplete")
             for name, sha in measurements["files"].items():
                 if file_digest(stage_root / name) != sha:
@@ -342,16 +355,26 @@ def snapshot_fingerprint(snapshot):
 
 
 def is_blank(data):
-    if any(c.get("componentType") != "sheet" for c in data.get("components", [])) or data.get("wires"):
+    if not isinstance(data.get('components'), list) or data.get('wires') != []:
         return False
     page = data.get("pagePrimitives")
-    if not isinstance(page, dict):
+    classes = {'components', 'attributes', 'arcs', 'buses', 'circles', 'objects', 'polygons', 'rectangles', 'texts', 'wires'}
+    if (not isinstance(page, dict) or set(page) not in (classes, classes | {'pins'})
+            or any(not isinstance(rows, list) for rows in page.values())):
+        return False
+    components = data['components']
+    if any(not isinstance(c, dict) or c.get('componentType') != 'sheet' or not c.get('primitiveId') for c in components):
+        return False
+    sheets = {c['primitiveId'] for c in components}
+    native = page['components']
+    if (len(sheets) != len(components) or len(native) != len(components)
+            or any(not isinstance(c, dict) or c.get('componentType') != 'sheet' for c in native)
+            or {c.get('primitiveId') for c in native} != sheets):
         return False
     for kind in ("arcs", "buses", "circles", "objects", "polygons", "rectangles", "texts", "wires"):
         if kind not in page or page[kind] != []:
             return False
     if "pins" in page and page["pins"] != []:
         return False
-    sheets = {c.get("primitiveId") for c in data.get("components", []) if c.get("componentType") == "sheet"}
     # Native sheet attributes are preserved. Any other object ownership is unknown.
-    return all(a.get("ParentPrimitiveId") in sheets for a in page.get("attributes", []))
+    return all(isinstance(a, dict) and a.get("ParentPrimitiveId") in sheets for a in page['attributes'])

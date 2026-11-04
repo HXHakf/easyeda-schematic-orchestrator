@@ -4,6 +4,22 @@
 [easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent) 的 CLI、daemon 和 EDA Agent Connector。
 当前版本：**0.2.1**（MVP，离线已验证；现场全链路尚未验收）。
 
+本地可靠性改进：完整连接/NC/引用与网络 scope 对账、严格空白页清单、写前离线兼容探针、
+全部可见属性文字缺测阻断、显式多电源网络定义，以及只读 `diagnose`。
+用法与限制见 [可靠性改进说明](docs/RELIABILITY.md)。这些改动尚未发布新版本。
+
+## 实际绘制效果与修复
+
+![STM32F103C8T6 与 BMP280 原生原理图](docs/images/stm32-bmp280-native.png)
+
+上图来自保存、重开后重新导出的测试原理图：外部稳压3.3V、I²C、SWD、内部时钟，21件器件、97物理脚。
+来源及验证范围见 [效果图说明](docs/images/README.md)。这是下层 typed 链现场结果；
+ESO 标准全自动链仍未完成现场验收，未验证 PCB、固件或硬件功能。
+
+本次集成 nullable 属性/缺 bbox 的原生 SVG 测量、文字缺测拒绝、引脚别名一致性和 collect→prepare
+测量证据衔接。配套 [布局技能](extras/schematic-verified-layout/SKILL.md) 随仓库提供；
+上游浮点刚体校验修复以 [可应用补丁](patches/README.md) 附带，不自动替换运行中的工具。
+
 ## 让 AI 从这个链接开始
 
 将以下内容发给 Codex 或能读 GitHub、运行本机命令的 AI：
@@ -49,8 +65,10 @@ Windows、已有安装的更新、路径自定义和上游缺失组件处理见 
 - stage/collect 衔接真实器件、完整引脚/位号/SVG 测量到上游 lib-layout，再无损编译本轮实例。
 - 复验开始即使旧成功失效；失败、证据变化或复验中断不能继续交付为通过。
 
-**当前尚未完成真实 EDA 全链路验收。** 安装的上游 v1.16.0 存在十类/十一类快照兼容问题，
-会在放置前拒绝该组合。模拟流程、真实上游离线布局/compose/dry-run 不等于现场绘图通过。
+**当前尚未完成真实 EDA 全链路验收。** 本地开发构建 v1.16.1-dev.1 已复用上游 main 的
+十一类快照及引脚归属校验修复，原始现场快照和保存重开后的新快照均通过编译及 dry-run。
+旧版十类编译器仍会被放置前的实际快照探针拒绝；不只凭版本字符串判定。
+模拟流程、真实上游离线布局/compose/dry-run 不等于现场绘图通过。
 
 需求分类支持不等于任意型号已有自动拓扑。内置计划为 STM32F103C8T6 最小系统及 BMP280 参考；
 LDO 和其他型号可由宿主模型依据原厂资料编写 plan，再验证与执行。不能把 BMP280 当温湿度传感器。

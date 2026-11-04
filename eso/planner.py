@@ -60,6 +60,10 @@ def make_plan(contract):
     for i, pin in (((7, "8"), (8, "6")) if sensor_mode else ()):
         part(f"C{i}", "100nF 0603 X7R 16V", ["1", "2"], {"1": "+3V3", "2": "GND"}, "sensor", "sensor decoupling", ("U2", pin))
     return {"schema_version": 1, "contract_sha256": digest(contract), "template": "stm32f103-bmp280-v1" if sensor_mode else "stm32f103-minimum-v1",
+            "nets": [{'name': name, 'role': 'power' if name == '+3V3' else 'ground' if name == 'GND' else 'signal',
+                      'scope': 'global' if name in ('+3V3', 'GND') else 'local',
+                      **({'voltage_v': 3.3 if name == '+3V3' else 0} if name in ('+3V3', 'GND') else {})}
+                     for name in sorted({pin['net'] for component in components for pin in component['pins'] if pin['net'] is not None})],
             "components": components, "modules": [{"id": m, "core_ref": c, "title": t} for m, c, t in
                 (("power", "J1", "3V3 INPUT"), ("mcu", "U1", "STM32 MCU"), ("sensor", "U2", "BMP280 I2C"), ("debug", "J2", "SWD DEBUG")) if sensor_mode or m != "sensor"],
             "evidence": [{"url": ST, "section": "LQFP48 pinout, power supply scheme, HSI/SWD"},
@@ -68,8 +72,24 @@ def make_plan(contract):
                       *(["Address 0x76; CSB high; SDO low"] if sensor_mode else []), "All physical pins accounted for; library pinout still requires live verification"]}
 
 
+def net_definitions(plan):
+    """Explicit definitions cover every used net; old plans retain legacy semantics."""
+    names = {p['net'] for c in plan['components'] for p in c['pins'] if p['net'] is not None}
+    if 'nets' not in plan:
+        return {name: {'name': name, 'scope': 'global' if name in ('+3V3', 'GND') else 'local',
+                       'role': 'power' if name == '+3V3' else 'ground' if name == 'GND' else 'signal'} for name in names}
+    definitions = {n['name']: n for n in plan['nets']}
+    if len(definitions) != len(plan['nets']) or set(definitions) != names:
+        raise Refused('explicit net definitions must cover each used net exactly once')
+    for net in definitions.values():
+        if net['role'] == 'ground' and net['voltage_v'] != 0:
+            raise Refused('ground voltage must be zero relative to its domain reference')
+    return definitions
+
+
 def bind_plan(plan, bindings, target):
     validate(plan, "plan")
+    definitions = net_definitions(plan)
     refs = {c["ref"] for c in plan["components"]}
     if set(bindings) != refs:
         raise Refused("bindings must cover exactly the planned component references")
@@ -88,8 +108,8 @@ def bind_plan(plan, bindings, target):
                 pin["noConnected"] = True
             else:
                 net_id = "net-" + p["net"]
-                nets[net_id] = {"id": net_id, "name": p["net"], "scope": "global" if p["net"] in ("+3V3", "GND") else "local",
-                                "role": "power" if p["net"] == "+3V3" else "ground" if p["net"] == "GND" else "signal"}
+                definition = definitions[p['net']]
+                nets[net_id] = {"id": net_id, **{k: definition[k] for k in ('name', 'scope', 'role')}}
                 connections.append({"componentId": c["id"], "pinNumber": p["number"], "netId": net_id, "kind": "netlist"})
             pins.append(pin)
         components.append({"id": c["id"], "ref": c["ref"], "role": c["role"],

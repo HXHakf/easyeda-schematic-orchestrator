@@ -1,0 +1,165 @@
+diff --git a/.agents/skills/easyeda-agent/references/auto-layout-sop.md b/.agents/skills/easyeda-agent/references/auto-layout-sop.md
+index 0a0b5ab..a6a442c 100644
+--- a/.agents/skills/easyeda-agent/references/auto-layout-sop.md
++++ b/.agents/skills/easyeda-agent/references/auto-layout-sop.md
+@@ -174,6 +174,8 @@ typed 实测该姿态的 body/pins 及 `designator-geometry`；若文字位置
+ 拆区成功不代表对称、对齐等软目标已经达成；图面未达到的目标单列，不手填坐标掩盖算法结果。
+ 
+ 用户要求方向选择/面积压缩时，在源输入声明 optimization 与外围 allowedRotations，
++刚体来源校验对有限坐标使用既有 variant 的 1e-7 raw 容差，避免多次旋转/平移的浮点舍入误拒绝；
++身份、数值、镜像、引脚名称/网络、方向可用性和数量等离散字段仍精确比较，不允许借容差改图。
+ 由程序计算最多 4 个完整区内候选，再由 Z 型纸张层选择；详见数据契约的有限形态候选。
+ 每个候选都保持原直连引脚组，不因同名标签仍能联网而接受拆线瘦身。保留原合法基线，
+ 同时报告尝试数/停止原因、各区宽高面积、线长、最终页数与未改善区域，不只展示最好局部。
+diff --git a/internal/app/sch_layout_optimize.go b/internal/app/sch_layout_optimize.go
+index 473151e..bbf77be 100644
+--- a/internal/app/sch_layout_optimize.go
++++ b/internal/app/sch_layout_optimize.go
+@@ -148,7 +148,7 @@ func validateSchematicOptimizationEvidence(in SchematicLayoutInput, r *Schematic
+ 		quarters := int(math.Mod(got.Rotation-c.Measurement.Rotation+360, 360) / 90)
+ 		expected := plRotate(c.Measurement, quarters)
+ 		expected = plTranslate(expected, got.X-expected.X, got.Y-expected.Y)
+-		if !reflect.DeepEqual(got, expected) {
++		if !schematicRigidPlacementEqual(got, expected) {
+ 			return fmt.Errorf("optimized result is not a rigid source transform for %s", c.ID)
+ 		}
+ 		if c.ID == in.CoreComponentID && (got.X != 0 || got.Y != 0 || got.Rotation != c.Measurement.Rotation) {
+@@ -162,6 +162,34 @@ func validateSchematicOptimizationEvidence(in SchematicLayoutInput, r *Schematic
+ 	return validateSchCompositionNets(&p)
+ }
+ 
++// Coordinate arithmetic may associate differently across rotation and several
++// checkpoint translations. Keep every discrete field exact; tolerate only the
++// same finite raw-coordinate roundoff already used by variant provenance.
++func schematicRigidPlacementEqual(got, expected SchematicPlacement) bool {
++	near := schematicVariantNumberEqual
++	if !near(got.X, expected.X) || !near(got.Y, expected.Y) ||
++		!schematicVariantBoxEqual(got.BBox, expected.BBox) ||
++		len(got.TextBBoxes) != len(expected.TextBBoxes) || len(got.Pins) != len(expected.Pins) {
++		return false
++	}
++	got.TextBBoxes = append([]layoutBBox(nil), got.TextBBoxes...)
++	got.Pins = append([]powerLayoutPin(nil), got.Pins...)
++	for i, box := range got.TextBBoxes {
++		if !schematicVariantBoxEqual(box, expected.TextBBoxes[i]) {
++			return false
++		}
++		got.TextBBoxes[i] = expected.TextBBoxes[i]
++	}
++	for i, pin := range got.Pins {
++		if !near(pin.X, expected.Pins[i].X) || !near(pin.Y, expected.Pins[i].Y) {
++			return false
++		}
++		got.Pins[i].X, got.Pins[i].Y = expected.Pins[i].X, expected.Pins[i].Y
++	}
++	got.X, got.Y, got.BBox = expected.X, expected.Y, expected.BBox
++	return reflect.DeepEqual(got, expected)
++}
++
+ func optimizeSchematicLayout(in SchematicLayoutInput, baseline *SchematicLayoutResult, measured map[string]powerLayoutPlacement, members []string, hints map[string]SchematicLayoutPeripheral, opts SchematicLayoutOptimization, allowed map[string][]float64, budget *int, routingArg ...*schematicRoutingContext) *SchematicLayoutResult {
+ 	var routing *schematicRoutingContext
+ 	if len(routingArg) > 0 {
+diff --git a/internal/app/sch_layout_rigid_roundoff_test.go b/internal/app/sch_layout_rigid_roundoff_test.go
+new file mode 100644
+index 0000000..ccb45a0
+--- /dev/null
++++ b/internal/app/sch_layout_rigid_roundoff_test.go
+@@ -0,0 +1,98 @@
++package app
++
++import (
++	"math"
++	"reflect"
++	"testing"
++)
++
++func TestOptimizationRigidEvidenceToleratesOnlyCoordinateRoundoff(t *testing.T) {
++	for _, change := range []string{"roundoff", "shape", "pin-net", "text", "mirror", "value"} {
++		t.Run(change, func(t *testing.T) {
++			in := standaloneLayoutFixture()
++			out, err := PlanSchematicLayout(in)
++			if err != nil {
++				t.Fatal(err)
++			}
++			_, allowed, err := schematicOptimizationSettings(in)
++			if err != nil {
++				t.Fatal(err)
++			}
++			c := &out.Placements[1]
++			switch change {
++			case "roundoff":
++				c.BBox.MaxX += 1e-12
++			case "shape":
++				c.BBox.MaxX += 1e-4
++			case "pin-net":
++				c.Pins[0].Net = "CHANGED"
++			case "text":
++				c.TextBBoxes = append(c.TextBBoxes, layoutBBox{1000, 1000, 1010, 1010})
++			case "mirror":
++				c.Mirror = !c.Mirror
++			case "value":
++				c.Value = "CHANGED"
++			}
++			err = validateSchematicOptimizationEvidence(in, out, allowed)
++			if change == "roundoff" && err != nil {
++				t.Fatal(err)
++			}
++			if change != "roundoff" && err == nil {
++				t.Fatal("real mutation accepted", change)
++			}
++		})
++	}
++}
++
++func TestRigidPlacementCoordinateToleranceAndExactPinMetadata(t *testing.T) {
++	original := standaloneLayoutFixture().Components[1].Measurement
++	original.TextBBoxes = []layoutBBox{{100.1, 110.2, 120.3, 130.4}}
++	for _, change := range []string{"pin-roundoff", "text-roundoff", "pin-drift", "text-drift", "nan", "infinity", "pin-number", "pin-direction", "pin-coverage"} {
++		t.Run(change, func(t *testing.T) {
++			got := plTranslate(original, 0, 0)
++			switch change {
++			case "pin-roundoff":
++				got.Pins[0].X += 1e-12
++			case "text-roundoff":
++				got.TextBBoxes[0].MinX += 1e-12
++			case "pin-drift":
++				got.Pins[0].X += 2e-7
++			case "text-drift":
++				got.TextBBoxes[0].MinX += 2e-7
++			case "nan":
++				got.X = math.NaN()
++			case "infinity":
++				got.BBox.MaxX = math.Inf(1)
++			case "pin-number":
++				got.Pins[0].Number = "other"
++			case "pin-direction":
++				got.Pins[0].Rotation = directionNumber(90)
++			case "pin-coverage":
++				got.Pins = got.Pins[:1]
++			}
++			before := plTranslate(got, 0, 0)
++			pass := schematicRigidPlacementEqual(got, original)
++			if pass != (change == "pin-roundoff" || change == "text-roundoff") {
++				t.Fatal("wrong comparison", change)
++			}
++			if change != "nan" && !reflect.DeepEqual(got, before) {
++				t.Fatal("input mutated")
++			}
++		})
++	}
++}
++
++func TestRigidPlacementRepeatedRotationTranslationRoundoff(t *testing.T) {
++	original := SchematicPlacement{Designator: "R1", X: 0, Y: 0, BBox: layoutBBox{0.1, 0.1, 0.2, 0.2},
++		Pins:       []SchematicPin{{Number: "1", X: 0.1, Y: 0.1}, {Number: "2", X: 0.2, Y: 0.1}},
++		TextBBoxes: []layoutBBox{{0.1, 0.3, 0.2, 0.4}}}
++	turned := plRotate(original, 1)
++	got := plTranslate(plTranslate(turned, 0.2, 0.2), 0.3, 0.3)
++	expected := plTranslate(turned, got.X-original.X, got.Y-original.Y)
++	if reflect.DeepEqual(got, expected) {
++		t.Fatal("fixture must exercise floating point association")
++	}
++	if !schematicRigidPlacementEqual(got, expected) {
++		t.Fatal("legal repeated rigid transform refused")
++	}
++}

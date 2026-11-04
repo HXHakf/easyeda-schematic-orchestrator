@@ -19,6 +19,7 @@ def main(argv=None):
     p.add_argument("--version", action="version", version="EasyEDA Schematic Orchestrator " + __version__)
     p.add_argument("--easyeda", default="easyeda", help="upstream executable (never auto-installs)")
     p.add_argument("--evidence", help="private raw CLI receipts directory")
+    p.add_argument("--window", help="exact live connector window ID; still verifies project and document")
     sub = p.add_subparsers(dest="command", required=True)
     intake = sub.add_parser("intake", help="conservative seed extraction; agent semantic review still required")
     intake.add_argument("--text", required=True); intake.add_argument("--out", required=True)
@@ -40,6 +41,11 @@ def main(argv=None):
     v.add_argument("plan"); v.add_argument("--contract", required=True)
     discover = sub.add_parser("discover", help="read-only CLI/catalog/health capability investigation")
     discover.add_argument("--out", required=True)
+    diagnostic = sub.add_parser('diagnose', help='read-only partial-run diagnosis; never replay or remove locks')
+    diagnostic.add_argument('--run-dir', required=True)
+    diagnostic.add_argument('--snapshot', help='explicit offline components.list snapshot')
+    diagnostic.add_argument('--connectivity', help='explicit offline canonical connectivity')
+    diagnostic.add_argument('--live', action='store_true', help='read fresh live snapshot/connectivity; no writes')
     prepare = sub.add_parser("prepare", help="compile an upstream composition and dry-run; no project writes")
     for field in ("contract", "approval", "plan", "composition", "before", "run-dir"):
         prepare.add_argument("--" + field, required=True)
@@ -80,17 +86,24 @@ def main(argv=None):
         elif args.command == "validate-plan":
             validate_plan(load(args.plan), load(args.contract)); output = {"valid": True, "level": "offline-verified"}
         elif args.command == "discover":
-            output = EasyEDA(args.easyeda, args.evidence).discover(); dump(args.out, output)
+            output = EasyEDA(args.easyeda, args.evidence, window=args.window).discover(); dump(args.out, output)
+        elif args.command == 'diagnose':
+            from .diagnostics import diagnose
+            if args.live and (args.snapshot or args.connectivity):
+                raise Refused('choose --live or offline input files, not both')
+            output = diagnose(args.run_dir, snapshot=load(args.snapshot) if args.snapshot else None,
+                              connectivity=load(args.connectivity) if args.connectivity else None,
+                              adapter=EasyEDA(args.easyeda, args.evidence, window=args.window) if args.live else None)
         elif args.command == "status": output = load(Path(args.run_dir) / "bundle.json")
         elif args.command == "deliver": output = delivery_manifest(args.run_dir, args.out)
         elif args.command in ("stage", "collect"):
             from .bridge import DesignBridge
-            bridge = DesignBridge(EasyEDA(args.easyeda, args.evidence), args.run_dir)
+            bridge = DesignBridge(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir)
             if args.command == "stage":
                 output = bridge.stage(load(args.contract), load(args.approval), load(args.plan), load(args.bindings))
             else: output = bridge.collect()
         else:
-            workflow = Workflow(EasyEDA(args.easyeda, args.evidence), args.run_dir)
+            workflow = Workflow(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir)
             if args.command == "prepare":
                 output = workflow.prepare(load(args.contract), load(args.approval), load(args.plan), args.composition, args.before, args.placement_run)
             elif args.command == "execute": output = workflow.execute()

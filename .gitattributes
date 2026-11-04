@@ -1,0 +1,2 @@
+# Preserve patch context and LF bytes across Windows checkouts.
+patches/*.patch -text -whitespace

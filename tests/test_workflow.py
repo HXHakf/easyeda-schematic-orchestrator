@@ -32,6 +32,7 @@ def design():
 
 def blank():
     page = {k: [] for k in ("arcs", "buses", "circles", "objects", "pins", "polygons", "rectangles", "texts", "wires", "attributes")}
+    page['components'] = []
     return {"ok": True, "context": {"projectUuid": TARGET["project_uuid"], "documentUuid": TARGET["document_uuid"], "documentType": "schematic"},
             "result": {"components": [], "wires": [], "pagePrimitives": page}}
 

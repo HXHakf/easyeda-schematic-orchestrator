@@ -14,18 +14,21 @@ def result(envelope):
 
 
 class EasyEDA:
-    def __init__(self, binary="easyeda", evidence=None):
+    def __init__(self, binary="easyeda", evidence=None, *, window=None):
         found = shutil.which(binary)
         if not found:
             raise Refused("easyeda CLI missing: install upstream CLI or pass --easyeda /absolute/path")
         self.binary = str(Path(found).resolve())
         self.evidence = Path(evidence) if evidence else None
+        self.window = window
         self.counter = 0
 
     def run(self, args, *, target=None, json_output=True, timeout=90, check=True):
         argv = [self.binary, *map(str, args)]
         if target:
             argv += ["--project", target["project_uuid"], "--doc", target["document_uuid"]]
+            if self.window:
+                argv += ["--window", self.window]
         env = dict(os.environ, EASYEDA_NO_AUTOSTART="1")
         self.counter += 1
         started = now()

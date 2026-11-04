@@ -113,12 +113,18 @@ def observed_parts(plan, snapshot, bindings, target):
     return by_ref
 
 
-def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, svg_path):
+def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, svg_path, *, text_measurements=None):
     validate_plan(plan, contract)
     target = contract.get('target')
     if not target: raise Refused('measurement bridge requires an exact target')
     canonical = bind_plan(plan, bindings, target)
     parts = observed_parts(plan, snapshot, bindings, target)
+    # observed_parts has already checked each physical number/function. Preserve
+    # accepted library aliases consistently in derived IR and measured geometry.
+    for component in canonical['components']:
+        actual_pins = {str(p['pinNumber']): p for p in parts[component['ref']]['pins']}
+        for pin in component['pins']:
+            pin['name'] = str(actual_pins[pin['number']]['pinName'])
     if designators.get('projectId') != target['project_uuid'] or designators.get('documentId') != target['document_uuid']:
         raise Refused('designator geometry target mismatch')
     rows = designators.get('designators', [])
@@ -137,6 +143,11 @@ def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, s
             paper['minY'] <= border['minY'] < border['maxY'] <= paper['maxY']):
         raise Refused('inner sheet border must lie within the measured paper')
     measurements = []
+    attributes = result(snapshot)['pagePrimitives']['attributes']
+    text_boxes, text_evidence = None, None
+    if text_measurements is not None:
+        from .native_text import validate
+        text_boxes, text_evidence = validate(snapshot, svg_path, text_measurements)
     for c in plan['components']:
         actual = parts[c['ref']]; label = labels[actual['primitiveId']]
         if (label.get('key') != 'Designator' or label.get('visible') is not True
@@ -148,6 +159,24 @@ def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, s
              'mirror': actual.get('mirror'), 'bbox': bbox(actual.get('bbox'), c['ref']),
              'textBboxes': [bbox(label.get('bbox'), c['ref'] + '.Designator')], 'pins': []}
         if type(p['mirror']) is not bool: raise Refused('measured mirror state must be boolean')
+        owners = {actual['primitiveId']} | {pin['primitiveId'] for pin in actual['pins']}
+        if text_boxes is not None:
+            if not any(a['primitiveId'] == label['id'] and a['ParentPrimitiveId'] == actual['primitiveId']
+                       and a.get('Key') == 'Designator' for a in attributes):
+                raise Refused(c['ref'] + ': native Designator ownership differs from dedicated geometry')
+            if label['id'] not in {t['id'] for t in text_measurements['texts']}:
+                raise Refused(c['ref'] + ': native visible Designator measurement missing')
+            p['textBboxes'] = [box for owner in owners for box in text_boxes.get(owner, [])]
+        for attribute in attributes:
+            if attribute['ParentPrimitiveId'] not in owners: continue
+            if text_boxes is not None: continue
+            visibility = [attribute.get(k) for k in ('KeyVisible', 'ValueVisible')]
+            if any(type(v) is not bool for v in visibility):
+                raise Refused(c['ref'] + ': attribute visibility unknown: ' + attribute['primitiveId'])
+            # The dedicated command measures only the visible Designator value.
+            if attribute['primitiveId'] == label['id'] and visibility == [False, True]: continue
+            if any(visibility):
+                p['textBboxes'].append(bbox(attribute.get('bbox'), c['ref'] + '.' + attribute['primitiveId']))
         pins = {str(x['pinNumber']): x for x in actual['pins']}
         for desired in c['pins']:
             obs = pins[desired['number']]
@@ -181,9 +210,10 @@ def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, s
                                'netPolicies': policies, 'peripherals': peripherals})
     # Raw snapshot is unchanged. Pin net annotations below are authored target
     # intent in a derived source, never substituted as observed readback.
-    return {'schemaVersion': 1, 'connectivity': canonical, 'sheet': paper, 'sheetBorder': border,
+    source = {'schemaVersion': 1, 'connectivity': canonical, 'sheet': paper, 'sheetBorder': border,
             'keepouts': [bbox(k.get('bbox'), 'keepout') for k in geometry.get('keepouts', [])],
             'measurements': measurements, 'layoutModules': layout_modules, 'maxCandidates': 20000}
+    return source
 
 
 class DesignBridge:
@@ -201,11 +231,8 @@ class DesignBridge:
         self.adapter.guard(target)
         before = self.adapter.snapshot(target)
         if not is_blank(result(before)): raise Refused('initial placement requires a blank test page')
-        version = self.adapter.run(['--version'], json_output=False)['stdout'].strip()
-        # Fail before any placement on the exact schema mismatch reproduced in
-        # our pinned release. Never strip pins from the original snapshot.
-        if version == 'easyeda-agent v1.16.0' and 'pins' in result(before)['pagePrimitives']:
-            raise Refused('upstream v1.16.0 compose rejects this 11-class snapshot; use a verified compatible upstream build before placement')
+        from .compatibility import probe_snapshot
+        probe_snapshot(self.adapter, before, target, self.root / 'compatibility')
         seen = {}
         for c in plan['components']:
             b = bindings[c['ref']]
@@ -284,9 +311,17 @@ class DesignBridge:
         # Verify no edit occurred while collecting separate getter results.
         fresh = self.adapter.snapshot(target)
         if snapshot_fingerprint(snapshot) != snapshot_fingerprint(fresh): raise Refused('target changed during measurement collection')
-        source = build_layout_input(contract, plan, bindings, snapshot, labels, sheet, svg)
+        from .native_text import needs_render, render
+        text = render(svg) if needs_render(snapshot) else None
+        if text is not None:
+            from .native_text import validate
+            dump(self.root / 'native-text-measurements.json', text)
+            _, coverage = validate(snapshot, svg, text)
+            dump(self.root / 'native-text-coverage.json', coverage)
+        source = build_layout_input(contract, plan, bindings, snapshot, labels, sheet, svg, text_measurements=text)
         dump(self.root / 'layout-input.json', source)
         names = ('measured-snapshot.json', 'designators.json', 'measured-sheet.svg', 'sheet-export.json', 'sheet-geometry.json', 'layout-input.json')
+        if text is not None: names += ('native-text-measurements.json', 'native-text-coverage.json')
         dump(self.root / 'measurement-evidence.json', {'files': {n: file_digest(self.root / n) for n in names},
                                                      'authored_net_intent': True, 'original_snapshot_modified': False})
         self.adapter.run(['sch', 'lib-layout', '--from', self.root / 'layout-input.json', '--out', self.root / 'composition.json'], json_output=False, timeout=120)

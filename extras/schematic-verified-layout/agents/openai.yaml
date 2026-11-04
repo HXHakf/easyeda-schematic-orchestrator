@@ -1,0 +1,6 @@
+interface:
+  display_name: "可验证原理图绘制"
+  short_description: "定义电路→实测几何→模块化布局→独立校验→可读性门→受保护写入→保存重开验证，含标签式批量布线与卡死恢复"
+  default_prompt: "使用 $schematic-verified-layout，先用程序定义并验证电路，再通过 easyeda-agent 绘制原理图并核对保存重开结果。"
+policy:
+  allow_implicit_invocation: true
