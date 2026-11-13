@@ -75,8 +75,8 @@ def launcher_text(python, windows=None):
     if windows:
         if any(c in str(python) for c in '%\r\n"'):
             raise ValueError("Windows runtime path contains unsupported command characters")
-        return f'@rem {OWNER}\n@"{python}" -m eso.cli %*\n'
-    return f'#!/bin/sh\n# {OWNER}\nexec {shlex.quote(str(python))} -m eso.cli "$@"\n'
+        return f'@rem {OWNER}\n@"{python}" -I -m eso.cli %*\n'
+    return f'#!/bin/sh\n# {OWNER}\nexec {shlex.quote(str(python))} -I -m eso.cli "$@"\n'
 
 
 def install(source, skill, runtime, bin_dir, replace=False, dry_run=False):
@@ -97,7 +97,7 @@ def install(source, skill, runtime, bin_dir, replace=False, dry_run=False):
     if not python.exists():
         venv.EnvBuilder(with_pip=True).create(runtime / "venv")
     subprocess.run([str(python), "-m", "pip", "install", "--disable-pip-version-check", str(source)], check=True)
-    subprocess.run([str(python), "-m", "eso.cli", "--version"], check=True)
+    subprocess.run([str(python), "-I", "-m", "eso.cli", "--version"], check=True)
     backup = None
     with tempfile.TemporaryDirectory(prefix=".eso-stage-", dir=skill.parent) as directory:
         staged = Path(directory) / NAME

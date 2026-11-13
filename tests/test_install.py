@@ -7,6 +7,7 @@ import subprocess
 import tempfile
 import sys
 import unittest
+import venv
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -123,6 +124,44 @@ class InstallTests(unittest.TestCase):
                                     capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_launcher_uses_installed_module_from_other_working_directories(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runtime = root / "runtime"
+            venv.EnvBuilder(with_pip=False).create(runtime)
+            python = runtime / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+            purelib = subprocess.check_output([
+                str(python), "-I", "-c", "import sysconfig;print(sysconfig.get_path('purelib'))"
+            ], text=True).strip()
+            locations = {
+                "installed": Path(purelib),
+                "cwd": root / "project",
+                "environment": root / "extra-modules",
+            }
+            for name, location in locations.items():
+                package = location / "eso"
+                package.mkdir(parents=True)
+                (package / "__init__.py").write_text("")
+                (package / "cli.py").write_text(
+                    "import json,sys\nprint(json.dumps({'source': " + repr(name)
+                    + ", 'args': sys.argv[1:]}))\n"
+                )
+            launcher = root / ("eso.cmd" if os.name == "nt" else "eso")
+            launcher.write_text(installer.launcher_text(python))
+            if os.name != "nt":
+                launcher.chmod(0o755)
+            command = [str(launcher), "a b", "--json"]
+            if os.name == "nt":
+                command = 'cmd /d /s /c "' + subprocess.list2cmdline(command) + '"'
+            environment = dict(os.environ, PYTHONPATH=str(locations["environment"]))
+            for cwd in (locations["cwd"], root):
+                with self.subTest(cwd=cwd):
+                    result = subprocess.run(command, cwd=cwd, env=environment,
+                                            capture_output=True, text=True, check=True)
+                    self.assertEqual(json.loads(result.stdout), {
+                        "source": "installed", "args": ["a b", "--json"]
+                    })
+
     @unittest.skipIf(installer.os.name == "nt", "POSIX quoting check")
     def test_launcher_quotes_runtime_paths_and_preserves_arguments(self):
         with tempfile.TemporaryDirectory(prefix="eso space ' ") as directory:
@@ -134,7 +173,7 @@ class InstallTests(unittest.TestCase):
             launcher.write_text(installer.launcher_text(python))
             launcher.chmod(0o755)
             result = subprocess.run([str(launcher), "a b", "$(false)"], capture_output=True, text=True, check=True)
-            self.assertEqual(result.stdout.splitlines(), ["-m", "eso.cli", "a b", "$(false)"])
+            self.assertEqual(result.stdout.splitlines(), ["-I", "-m", "eso.cli", "a b", "$(false)"])
             with self.assertRaisesRegex(ValueError, "unsupported"):
                 installer.launcher_text(Path("C:/percent%/python.exe"), windows=True)
 

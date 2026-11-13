@@ -6,13 +6,10 @@ from .core import Refused, digest
 
 
 @contextmanager
-def target_lock(target):
-    if not target or not target.get('project_uuid') or not target.get('document_uuid'):
-        raise Refused('target lock requires exact project and document')
-    directory = Path(os.environ.get('ESO_LOCK_DIR', Path.home() / '.local/share/eso/locks'))
-    directory.mkdir(parents=True, exist_ok=True)
-    key = digest([target['project_uuid'], target['document_uuid']])
-    with (directory / (key + '.lock')).open('a+b') as handle:
+def file_lock(path, *, blocking=False, busy_message='file is busy in another ESO operation'):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open('a+b') as handle:
         if os.name == 'nt':
             import msvcrt
             handle.seek(0, 2)
@@ -21,9 +18,10 @@ def target_lock(target):
                 handle.flush()
             handle.seek(0)
             try:
-                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                mode = msvcrt.LK_LOCK if blocking else msvcrt.LK_NBLCK
+                msvcrt.locking(handle.fileno(), mode, 1)
             except OSError as error:
-                raise Refused('target is busy in another ESO operation') from error
+                raise Refused(busy_message) from error
             try:
                 yield
             finally:
@@ -32,10 +30,21 @@ def target_lock(target):
         else:
             import fcntl
             try:
-                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                mode = fcntl.LOCK_EX if blocking else fcntl.LOCK_EX | fcntl.LOCK_NB
+                fcntl.flock(handle, mode)
             except OSError as error:
-                raise Refused('target is busy in another ESO operation') from error
+                raise Refused(busy_message) from error
             try:
                 yield
             finally:
                 fcntl.flock(handle, fcntl.LOCK_UN)
+
+
+@contextmanager
+def target_lock(target):
+    if not target or not target.get('project_uuid') or not target.get('document_uuid'):
+        raise Refused('target lock requires exact project and document')
+    directory = Path(os.environ.get('ESO_LOCK_DIR', Path.home() / '.local/share/eso/locks'))
+    key = digest([target['project_uuid'], target['document_uuid']])
+    with file_lock(directory / (key + '.lock'), busy_message='target is busy in another ESO operation'):
+        yield

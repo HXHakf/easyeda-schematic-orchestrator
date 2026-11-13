@@ -54,6 +54,11 @@ eso text-restore-apply --run-dir runs/final --preview runs/text-preview.json --o
 执行证据目录必须新建。任何写入前先使当前验收状态失效，typed attribute-move 完成后在同一目标锁内运行完整 verify。
 失败保留动作、返回与新回读。该工具恢复已测得的偏移，图面净空仍需新导图和补充审计。
 
+现场曾出现编辑后图签系统更新时间延迟刷新，使刚生成的预览过期；完整基线检查正确拒绝写入。
+遇到这种已确认的系统元数据变化，先保留前后快照并定位差异，在当前授权内保存并取得稳定的新基线，
+再重新生成预览。不得忽略时间字段或放宽完整快照比较；电路、身份或文字发生实质变化时按既有规则重新核验。
+后续真实单项恢复及完整保存重开复验通过，范围见 [恢复验收](../docs/plans/recovery-live-acceptance.md)。
+
 ## 有限布局候选比较
 
 为有限候选逐个运行既有 target/scene 和 strict readability 审计，再登记以下 manifest。

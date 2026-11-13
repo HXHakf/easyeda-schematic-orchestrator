@@ -1,4 +1,5 @@
 import hashlib
+import errno
 import json
 import os
 import sys
@@ -26,7 +27,7 @@ def load(path):
                       parse_constant=lambda x: (_ for _ in ()).throw(Refused(f"invalid number {x}")))
 
 
-def dump(path, data):
+def dump(path, data, *, exclusive=False):
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     encoded = json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
@@ -37,7 +38,15 @@ def dump(path, data):
             f.write(encoded)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(temporary, p)
+        if exclusive:
+            from .locking import file_lock
+            # Keep the lock inode stable across retries and concurrent publishers.
+            with file_lock(p.with_name(p.name + '.lock'), blocking=True):
+                if os.path.lexists(p):
+                    raise FileExistsError(errno.EEXIST, os.strerror(errno.EEXIST), str(p))
+                os.replace(temporary, p)
+        else:
+            os.replace(temporary, p)
     finally:
         if temporary and os.path.exists(temporary):
             os.unlink(temporary)

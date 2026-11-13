@@ -2,14 +2,14 @@
 
 面向嘉立创 EDA 专业版的 AI 原理图设计工作流 Skill，复用
 [easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent) 的 CLI、daemon 和 EDA Agent Connector。
-当前版本：**0.5.0.dev8**（开发版，NPN/NMOS 与 MCU 双支路样例的 EDA 及图面验收通过，严格电气依据仍有缺项）。
+当前版本为 **0.5.0.dev9**（开发版，NPN/NMOS 与 MCU 双支路样例的 EDA 及图面验收通过，严格电气依据仍有缺项）。
 
 本地可靠性改进：完整连接/NC/引用与网络 scope 对账、严格空白页清单、写前离线兼容探针、
 全部可见属性文字缺测阻断、显式多电源网络定义，以及只读 `diagnose`。
 用法与限制见 [可靠性改进说明](docs/RELIABILITY.md)。
 
 本开发版加入初始放置恢复、按验收轮次归档、目标互斥，以及目录核验、文字恢复、有限布局候选比较和分层证据索引。
-使用方式见 [辅助工具](references/workflow-assistance.md)。严格电气依据、新增写入路径的现场验收及完整效率对照仍待完成。
+使用方式见 [辅助工具](references/workflow-assistance.md)。目标互斥、实测文字恢复和真实缺件补放已完成限定现场验收，见 [恢复验收](docs/plans/recovery-live-acceptance.md)。严格电气依据、严格 v2 真实生成现场链及完整效率对照仍待完成。
 
 ## 实际绘制效果与修复
 

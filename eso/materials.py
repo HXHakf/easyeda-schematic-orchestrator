@@ -385,15 +385,9 @@ class MaterialStore:
         sha = digest(record)
         dest = self._path(sha, "records")
         dest.parent.mkdir(exist_ok=True)
-        # Exclusive creation never overwrites an immutable record.
+        # Publish complete bytes atomically and never overwrite an immutable record.
         try:
-            import json
-
-            with dest.open("x", encoding="utf-8") as stream:
-                stream.write(
-                    json.dumps(record, ensure_ascii=False, allow_nan=False, indent=2)
-                    + "\n"
-                )
+            dump(dest, record, exclusive=True)
         except FileExistsError:
             if load(dest) != record:
                 raise Refused("corrupt immutable cache record")
@@ -414,7 +408,11 @@ class MaterialStore:
 
     def withdrawal(self, sha):
         path = self._path(sha, "withdrawals")
-        return load(path) if path.is_file() else None
+        if not path.is_file():
+            return None
+        record = load(path)
+        shape(record, obj({"reason": TEXT, "withdrawn_at": TEXT}, ("reason", "withdrawn_at")))
+        return record
 
     def check(self, sha, record):
         if digest(record) != sha or self.get(sha) != record:
@@ -442,11 +440,14 @@ class MaterialStore:
         if not isinstance(reason, str) or not reason.strip():
             raise Refused("withdrawal reason required")
         self._ensure()
-        if not self.withdrawal(sha):
+        try:
             dump(
                 self._path(sha, "withdrawals"),
                 {"reason": reason, "withdrawn_at": now()},
+                exclusive=True,
             )
+        except FileExistsError:
+            pass
         return self.withdrawal(sha)
 
     def list(self, **identity):

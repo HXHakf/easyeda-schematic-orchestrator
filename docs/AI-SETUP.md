@@ -39,7 +39,10 @@ py -3 scripts/install.py
 生成 launcher；不下载上游二进制、不安装/替换 Connector、不访问 EDA，不修改 shell 配置。
 完整 Skill 包含 `extras/schematic-verified-layout` 的布局规范及附加审计工具，文字测量复用
 随 Python 包分发的 `eso.svg_text`。wheel 单独提供核心 CLI；完整 Skill 使用本安装器。
-默认输出位置：
+安装器生成的 launcher 使用 Python 隔离模式，从专用环境加载已安装版本。开发仓库源码时使用
+`PYTHONPATH=. python -m eso.cli`；检查部署版本时调用安装器输出的 launcher。依据见
+[Python 隔离模式文档](https://docs.python.org/3.13/using/cmdline.html#cmdoption-I)。
+默认输出位置为下表。
 
 | 内容 | 位置（相对用户主目录） |
 |---|---|
