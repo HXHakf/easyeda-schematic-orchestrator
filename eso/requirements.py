@@ -123,7 +123,8 @@ def evaluate(requirements, require_target=False):
         if profile != 'generic':
             need('input_voltage_v', '决定电源与器件电气条件', 5)
             need('power_source', '区分稳压、USB 与电池输入', 5)
-        default('passive_package', '0603', '初始装配封装候选，需在设计摘要确认', ('circuit_type',))
+        if 'knowledge' not in v:
+            default('passive_package', '0603', '初始装配封装候选，需在设计摘要确认', ('circuit_type',))
     if profile in ('mcu-minimum', 'mcu-sensor'):
         need('mcu', '完整型号与封装决定引脚、供电和时钟', 10)
         if str(v.get('mcu', '')).upper().startswith('STM32'):
@@ -170,10 +171,18 @@ def evaluate(requirements, require_target=False):
         tr_ns = 0.8473 * v['pullup_ohm'] * v['bus_capacitance_pf'] / 1000
         limit = 1000 if v['bus_speed_hz'] <= 100000 else 300
         if tr_ns > limit: errors.append(f'I2C RC 上升时间估算 {tr_ns:.1f}ns 超过 {limit}ns；需调整参数')
+    knowledge_report = None
+    if 'knowledge' in v:
+        if profile != 'generic':
+            errors.append('知识库首版只接入 generic 独立电路，不能覆盖 MCU/LDO 参考设计')
+        from .knowledge import assess_knowledge
+        knowledge_report = assess_knowledge(v['knowledge'])
+        questions.extend(knowledge_report['questions'])
     v['default_provenance'] = defaults
     return {'values': v, 'defaults': defaults, 'questions': questions, 'next_questions': questions[:3],
             'selection_tasks': selections, 'errors': errors, 'ready': not questions and not selections and not errors,
-            'semantic_review_required': True, 'profile': profile}
+            'semantic_review_required': True, 'profile': profile,
+            **({'knowledge': knowledge_report} if knowledge_report is not None else {})}
 
 
 def contract_from(requirements, target=None):
@@ -182,6 +191,8 @@ def contract_from(requirements, target=None):
     contract = {'schema_version': 1, 'requirements': report['values'], 'defaults': report['defaults'],
                 'scope': 'test-project-only', 'acceptance': ['exact-pin-net-nc', 'native-drc', 'structural-check',
                 'bridge-check', 'geometry', 'save-reload-readback'], 'exclusions': ['pcb', 'firmware', 'hardware-validation']}
+    if 'knowledge' in report:
+        contract['knowledge_evidence'] = report['knowledge']['evidence']
     if target:
         if target['project_name'] != report['values'].get('target_project'): raise Refused('target project differs from requirements')
         contract['target'] = target
@@ -206,6 +217,17 @@ def contract_summary(contract):
         lines += ['', '其他约束：', *[f'- {x}' for x in r['constraints']]]
     if contract['defaults']:
         lines += ['', '以下为可修改的候选默认值：', *[f"- {labels.get(d['field'], d['field'])}：{translations.get(str(d['value']), d['value'])}；{d['reason']}" for d in contract['defaults'] if d['field'] != 'circuit_type']]
+    if 'knowledge' in r:
+        lines += ['', '知识库电路与资料依据：']
+        for c in r['knowledge']['circuits']:
+            lines += [f"- {c['id']}：{c['topic']} / {c['variant']}",
+                      '- 端口：' + str(c['ports']), '- 工作条件：' + str(c['parameters'])]
+        for m in r['knowledge']['materials']:
+            lines.append(f"- 器件 {m['id']}：{m['model']} / {m['package']}；手册 {m['datasheet']['revision']}，审阅者 {m['datasheet']['reviewed_by']}")
+        for m in r['knowledge']['materials']:
+            lines += [f"- {m['id']} 参数及工作限值：{m['facts']}", f"- 手册定位：{m['datasheet']['path']} / {m['fact_sections']}"]
+        lines += ['- 参数核验：' + str(contract['knowledge_evidence']['calculations']),
+                  '- 仅限静态电阻负载、共地、默认关闭；参数、温度与手册语义需审阅。']
     target = contract.get('target')
     lines += ['', f"执行目标：{target['project_name']}（已内部绑定具体页面）。" if target else '执行目标：未绑定；当前仅为离线草稿。',
               '', '验收：逐脚连接/NC、规则、桥接和几何检查，保存并重载后重新回读。',

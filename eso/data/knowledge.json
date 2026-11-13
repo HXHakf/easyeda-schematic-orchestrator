@@ -1,0 +1,921 @@
+{
+  "schema_version": 2,
+  "purpose": "嘉立创主来源与辅助资料的唯一来源表及电路主题目录",
+  "review_date": "2026-11-13",
+  "sources": [
+    {
+      "id": "easyeda-blocks",
+      "title": "easyeda-agent 标准电路块",
+      "kind": "structured_circuit_templates",
+      "url": "https://github.com/zhoushoujianwork/easyeda-agent/blob/69af00c0db3960757bff36a68edb286adcd64458/.agents/skills/easyeda-agent/references/standard-blocks-contributing.md",
+      "assets_url": "https://github.com/zhoushoujianwork/easyeda-agent/tree/69af00c0db3960757bff36a68edb286adcd64458/internal/blocks/data",
+      "revision": "69af00c0db3960757bff36a68edb286adcd64458",
+      "review_scope": "读取贡献指南、schema 及三个具体 JSON 块；未执行真实 EDA",
+      "recommended_use": "按唯一资产 ID 为嘉立创主题补充拓扑，完成适用条件与 ESO 格式适配",
+      "license": "MIT at repository root; inspect referenced external materials separately",
+      "license_url": "https://github.com/zhoushoujianwork/easyeda-agent/blob/69af00c0db3960757bff36a68edb286adcd64458/LICENSE",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc_related_community",
+      "role": "auxiliary"
+    },
+    {
+      "id": "easyeda-modules",
+      "title": "easyeda-agent 公共复用模块库",
+      "kind": "module_catalog",
+      "url": "https://github.com/zhoushoujianwork/easyeda-agent/blob/69af00c0db3960757bff36a68edb286adcd64458/.agents/skills/easyeda-agent/references/reusable-module-library.md",
+      "catalog_url": "https://github.com/zhoushoujianwork/easyeda-agent/blob/69af00c0db3960757bff36a68edb286adcd64458/.agents/skills/easyeda-agent/library/modules/catalog.json",
+      "revision": "69af00c0db3960757bff36a68edb286adcd64458",
+      "review_scope": "读取分层与成熟度说明、目录和蜂鸣器拓扑；目录标签不是独立电气认证",
+      "recommended_use": "为已有主题引用模块资产及其成熟度证据",
+      "license": "MIT at repository root; inspect provenance of individual assets",
+      "license_url": "https://github.com/zhoushoujianwork/easyeda-agent/blob/69af00c0db3960757bff36a68edb286adcd64458/LICENSE",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc_related_community",
+      "role": "auxiliary"
+    },
+    {
+      "id": "nexperia-bjt-handbook",
+      "title": "Bipolar Transistor Application Handbook",
+      "kind": "manufacturer_handbook",
+      "url": "https://www.nexperia.com/products/bipolar-transistors/",
+      "english_pdf": "https://assets.nexperia.com/documents/brochure/nexperia_BJT_Handbook_V2_240425_lowres.pdf",
+      "chinese_pdf": "https://assets.nexperia.com/documents/brochure/nexperia_BJT_Handbook_CHINESE_V2_240515.pdf",
+      "revision": "V2 filenames dated 2024-04-25 and 2024-05-15; Chinese edition page equivalence not checked",
+      "locators": [
+        "English table of contents: PDF page 6 (1-based)",
+        "Chapters 3 Data sheet parameters, 4 Thermal considerations, 7 Application examples"
+      ],
+      "review_scope": "英文目录与部分正文已读；中文链接来自官网，全文因体积限制未展开",
+      "recommended_use": "为嘉立创三极管主题补充参数与应用条件依据",
+      "redistribution_review": "未核实原文再分发许可；本地项目保存索引与原创摘要",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "external",
+      "role": "auxiliary"
+    },
+    {
+      "id": "nexperia-an11158",
+      "title": "Understanding power MOSFET data sheet parameters",
+      "kind": "manufacturer_application_note",
+      "url": "https://assets.nexperia.com/documents/application-note/AN11158.pdf",
+      "revision": "7.0",
+      "document_date": "2025-02-18",
+      "locators": [
+        "PDF pages 11–13 (1-based): threshold voltage and on-state resistance",
+        "PDF page 3 (1-based): quick reference parameters and conditions"
+      ],
+      "review_scope": "已读参数说明和测试条件，未对具体候选 MOS 型号做选型认证",
+      "recommended_use": "为嘉立创 MOS 主题补充栅压、导通电阻及热条件核验依据",
+      "redistribution_review": "原文版权保留；本轮仅索引与摘要",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "external",
+      "role": "auxiliary"
+    },
+    {
+      "id": "nexperia-an10441",
+      "title": "Level shifting techniques in I2C-bus design",
+      "kind": "manufacturer_application_note",
+      "url": "https://assets.nexperia.com/documents/application-note/AN10441.pdf",
+      "revision": "2",
+      "document_date": "2020-02-10",
+      "locators": [
+        "Section 2 and 2.1, Figure 1, PDF page 2 (1-based)",
+        "Section 2.1.1, PDF page 3 (1-based)"
+      ],
+      "review_scope": "读取连接、工作原理和标准/快速模式适用范围",
+      "recommended_use": "补充 I2C 开漏电平转换的连接与适用范围依据",
+      "redistribution_review": "原文版权保留；本轮仅索引与摘要",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "external",
+      "role": "auxiliary"
+    },
+    {
+      "id": "ti-analog-circuits",
+      "title": "TI Analog Circuits and Circuit Cookbooks",
+      "kind": "manufacturer_circuit_collection",
+      "url": "https://www.ti.com/en-us/design-development/analog-circuits",
+      "review_scope": "读取总目录、子电路分类和配套资源说明；未逐项审阅子电路",
+      "recommended_use": "补充嘉立创运放、检测和 ADC 主题中的计算及仿真依据",
+      "redistribution_review": "各子电路、文档和仿真资源需分别核查；默认保留链接",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "external",
+      "role": "auxiliary"
+    },
+    {
+      "id": "adi-circuits-from-lab",
+      "title": "ADI Circuits from the Lab",
+      "kind": "manufacturer_reference_design_collection",
+      "url": "https://www.analog.com/en/resources/reference-designs/circuits-from-the-lab.html",
+      "review_scope": "读取官方项目说明；厂商测试结论属于原参考设计条件",
+      "recommended_use": "补充嘉立创模拟及混合信号主题中的设计和验证依据",
+      "redistribution_review": "设计文件按各项附带条款处理；默认保留链接",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "external",
+      "role": "auxiliary"
+    },
+    {
+      "id": "atopile",
+      "title": "atopile",
+      "kind": "electronics_as_code_framework",
+      "url": "https://github.com/atopile/atopile",
+      "registry_url": "https://packages.atopile.io",
+      "review_scope": "项目 README 与仓库许可；未验证 registry 中具体包",
+      "recommended_use": "参考模块接口、约束和版本管理设计",
+      "license": "MIT at root; third-party packages require separate review",
+      "license_url": "https://github.com/atopile/atopile/blob/main/LICENSE",
+      "access_notes": "README 的 /atopile/essentials/4-packages 指南路径本次返回 404",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "external",
+      "role": "auxiliary"
+    },
+    {
+      "id": "tscircuit",
+      "title": "tscircuit/core",
+      "kind": "electronics_as_code_framework",
+      "url": "https://github.com/tscircuit/core",
+      "review_scope": "README 的 TSX/组件连接与 Circuit JSON 输出示例，仓库许可",
+      "recommended_use": "参考可组合连接表达；当前不引入第二套执行后端",
+      "license": "MIT at root; package and data licenses reviewed separately",
+      "license_url": "https://github.com/tscircuit/core/blob/main/LICENSE",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "external",
+      "role": "auxiliary"
+    },
+    {
+      "id": "jlc-bjt-selection",
+      "title": "三极管选型：基极驱动、饱和开关与小信号放大",
+      "kind": "publisher_educational_circuit_reference",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/bjt-selection.html",
+      "recommended_use": "NPN/PNP 工作条件与具体器件资料索引",
+      "review_scope": "已读正文与部分参数说明；具体模板仍需原厂核验",
+      "redistribution_review": "未核实整页转载许可；保存链接与原创摘要",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-mos-selection",
+      "title": "MOS 管选型",
+      "kind": "publisher_educational_circuit_reference",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/mosfet-selection.html",
+      "recommended_use": "MOS 开关驱动与参数条件知识卡",
+      "review_scope": "已读需求、型号实例、实际栅压与 RDS(on) 说明",
+      "redistribution_review": "未核实整页转载许可；保存链接与原创摘要",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-load-switch-circuit",
+      "title": "小电压控制大电压电路",
+      "kind": "publisher_educational_circuit_reference",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/practical-circuit/low-voltage-cintrol-high-voltage.html",
+      "recommended_use": "开关拓扑候选，参数规则另行核验",
+      "review_scope": "已读正文；1.5倍阈值的经验表述和工作区术语不可直接作为通用规则",
+      "redistribution_review": "未核实整页转载许可；保存链接与原创摘要",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-reverse-polarity",
+      "title": "电源防反接电路",
+      "kind": "publisher_educational_circuit_reference",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/practical-circuit/anti-reverse-circuit.html",
+      "recommended_use": "按保护方法拆分模板候选",
+      "review_scope": "已读正文分类；未对图中拓扑及器件做完整校核",
+      "redistribution_review": "未核实整页转载许可；保存链接与原创摘要",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-adc-divider",
+      "title": "ADC 分压电阻选择",
+      "kind": "publisher_educational_circuit_reference",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/practical-circuit/adc-divider-res.html",
+      "recommended_use": "ADC 分压及采样输入阻抗知识卡",
+      "review_scope": "已读采样过程与外部电阻关联说明",
+      "redistribution_review": "未核实整页转载许可；保存链接与原创摘要",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-typec-rd",
+      "title": "为什么 Type-C 接口要加 5.1K 电阻下拉",
+      "kind": "publisher_educational_circuit_reference",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/practical-circuit/typec-5.1k.html",
+      "recommended_use": "CC 与端口角色知识卡的入门索引",
+      "review_scope": "已读正文；具体角色和数值条件需回到规范",
+      "redistribution_review": "未核实整页转载许可；保存链接与原创摘要",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-bjt-gpio-error",
+      "title": "三极管基极直连 GPIO 故障案例",
+      "kind": "publisher_educational_circuit_reference",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/design-error-solve/error-01.html",
+      "recommended_use": "基极输入限流反例",
+      "review_scope": "已读案例；未独立复现作者所述硬件故障",
+      "redistribution_review": "未核实整页转载许可；保存链接与原创摘要",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-native-reuse-module",
+      "title": "嘉立创EDA专业版原生复用模块",
+      "kind": "native_eda_feature_documentation",
+      "url": "https://prodocs.lceda.cn/cn/schematic/place-reuse-block/",
+      "recommended_use": "经验证电路模板的原生模块载体",
+      "review_scope": "已读官方说明；未验证现有 ESO/CLI 接口兼容",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-ai-knowledge-base",
+      "title": "AI 本地知识库",
+      "kind": "rag_tool_not_circuit_corpus",
+      "url": "https://github.com/easyeda/eext-knowledge-base",
+      "revision": "5c666fe9ce711284f9a52dba24c3040ed7f57535",
+      "recommended_use": "可选的文档检索问答界面",
+      "review_scope": "读取 README、许可与文件树；内置 prodocs 文本主要为 EDA 使用/API 文档，未安装",
+      "license": "Apache-2.0 at repository root",
+      "license_url": "https://github.com/easyeda/eext-knowledge-base/blob/5c666fe9ce711284f9a52dba24c3040ed7f57535/LICENSE",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-ai-reuse-assistant",
+      "title": "复用模块智能助手",
+      "kind": "module_catalog_and_placement_tool",
+      "url": "https://github.com/easyeda/eext-ai-reuse-block-placement",
+      "revision": "c24c7228b022c53e509788ef375e1bf81bd82966",
+      "recommended_use": "参考个人/团队/本地模块目录及管理接口",
+      "review_scope": "读取 README、许可、文件树与 src/catalog.ts；从已有库读取模块，未发现内置通用基础电路全集，未安装",
+      "license": "Apache-2.0 at repository root",
+      "license_url": "https://github.com/easyeda/eext-ai-reuse-block-placement/blob/c24c7228b022c53e509788ef375e1bf81bd82966/LICENSE",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-schematic-assistant",
+      "title": "原理图助手（社区扩展）",
+      "kind": "datasheet_lookup_tool_lead",
+      "url": "https://jlc-ext.com/item/pigpiggo/schematic-assistant",
+      "recommended_use": "评估手册和典型电路定位能力",
+      "review_scope": "仅检索收录的发布页说明；直接读取403，未核对代码或安装",
+      "redistribution_review": "未审阅扩展许可",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-oshwhub",
+      "title": "立创开源硬件平台",
+      "kind": "community_project_discovery",
+      "url": "https://oshwhub.com/",
+      "recommended_use": "发现工程与拓扑候选，逐项目核对许可与设计证据",
+      "review_scope": "Exa 返回若干项目正文及许可字段；直读403，未下载或验证工程",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-lcsc-parts",
+      "title": "立创商城器件与手册资料",
+      "kind": "part_identity_and_datasheet_index",
+      "url": "https://www.szlcsc.com/",
+      "example_url": "https://item.szlcsc.com/21629.html",
+      "recommended_use": "关联 C 编号、制造商、型号、封装和手册",
+      "review_scope": "首页与搜索收录、官方选型页交叉定位；商品页直读反爬，未独立核对实时参数、库存或价格",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    }
+  ],
+  "upstream_candidates": [
+    {
+      "id": "block.led_indicator_gpio",
+      "source_id": "easyeda-blocks",
+      "path": "internal/blocks/data/led_indicator_gpio.json",
+      "upstream_evidence_summary": "有整板连接检查记录；记录明确非孤立块单放",
+      "eso_status": "not_integrated",
+      "reuse_action": "按实际 GPIO 与 LED 条件核验限流值和脚号",
+      "url": "https://github.com/zhoushoujianwork/easyeda-agent/blob/69af00c0db3960757bff36a68edb286adcd64458/internal/blocks/data/led_indicator_gpio.json",
+      "upstream_commit": "69af00c0db3960757bff36a68edb286adcd64458",
+      "validation_by_this_review": "source_inspection_only"
+    },
+    {
+      "id": "block.pmos_highside_softstart",
+      "source_id": "easyeda-blocks",
+      "path": "internal/blocks/data/pmos_highside_softstart.json",
+      "upstream_evidence_summary": "有原理图整板记录，未实物 bring-up",
+      "eso_status": "not_integrated",
+      "reuse_action": "复核导通、温升和启动条件；不以低阈值推定充分导通",
+      "url": "https://github.com/zhoushoujianwork/easyeda-agent/blob/69af00c0db3960757bff36a68edb286adcd64458/internal/blocks/data/pmos_highside_softstart.json",
+      "upstream_commit": "69af00c0db3960757bff36a68edb286adcd64458",
+      "validation_by_this_review": "source_inspection_only"
+    },
+    {
+      "id": "block.i2c_isolation_2n7002dw",
+      "source_id": "easyeda-blocks",
+      "path": "internal/blocks/data/i2c_isolation_2n7002dw.json",
+      "upstream_evidence_summary": "上游标注 schematic/component_selection passed；pcb_drc/bringup pending",
+      "eso_status": "not_integrated",
+      "reuse_action": "作为双管断电隔离的资产候选，按实际连接和掉电条件关联主题",
+      "url": "https://github.com/zhoushoujianwork/easyeda-agent/blob/69af00c0db3960757bff36a68edb286adcd64458/internal/blocks/data/i2c_isolation_2n7002dw.json",
+      "upstream_commit": "69af00c0db3960757bff36a68edb286adcd64458",
+      "validation_by_this_review": "source_inspection_only"
+    },
+    {
+      "id": "lib.transistor_buzzer_driver_live",
+      "source_id": "easyeda-modules",
+      "path": ".agents/skills/easyeda-agent/library/modules/transistor-buzzer-driver.topology.json",
+      "upstream_evidence_summary": "topology_ready；pinNetReadback/deviceIdentityResolution passed；geometry not_captured，PCB/bringup not_tested",
+      "eso_status": "not_integrated",
+      "reuse_action": "由 NPN 低侧开关主题引用，补充蜂鸣器负载及保护支路变体，并核验绑定和几何",
+      "url": "https://github.com/zhoushoujianwork/easyeda-agent/blob/69af00c0db3960757bff36a68edb286adcd64458/.agents/skills/easyeda-agent/library/modules/transistor-buzzer-driver.topology.json",
+      "upstream_commit": "69af00c0db3960757bff36a68edb286adcd64458",
+      "validation_by_this_review": "source_inspection_only"
+    }
+  ],
+  "community_discovery_candidates": [
+    {
+      "id": "oshwhub-mos-opto",
+      "title": "12V MOS 开关光耦隔离方案",
+      "url": "https://oshwhub.com/jhx275816/nen-liang-ji-guan-zai-ban-gai-ban",
+      "source_id": "jlc-oshwhub",
+      "license_as_indexed": "GPL 3.0",
+      "license_verification": "search-index observation only; recheck against acquired project",
+      "review_scope": "Exa returned project description; original design not acquired",
+      "status": "discovery_only",
+      "checked_on": "2026-11-13"
+    },
+    {
+      "id": "oshwhub-halfbridge",
+      "title": "MOS 管半桥驱动验证板",
+      "url": "https://oshwhub.com/li-chuang-zhi-neng-ying-jian-bu/mos-guan-shi-ji-qu-dong-xin-pian-yan-zheng-ban",
+      "source_id": "jlc-oshwhub",
+      "license_as_indexed": "GPL 3.0",
+      "license_verification": "search-index observation only; recheck against acquired project",
+      "review_scope": "Exa returned project description; original design not acquired",
+      "status": "discovery_only",
+      "checked_on": "2026-11-13"
+    },
+    {
+      "id": "oshwhub-bjt-opto",
+      "title": "三极管驱动光耦验证板",
+      "url": "https://oshwhub.com/fir_geek/dreamviewxingkuninpoprt",
+      "source_id": "jlc-oshwhub",
+      "license_as_indexed": "CC-BY-NC-SA 3.0",
+      "license_verification": "search-index observation only; recheck against acquired project",
+      "review_scope": "Exa returned project description; original design not acquired",
+      "status": "discovery_only",
+      "checked_on": "2026-11-13"
+    }
+  ],
+  "policy": {
+    "primary_ecosystem": "jlc",
+    "external_material_role": "auxiliary",
+    "one_entry_per_circuit_topic": true,
+    "topic_parameters_and_aliases_share_entry": true,
+    "original_asset_registered_once": true
+  },
+  "topics": [
+    {
+      "id": "npn-low-side-switch",
+      "title": "NPN 低侧开关",
+      "aliases": [
+        "NPN 低边开关",
+        "三极管低侧驱动",
+        "NPN low-side switch"
+      ],
+      "primary_source_id": "jlc-bjt-selection",
+      "related_core_source_ids": [
+        "jlc-load-switch-circuit",
+        "jlc-bjt-gpio-error"
+      ],
+      "auxiliary_source_ids": [
+        "nexperia-bjt-handbook"
+      ],
+      "asset_ids": [
+        "lib.transistor_buzzer_driver_live"
+      ],
+      "status": "executable-bounded",
+      "version": "1.0.0",
+      "rule_ids": [
+        "physical-pins",
+        "operating-limits",
+        "source-conflicts",
+        "npn-drive"
+      ],
+      "conflicts": [],
+      "verification": {
+        "sources": "reviewed-excerpts",
+        "parameters": "per-design-required",
+        "simulation": "not-run",
+        "eda": "not-run",
+        "pcb": "not-run",
+        "hardware": "not-run"
+      },
+      "evidence": [
+        {
+          "source_id": "jlc-bjt-selection",
+          "section": "主题正文；具体型号以本轮手册定位为准"
+        },
+        {
+          "source_id": "nexperia-bjt-handbook",
+          "section": "主题正文；具体型号以本轮手册定位为准"
+        }
+      ],
+      "ports": {
+        "supply": "正电源",
+        "ground": "控制与负载共地",
+        "control": "正逻辑控制，输入高时负载导通"
+      },
+      "required_parameters": [
+        "supply_voltage_v",
+        "control_high_min_v",
+        "control_high_max_v",
+        "control_low_max_v",
+        "gpio_source_limit_ma",
+        "ambient_max_c",
+        "frequency_hz",
+        "default_state",
+        "gpio_leakage_max_ua"
+      ],
+      "variants": [
+        {
+          "id": "resistive-dc",
+          "status": "executable",
+          "conditions": [
+            "静态电阻负载",
+            "共地",
+            "默认关闭",
+            "频率为 0；动态开关与启动瞬态仍需另行核验"
+          ],
+          "topology": {
+            "switch": {
+              "B": "$drive",
+              "E": "ground",
+              "C": "$load"
+            },
+            "series": {
+              "1": "control",
+              "2": "$drive"
+            },
+            "bias": {
+              "1": "$drive",
+              "2": "ground"
+            },
+            "load": {
+              "1": "supply",
+              "2": "$load"
+            }
+          },
+          "roles": {
+            "switch": "npn",
+            "series": "resistor",
+            "bias": "resistor",
+            "load": "resistor"
+          }
+        }
+      ],
+      "calculations": [
+        "Iload_max = Vsupply / Rload_min",
+        "Pload_max = Vsupply² / Rload_min",
+        "IB_min = (VOH_min - VBE_max)/Rseries_max - VBE_max/Rbias_min",
+        "P_switch_max = Iload_max * VCEsat_max + IB_max * VBE_max"
+      ],
+      "counterexamples": [
+        "GPIO 直连基极",
+        "按典型 hFE 替代饱和测试 IC/IB",
+        "忽略基极下拉分流"
+      ],
+      "limitations": [
+        "PWM、感性负载、容性浪涌、不同电源参考地不在本变体范围",
+        "工作限值与温度适用性由宿主审阅，程序不能认证手册语义"
+      ]
+    },
+    {
+      "id": "nmos-low-side-switch",
+      "title": "NMOS 低侧开关",
+      "aliases": [
+        "N 沟道 MOS 低边开关",
+        "MOS 管低侧驱动",
+        "NMOS low-side switch"
+      ],
+      "primary_source_id": "jlc-mos-selection",
+      "related_core_source_ids": [
+        "jlc-load-switch-circuit"
+      ],
+      "auxiliary_source_ids": [
+        "nexperia-an11158"
+      ],
+      "asset_ids": [],
+      "status": "executable-bounded",
+      "version": "1.0.0",
+      "rule_ids": [
+        "physical-pins",
+        "operating-limits",
+        "source-conflicts",
+        "mos-drive"
+      ],
+      "conflicts": [],
+      "verification": {
+        "sources": "reviewed-excerpts",
+        "parameters": "per-design-required",
+        "simulation": "not-run",
+        "eda": "not-run",
+        "pcb": "not-run",
+        "hardware": "not-run"
+      },
+      "evidence": [
+        {
+          "source_id": "jlc-mos-selection",
+          "section": "主题正文；具体型号以本轮手册定位为准"
+        },
+        {
+          "source_id": "nexperia-an11158",
+          "section": "主题正文；具体型号以本轮手册定位为准"
+        }
+      ],
+      "ports": {
+        "supply": "正电源",
+        "ground": "控制与负载共地",
+        "control": "正逻辑控制，输入高时负载导通"
+      },
+      "required_parameters": [
+        "supply_voltage_v",
+        "control_high_min_v",
+        "control_high_max_v",
+        "control_low_max_v",
+        "gpio_source_limit_ma",
+        "ambient_max_c",
+        "frequency_hz",
+        "default_state",
+        "gpio_leakage_max_ua"
+      ],
+      "variants": [
+        {
+          "id": "resistive-dc",
+          "status": "executable",
+          "conditions": [
+            "静态电阻负载",
+            "共地",
+            "默认关闭",
+            "频率为 0；动态开关与启动瞬态仍需另行核验"
+          ],
+          "topology": {
+            "switch": {
+              "G": "$drive",
+              "S": "ground",
+              "D": "$load"
+            },
+            "series": {
+              "1": "control",
+              "2": "$drive"
+            },
+            "bias": {
+              "1": "$drive",
+              "2": "ground"
+            },
+            "load": {
+              "1": "supply",
+              "2": "$load"
+            }
+          },
+          "roles": {
+            "switch": "nmos",
+            "series": "resistor",
+            "bias": "resistor",
+            "load": "resistor"
+          }
+        }
+      ],
+      "calculations": [
+        "Iload_max = Vsupply / Rload_min",
+        "Pload_max = Vsupply² / Rload_min",
+        "Vgate_min = VOH_min * Rbias_min / (Rseries_max + Rbias_min)",
+        "P_switch_max = Iload_max² * RDS_on_max"
+      ],
+      "counterexamples": [
+        "用 VGS(th) 推断完全导通",
+        "仅按 25°C 典型 RDS(on) 判断高温功耗"
+      ],
+      "limitations": [
+        "PWM、感性负载、容性浪涌、不同电源参考地不在本变体范围",
+        "工作限值与温度适用性由宿主审阅，程序不能认证手册语义"
+      ]
+    },
+    {
+      "id": "reverse-polarity-protection",
+      "title": "电源防反接",
+      "aliases": [
+        "反接保护",
+        "电源极性保护",
+        "reverse polarity protection"
+      ],
+      "primary_source_id": "jlc-reverse-polarity",
+      "related_core_source_ids": [],
+      "auxiliary_source_ids": [],
+      "asset_ids": [],
+      "status": "knowledge-only",
+      "version": "1.0.0",
+      "rule_ids": [
+        "physical-pins",
+        "operating-limits",
+        "source-conflicts"
+      ],
+      "conflicts": [],
+      "verification": {
+        "sources": "reviewed-excerpts",
+        "parameters": "per-design-required",
+        "simulation": "not-run",
+        "eda": "not-run",
+        "pcb": "not-run",
+        "hardware": "not-run"
+      },
+      "evidence": [
+        {
+          "source_id": "jlc-reverse-polarity",
+          "section": "主题正文；具体型号以本轮手册定位为准"
+        }
+      ],
+      "ports": {
+        "input": "输入电源",
+        "output": "受保护电源",
+        "ground": "参考地"
+      },
+      "required_parameters": [
+        "input_voltage_v",
+        "load_current_a",
+        "allowed_drop_v",
+        "reverse_voltage_v"
+      ],
+      "variants": [
+        {
+          "id": "series-diode",
+          "status": "candidate"
+        },
+        {
+          "id": "bridge",
+          "status": "candidate"
+        },
+        {
+          "id": "pmos",
+          "status": "candidate"
+        }
+      ],
+      "calculations": [
+        "P_diode = Iload * Vf",
+        "P_mos = Iload² * RDS(on)"
+      ],
+      "counterexamples": [
+        "忽略体二极管方向",
+        "超过栅源极限"
+      ],
+      "limitations": [
+        "需审阅反接、正常供电及掉电状态，暂不自动生成"
+      ]
+    },
+    {
+      "id": "adc-voltage-divider",
+      "title": "ADC 分压采样",
+      "aliases": [
+        "ADC 分压电阻",
+        "电压分压采样",
+        "ADC voltage divider"
+      ],
+      "primary_source_id": "jlc-adc-divider",
+      "related_core_source_ids": [],
+      "auxiliary_source_ids": [],
+      "asset_ids": [],
+      "status": "knowledge-only",
+      "version": "1.0.0",
+      "rule_ids": [
+        "physical-pins",
+        "operating-limits",
+        "source-conflicts"
+      ],
+      "conflicts": [],
+      "verification": {
+        "sources": "reviewed-excerpts",
+        "parameters": "per-design-required",
+        "simulation": "not-run",
+        "eda": "not-run",
+        "pcb": "not-run",
+        "hardware": "not-run"
+      },
+      "evidence": [
+        {
+          "source_id": "jlc-adc-divider",
+          "section": "主题正文；具体型号以本轮手册定位为准"
+        }
+      ],
+      "ports": {
+        "input": "待测电压",
+        "output": "ADC 输入",
+        "ground": "ADC 参考地"
+      },
+      "required_parameters": [
+        "input_max_v",
+        "adc_range_v",
+        "sample_time_s",
+        "input_capacitance_f"
+      ],
+      "variants": [
+        {
+          "id": "divider-rc",
+          "status": "candidate"
+        }
+      ],
+      "calculations": [
+        "Vadc = Vin * Rbottom/(Rtop + Rbottom)",
+        "Rsource = Rtop || Rbottom"
+      ],
+      "counterexamples": [
+        "只检查分压比，忽略采样保持充电",
+        "忽略 ADC 掉电时输入钳位"
+      ],
+      "limitations": [
+        "需 ADC 具体手册、阻值公差与采样建立误差预算，暂不自动生成"
+      ]
+    },
+    {
+      "id": "gpio-led-indicator",
+      "title": "GPIO LED 指示",
+      "aliases": [
+        "LED 指示灯",
+        "GPIO LED indicator"
+      ],
+      "primary_source_id": null,
+      "related_core_source_ids": [],
+      "auxiliary_source_ids": [],
+      "asset_ids": [
+        "block.led_indicator_gpio"
+      ],
+      "status": "jlc_primary_source_pending",
+      "version": "1.0.0",
+      "rule_ids": [
+        "physical-pins",
+        "operating-limits",
+        "source-conflicts"
+      ],
+      "conflicts": [],
+      "verification": {
+        "sources": "primary-pending",
+        "parameters": "per-design-required",
+        "simulation": "not-run",
+        "eda": "not-run",
+        "pcb": "not-run",
+        "hardware": "not-run"
+      },
+      "evidence": [],
+      "ports": {
+        "input": "输入侧",
+        "output": "输出侧"
+      },
+      "required_parameters": [
+        "voltage_domains",
+        "selected_parts"
+      ],
+      "variants": [
+        {
+          "id": "standard",
+          "status": "candidate"
+        }
+      ],
+      "calculations": [],
+      "counterexamples": [
+        "未核对具体器件与应用条件直接套用"
+      ],
+      "limitations": [
+        "嘉立创主来源待补齐，禁止自动生成"
+      ]
+    },
+    {
+      "id": "i2c-open-drain-level-shift",
+      "title": "I2C 开漏电平转换",
+      "aliases": [
+        "I²C 双向电平转换",
+        "I2C open-drain level shifter"
+      ],
+      "primary_source_id": null,
+      "related_core_source_ids": [],
+      "auxiliary_source_ids": [
+        "nexperia-an10441"
+      ],
+      "asset_ids": [],
+      "status": "jlc_primary_source_pending",
+      "version": "1.0.0",
+      "rule_ids": [
+        "physical-pins",
+        "operating-limits",
+        "source-conflicts"
+      ],
+      "conflicts": [],
+      "verification": {
+        "sources": "primary-pending",
+        "parameters": "per-design-required",
+        "simulation": "not-run",
+        "eda": "not-run",
+        "pcb": "not-run",
+        "hardware": "not-run"
+      },
+      "evidence": [
+        {
+          "source_id": "nexperia-an10441",
+          "section": "主题正文；具体型号以本轮手册定位为准"
+        }
+      ],
+      "ports": {
+        "input": "输入侧",
+        "output": "输出侧"
+      },
+      "required_parameters": [
+        "voltage_domains",
+        "selected_parts"
+      ],
+      "variants": [
+        {
+          "id": "standard",
+          "status": "candidate"
+        }
+      ],
+      "calculations": [],
+      "counterexamples": [
+        "未核对具体器件与应用条件直接套用"
+      ],
+      "limitations": [
+        "嘉立创主来源待补齐，禁止自动生成"
+      ]
+    }
+  ],
+  "rules": {
+    "physical-pins": {
+      "summary": "按具体制造商、型号、封装核对全部物理引脚与真实库引脚，不能按通用管型猜编号。",
+      "source_ids": [
+        "jlc-bjt-selection",
+        "jlc-mos-selection"
+      ]
+    },
+    "operating-limits": {
+      "summary": "工作电压、电流、功耗和温度采用审阅后的适用限值，保留降额及散热条件依据。",
+      "source_ids": [
+        "jlc-bjt-selection",
+        "jlc-mos-selection",
+        "nexperia-an11158"
+      ]
+    },
+    "npn-drive": {
+      "summary": "按手册饱和测试的 IC/IB 核验基极电流，扣除下拉支路电流，检查 GPIO 最大供电电流。",
+      "source_ids": [
+        "jlc-bjt-selection",
+        "nexperia-bjt-handbook"
+      ]
+    },
+    "mos-drive": {
+      "summary": "实际最低栅压需覆盖 RDS(on) 保证条件；VGS(th) 不能替代导通电阻保证。",
+      "source_ids": [
+        "jlc-mos-selection",
+        "nexperia-an11158"
+      ]
+    },
+    "source-conflicts": {
+      "summary": "资料矛盾保留在条目中，未解决矛盾阻断生成；具体型号参数以原厂手册核验。",
+      "source_ids": [
+        "jlc-mos-selection",
+        "jlc-load-switch-circuit"
+      ]
+    }
+  }
+}

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "easyeda-schematic-orchestrator"
-version = "0.2.1"
+version = "0.3.0"
 description = "Requirements and evidence orchestration over easyeda-agent"
 requires-python = ">=3.10"
 dependencies = ["jsonschema>=4.18,<5"]
@@ -23,3 +23,6 @@ packages = ["eso"]
 
 [tool.setuptools.data-files]
 "share/eso/schemas" = ["schemas/*.json"]
+
+[tool.setuptools.package-data]
+eso = ["data/*.json"]

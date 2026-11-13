@@ -9,6 +9,9 @@ MCU_PINS = "VBAT PC13 PC14 PC15 PD0 PD1 NRST VSSA VDDA PA0 PA1 PA2 PA3 PA4 PA5 P
 def make_plan(contract):
     validate(contract, "contract")
     r = contract["requirements"]
+    if "knowledge" in r:
+        from .knowledge_design import make_knowledge_plan
+        return make_knowledge_plan(contract)
     profile = r.get("circuit_type", "mcu-sensor")
     if profile not in ("mcu-minimum", "mcu-sensor"):
         raise Refused("reference planner unsupported for this circuit type; author a source-backed plan and validate-plan")
@@ -89,6 +92,8 @@ def net_definitions(plan):
 
 def bind_plan(plan, bindings, target):
     validate(plan, "plan")
+    if 'knowledge_evidence' in plan and digest(bindings) != plan['knowledge_evidence'].get('bindings_sha256'):
+        raise Refused('knowledge library bindings changed; regenerate and review contract')
     definitions = net_definitions(plan)
     refs = {c["ref"] for c in plan["components"]}
     if set(bindings) != refs:

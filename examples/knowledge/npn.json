@@ -1,0 +1,233 @@
+{
+  "schema_version": 1,
+  "circuit_type": "generic",
+  "function_description": "synthetic switch test",
+  "knowledge": {
+    "materials": [
+      {
+        "id": "switch",
+        "model": "SYNTHETIC-switch",
+        "package": "TEST",
+        "kind": "npn",
+        "datasheet": {
+          "path": "SYNTHETIC/switch.txt",
+          "sha256": "c02259ef4d87309ee0cdcdc0b0c33e4e9a0ef93e8b068c685316caceab609ae1",
+          "model": "SYNTHETIC-switch",
+          "package": "TEST",
+          "revision": "fixture-1",
+          "pinout_section": "synthetic pin table",
+          "reviewed_by": "test fixture"
+        },
+        "pins": {
+          "B": "1",
+          "E": "2",
+          "C": "3"
+        },
+        "facts": {
+          "voltage_limit_v": 30,
+          "current_limit_a": 0.5,
+          "power_limit_w": 0.25,
+          "rated_ambient_c": 85,
+          "off_input_max_v": 0.3,
+          "input_leakage_max_a": 1e-07,
+          "vbe_min_v": 0.6,
+          "vbe_max_v": 0.9,
+          "vcesat_max_v": 0.3,
+          "sat_test_ic_a": 0.1,
+          "sat_test_ib_a": 0.01
+        },
+        "fact_sections": {
+          "voltage_limit_v": "synthetic test limits",
+          "current_limit_a": "synthetic test limits",
+          "power_limit_w": "synthetic test limits",
+          "rated_ambient_c": "synthetic test limits",
+          "off_input_max_v": "synthetic test limits",
+          "input_leakage_max_a": "synthetic test limits",
+          "vbe_min_v": "synthetic test limits",
+          "vbe_max_v": "synthetic test limits",
+          "vcesat_max_v": "synthetic test limits",
+          "sat_test_ic_a": "synthetic test limits",
+          "sat_test_ib_a": "synthetic test limits"
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "00000000000000000000000000000001",
+          "verified_model": "SYNTHETIC-switch",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-switch",
+          "pins": {
+            "B": "1",
+            "E": "2",
+            "C": "3"
+          },
+          "evidence": "synthetic only"
+        }
+      },
+      {
+        "id": "series",
+        "model": "SYNTHETIC-series",
+        "package": "TEST",
+        "kind": "resistor",
+        "datasheet": {
+          "path": "SYNTHETIC/series.txt",
+          "sha256": "261522b36214ca6b81464ae40c850a75793dd3b611aeeb2e528f092bf2b32ae5",
+          "model": "SYNTHETIC-series",
+          "package": "TEST",
+          "revision": "fixture-1",
+          "pinout_section": "synthetic pin table",
+          "reviewed_by": "test fixture"
+        },
+        "pins": {
+          "1": "1",
+          "2": "2"
+        },
+        "facts": {
+          "resistance_ohm": 1000,
+          "tolerance_fraction": 0.01,
+          "power_limit_w": 0.125,
+          "voltage_limit_v": 50,
+          "rated_ambient_c": 85
+        },
+        "fact_sections": {
+          "resistance_ohm": "synthetic test limits",
+          "tolerance_fraction": "synthetic test limits",
+          "power_limit_w": "synthetic test limits",
+          "voltage_limit_v": "synthetic test limits",
+          "rated_ambient_c": "synthetic test limits"
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "00000000000000000000000000000002",
+          "verified_model": "SYNTHETIC-series",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-series",
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "evidence": "synthetic only"
+        }
+      },
+      {
+        "id": "bias",
+        "model": "SYNTHETIC-bias",
+        "package": "TEST",
+        "kind": "resistor",
+        "datasheet": {
+          "path": "SYNTHETIC/bias.txt",
+          "sha256": "6963c672e538fd527287d4173a036e3c96fe149930891c6e3567fa288e67809c",
+          "model": "SYNTHETIC-bias",
+          "package": "TEST",
+          "revision": "fixture-1",
+          "pinout_section": "synthetic pin table",
+          "reviewed_by": "test fixture"
+        },
+        "pins": {
+          "1": "1",
+          "2": "2"
+        },
+        "facts": {
+          "resistance_ohm": 100000,
+          "tolerance_fraction": 0.01,
+          "power_limit_w": 0.125,
+          "voltage_limit_v": 50,
+          "rated_ambient_c": 85
+        },
+        "fact_sections": {
+          "resistance_ohm": "synthetic test limits",
+          "tolerance_fraction": "synthetic test limits",
+          "power_limit_w": "synthetic test limits",
+          "voltage_limit_v": "synthetic test limits",
+          "rated_ambient_c": "synthetic test limits"
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "00000000000000000000000000000003",
+          "verified_model": "SYNTHETIC-bias",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-bias",
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "evidence": "synthetic only"
+        }
+      },
+      {
+        "id": "load",
+        "model": "SYNTHETIC-load",
+        "package": "TEST",
+        "kind": "resistor",
+        "datasheet": {
+          "path": "SYNTHETIC/load.txt",
+          "sha256": "2508527526960dabc361680c5f91df2be614833bf1cbb948aac36ecdf1fa8955",
+          "model": "SYNTHETIC-load",
+          "package": "TEST",
+          "revision": "fixture-1",
+          "pinout_section": "synthetic pin table",
+          "reviewed_by": "test fixture"
+        },
+        "pins": {
+          "1": "1",
+          "2": "2"
+        },
+        "facts": {
+          "resistance_ohm": 1000,
+          "tolerance_fraction": 0.01,
+          "power_limit_w": 0.25,
+          "voltage_limit_v": 50,
+          "rated_ambient_c": 85
+        },
+        "fact_sections": {
+          "resistance_ohm": "synthetic test limits",
+          "tolerance_fraction": "synthetic test limits",
+          "power_limit_w": "synthetic test limits",
+          "voltage_limit_v": "synthetic test limits",
+          "rated_ambient_c": "synthetic test limits"
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "00000000000000000000000000000004",
+          "verified_model": "SYNTHETIC-load",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-load",
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "evidence": "synthetic only"
+        }
+      }
+    ],
+    "circuits": [
+      {
+        "id": "channel1",
+        "topic": "npn-low-side-switch",
+        "variant": "resistive-dc",
+        "ports": {
+          "supply": "V12",
+          "ground": "GND",
+          "control": "CTRL1"
+        },
+        "roles": {
+          "switch": "switch",
+          "series": "series",
+          "bias": "bias",
+          "load": "load"
+        },
+        "parameters": {
+          "supply_voltage_v": 12,
+          "control_high_min_v": 3,
+          "control_high_max_v": 3.3,
+          "control_low_max_v": 0.1,
+          "gpio_source_limit_ma": 8,
+          "ambient_max_c": 50,
+          "frequency_hz": 0,
+          "default_state": "off",
+          "gpio_leakage_max_ua": 0.1
+        }
+      }
+    ]
+  },
+  "raw_request": "SYNTHETIC OFFLINE DEMO ONLY — not selected real components"
+}

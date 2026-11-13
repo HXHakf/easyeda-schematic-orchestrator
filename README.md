@@ -2,7 +2,7 @@
 
 面向嘉立创 EDA 专业版的 AI 原理图设计工作流 Skill，复用
 [easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent) 的 CLI、daemon 和 EDA Agent Connector。
-当前版本：**0.2.1**（MVP，离线已验证；现场全链路尚未验收）。
+当前版本：**0.3.0**（MVP，离线已验证；现场全链路尚未验收）。
 
 本地可靠性改进：完整连接/NC/引用与网络 scope 对账、严格空白页清单、写前离线兼容探针、
 全部可见属性文字缺测阻断、显式多电源网络定义，以及只读 `diagnose`。
@@ -144,3 +144,15 @@ verify/deliver 未通过返回退出码3；输入/操作拒绝为2；正常命�
 - [贡献方式](CONTRIBUTING.md)
 
 MIT。与嘉立创、ST、Bosch 无官方隶属关系。私有运行目录可能含工程 UUID 和本机路径，发布前须去标识。
+
+## 常用电路知识库
+
+0.3.0 新增本地嘉立创核心知识库与参数检查，不需要额外模型 API。六个主题中，NPN/NMOS 的静态电阻负载变体支持生成计划；防反接、ADC 分压为知识卡，LED 与 I²C 电平转换的嘉立创主来源待补齐。
+
+```sh
+eso kb-check
+eso kb-search 'NPN 低边开关'
+python scripts/demo_knowledge.py --out runs/knowledge-demo
+```
+
+用户准备完整型号、封装和手册位置，宿主审阅摘录和真实器件库，`assess` 核验后进入现有确认与绘图流程。演示全部使用虚构数据，只证明离线接口和检查逻辑。实际放置、保存重开和回读尚待现场验收。详见 [知识库使用指南](references/knowledge-base.md) 与 [实施记录](docs/plans/circuit-knowledge.md)。

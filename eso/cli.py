@@ -21,6 +21,14 @@ def main(argv=None):
     p.add_argument("--evidence", help="private raw CLI receipts directory")
     p.add_argument("--window", help="exact live connector window ID; still verifies project and document")
     sub = p.add_subparsers(dest="command", required=True)
+    kbsearch = sub.add_parser("kb-search", help="search local canonical circuit topics and aliases")
+    kbsearch.add_argument("query")
+    kbsearch.add_argument("--parameters", help="JSON parameter object for missing-input hints")
+    metrics = sub.add_parser("kb-metrics", help="compare measured legacy/knowledge runs for the same case and scope")
+    metrics.add_argument("records"); metrics.add_argument("--out")
+    sub.add_parser("kb-check", help="check catalog source/alias/rule uniqueness")
+    kbbind = sub.add_parser("kb-bindings", help="export reviewed material library bindings; no EDA calls")
+    kbbind.add_argument("contract"); kbbind.add_argument("--out", required=True)
     intake = sub.add_parser("intake", help="conservative seed extraction; agent semantic review still required")
     intake.add_argument("--text", required=True); intake.add_argument("--out", required=True)
     assess = sub.add_parser("assess", help="dynamic questions/defaults and electrical conflicts")
@@ -62,7 +70,20 @@ def main(argv=None):
     args = p.parse_args(argv)
     try:
         output = None
-        if args.command == "intake": output = parse_seed(args.text); dump(args.out, output)
+        if args.command == "kb-search":
+            from .knowledge import search
+            output = search(args.query, load(args.parameters) if args.parameters else None)
+        elif args.command == "kb-metrics":
+            from .knowledge_metrics import compare_runs
+            output = compare_runs(load(args.records))
+            if args.out: dump(args.out, output)
+        elif args.command == "kb-check":
+            from .knowledge import catalog, check_catalog
+            output = check_catalog(catalog())
+        elif args.command == "kb-bindings":
+            from .knowledge_design import make_bindings
+            output = make_bindings(load(args.contract)); dump(args.out, output)
+        elif args.command == "intake": output = parse_seed(args.text); dump(args.out, output)
         elif args.command == "assess":
             output = evaluate(load(args.requirements), require_target=args.for_execution)
             if args.out: dump(args.out, output)
@@ -139,6 +160,8 @@ def delivery_eligibility(root, report):
     issues = []
     try:
         bundle = load(root / "bundle.json")
+        from .knowledge import check_contract_knowledge
+        check_contract_knowledge(load(root / "contract.json"))
         if bundle.get("state") != "verified" or report.get("state") != "verified":
             issues.append("latest verification is incomplete or in progress")
         if not report.get("attempt") or report["attempt"] != bundle.get("verification_attempt"):

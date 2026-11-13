@@ -195,6 +195,22 @@
     "regulator_model": {
       "type": "string",
       "minLength": 1
+    },
+    "knowledge": {
+      "type": "object",
+      "required": [
+        "materials",
+        "circuits"
+      ],
+      "properties": {
+        "materials": {
+          "type": "array"
+        },
+        "circuits": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [

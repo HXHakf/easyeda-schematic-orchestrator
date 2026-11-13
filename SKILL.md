@@ -2,7 +2,7 @@
 name: easyeda-schematic-orchestrator
 description: "当用户说“我要画原理图”“帮我设计电路”“画一个 STM32 最小系统”，或在原理图任务中要求补全外围、修改连接时使用。默认面向嘉立创 EDA 专业版，先整理需求、追问缺参并确认 Design Contract，再复用 easyeda-agent 绘图、回读与验收。用户无需指定 Skill 名；纯原理讲解、仅 PCB 操作或普通软件工作流开发不自动触发。首版写入仅限专用测试工程。"
 metadata:
-  version: "0.2.1"
+  version: "0.3.0"
 ---
 
 # EasyEDA Schematic Orchestrator / Designer
@@ -38,13 +38,14 @@ metadata:
    功能、否定、纠正、多电源域与约束；`intake` 只作种子提取。运行 `assess`，面向用户只展示
    `next_questions` 中最关键的至多三项，其余 blockers 留在内部。用户说“帮我选”时用 `update`
    记录，按 `selection_tasks` 查证候选，不能反复逼问准确型号或擅自选搜索第一项。
+   使用常用电路知识库时，先读 [知识库输入与核验](references/knowledge-base.md)。用户先提供已选型号、封装和手册位置，宿主阅读并核验真实库身份，运行 `kb-search` 后填写 `requirements.knowledge`。当前可自动生成 NPN/NMOS 静态电阻负载低侧开关；候选主题不会自动执行。禁止把示例虚构参数、型号、UUID 作为真实选型。
 3. **重算候选默认**。每轮回答后运行 `update` / `assess`。默认值连同推断条件保存，条件变化
    重新计算；用户明确选定的值保留。未解决语义项仍阻断，不能把 unknown 当作 NC 或空数据。
 4. **设计确认**。`contract` 同时输出 JSON 和中文确认页。向用户展示功能、供电、接口、型号、
    外围/假设、执行范围与验收；内部管理哈希，不要求用户手输长哈希。确实收到该版本确认后
    才运行 `confirm`。设计或目标变化使旧确认失效；已确认版本不重复问。
 5. **电路计划与真实库绑定**。创建 `schemas/plan.json`，完整列出物理脚 net/NC、模块核心和
-   专属外围附件及原厂依据。`plan` 内置 STM32F103 最小系统/BMP280 参考；其他电路由 Agent
+   专属外围附件及原厂依据。`plan` 内置 STM32F103 最小系统/BMP280 参考，并可从已核验知识卡生成 NPN/NMOS 低侧开关。知识库 bindings 由 `kb-bindings` 导出已审阅清单；其余电路由 Agent
    依据资料编写并 `validate-plan`，需求类型支持不等于所有型号都有自动拓扑。通过上游
    `lib search`、`lib device get` 精确核对库、封装与型号，形成逐位号 bindings；不以实例 UUID 代替库 UUID。
 6. **上游绘图与测量闭环**。读 [上游适配](references/upstream-adapter.md)、

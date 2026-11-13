@@ -12,6 +12,8 @@ from .reconcile import reconcile
 
 def validate_plan(plan, contract):
     validate(plan, "plan")
+    from .knowledge_design import check_knowledge_plan
+    check_knowledge_plan(plan, contract)
     from .planner import net_definitions
     net_definitions(plan)
     if plan["contract_sha256"] != digest(contract):
@@ -87,6 +89,10 @@ def check_source(plan, source, target):
         actual = by_id.get(c["id"], {})
         if actual.get("ref") != c["ref"]:
             raise Refused("composition stable identity/designator differs")
+        if 'knowledge_evidence' in plan:
+            identity = plan['knowledge_evidence']['library_identities'].get(c['id'], {})
+            if not identity or any(actual.get('device', {}).get(k) != v for k, v in identity.items()):
+                raise Refused('composition changed reviewed knowledge library identity')
         pins = {p["number"]: p for p in actual.get("pins", [])}
         if len(pins) != len(actual.get("pins", [])) or set(pins) != {p["number"] for p in c["pins"]}:
             raise Refused("composition physical pin inventory differs")
