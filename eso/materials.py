@@ -47,6 +47,10 @@ FACT = obj(
         "bound": {"enum": ["lower", "upper", "nominal"]},
         "section": TEXT,
         "test_conditions": TEXT,
+        "applicability": obj(
+            {"state": {"enum": ["all", "on", "off"]}, "coverage": COVERAGE},
+            ("state", "coverage"),
+        ),
         "derivation": obj(
             {
                 "formula": TEXT,
@@ -276,6 +280,9 @@ def validate_record(record):
 
     for key in facts:
         check(key)
+    from .fact_coverage import validate_fact_scopes
+
+    validate_fact_scopes(record)
     return record
 
 

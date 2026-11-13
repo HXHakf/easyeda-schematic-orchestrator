@@ -39,9 +39,14 @@ def normalize(knowledge):
     shape(knowledge, SCHEMA)
     store = MaterialStore()
     materials = []
+    document_issues = []
     for m in knowledge["materials"]:
         r = m["record"]
-        path = store.check(m["record_sha256"], r)
+        try:
+            path = store.check(m["record_sha256"], r)
+        except (ValueError, OSError, KeyError, TypeError) as error:
+            document_issues.append(m["id"] + ": " + str(error))
+            continue
         materials.append(
             {
                 "id": m["id"],
@@ -55,6 +60,8 @@ def normalize(knowledge):
                 "library": deepcopy(m.get("library", {})),
             }
         )
+    if document_issues:
+        raise Refused("; ".join(document_issues))
     circuits = deepcopy(knowledge["circuits"])
     for c in circuits:
         for key in EXTRA:
@@ -105,6 +112,7 @@ def dependency_evidence(knowledge):
             "knowledge_v2.py",
             "materials.py",
             "knowledge_design.py",
+            "fact_coverage.py",
         )
     }
     return {
@@ -187,6 +195,55 @@ def assess_v2(knowledge):
                 # A nominal resistor value is meaningful only together with its total tolerance.
                 if f["bound"] != expected:
                     issue(cid + "." + role, "wrong guarantee direction: " + key)
+            from .fact_coverage import fact_scope, contains_scope
+
+            on_keys = {
+                "rds_on_max_ohm",
+                "rds_test_vgs_v",
+                "vbe_min_v",
+                "vbe_max_v",
+                "vcesat_max_v",
+                "sat_test_ic_a",
+                "sat_test_ib_a",
+            }
+            off_keys = {"off_input_max_v", "off_current_max_a"}
+            for key in needed:
+                if key not in facts:
+                    continue
+                state = (
+                    "on"
+                    if role == "switch" and key in on_keys
+                    else "off"
+                    if role == "switch" and key in off_keys
+                    else "all"
+                )
+                control_range = [0, p["control_high_max_v"]]
+                if state == "on":
+                    control_range = (
+                        [calc["gate_min_v"], calc["gate_max_v"]]
+                        if mos
+                        else [facts["vbe_min_v"]["value"], facts["vbe_max_v"]["value"]]
+                    )
+                elif state == "off":
+                    control_range = [0, facts["off_input_max_v"]["value"]]
+                wanted = {
+                    "state": state,
+                    "coverage": {
+                        "supply_v": [p["supply_min_v"], p["supply_voltage_v"]],
+                        "ambient_c": [p["ambient_min_c"], p["ambient_max_c"]],
+                        "control_v": control_range,
+                        "load_current_a": [0, calc["load_current_max_a"]],
+                        "frequency_hz": [0, 0],
+                        "thermal_context": p["thermal_context"],
+                    },
+                }
+                if not contains_scope(fact_scope(r, key), wanted):
+                    issue(
+                        cid + "." + role + "." + key,
+                        "fact applicability does not cover "
+                        + state
+                        + " operating conditions",
+                    )
             ranges = {
                 "supply_v": [p["supply_min_v"], p["supply_voltage_v"]],
                 "ambient_c": [p["ambient_min_c"], p["ambient_max_c"]],

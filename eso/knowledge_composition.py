@@ -251,6 +251,39 @@ def checked_composition(requirements, knowledge_report):
         or cov["load_current_a"][0] > 0
     ):
         raise Refused("controller current envelope does not cover aggregate load")
+    from .fact_coverage import fact_scope, contains_scope
+
+    for circuit in circuits.values():
+        parameters = circuit["parameters"]
+        for key in required:
+            state = (
+                "off"
+                if key == "gpio_vol_max_v"
+                else "all"
+                if key == "gpio_leakage_max_ua"
+                else "on"
+            )
+            control = [0, f["gpio_voh_max_v"]]
+            if state == "on":
+                control = [f["gpio_voh_min_v"], f["gpio_voh_max_v"]]
+            elif state == "off":
+                control = [0, f["gpio_vol_max_v"]]
+            wanted = {
+                "state": state,
+                "coverage": {
+                    "supply_v": [3.3, 3.3],
+                    "ambient_c": [
+                        parameters["ambient_min_c"],
+                        parameters["ambient_max_c"],
+                    ],
+                    "control_v": control,
+                    "load_current_a": [0, sum(loads.values()) / 1000],
+                    "frequency_hz": [0, 0],
+                    "thermal_context": parameters["thermal_context"],
+                },
+            }
+            if not contains_scope(fact_scope(r, key), wanted):
+                raise Refused("controller fact applicability incomplete: " + key)
     return (
         base,
         maps,

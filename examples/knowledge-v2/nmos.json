@@ -7,7 +7,7 @@
     "materials": [
       {
         "id": "switch",
-        "record_sha256": "84a447bda3f7c6e5b73debf795d18f70d84ba98d3423ba9569bc03a3936d7477",
+        "record_sha256": "90fef331131fd4d9098b3beba281625d623dbe61212b4e91dae7022ee368ba66",
         "record": {
           "schema_version": 2,
           "manufacturer": "SYNTHETIC",
@@ -106,7 +106,33 @@
               "basis": "guaranteed",
               "section": "synthetic table",
               "test_conditions": "synthetic envelope",
-              "bound": "upper"
+              "bound": "upper",
+              "applicability": {
+                "state": "on",
+                "coverage": {
+                  "ambient_c": [
+                    0,
+                    85
+                  ],
+                  "supply_v": [
+                    3,
+                    12
+                  ],
+                  "control_v": [
+                    2.5,
+                    3.3
+                  ],
+                  "load_current_a": [
+                    0,
+                    0.02
+                  ],
+                  "frequency_hz": [
+                    0,
+                    0
+                  ],
+                  "thermal_context": "synthetic-board"
+                }
+              }
             },
             "rds_test_vgs_v": {
               "value": 2.5,
