@@ -2,7 +2,7 @@
 name: easyeda-schematic-orchestrator
 description: "当用户说“我要画原理图”“帮我设计电路”“画一个 STM32 最小系统”，或在原理图任务中要求补全外围、修改连接时使用。默认面向嘉立创 EDA 专业版，先整理需求、追问缺参并确认 Design Contract，再复用 easyeda-agent 绘图、回读与验收。用户无需指定 Skill 名；纯原理讲解、仅 PCB 操作或普通软件工作流开发不自动触发。首版写入仅限专用测试工程。"
 metadata:
-  version: "0.5.0.dev3"
+  version: "0.5.0.dev4"
 ---
 
 # EasyEDA Schematic Orchestrator / Designer
@@ -27,6 +27,8 @@ metadata:
 - **恢复未完成任务**：先读运行目录、journal、新鲜现场快照；不能根据旧截图或失败退出码盲重放。
 
 ## 工作流
+
+按 [原理图设计规范入口](references/schematic-design-rules.md) 调用本地 `eso rules`。需求与确认前读取 `--stage design`，放置/布局时读取 `--stage layout`，保存重开后读取 `--stage verify`。已有 G0–G7、测量和验收细则通过规则 ID 复用，按当前任务记录适用性与实际证据。规范清单保持 guidance-only，机器输出和图面审阅完成后再记录对应结论。
 
 实际绘图时同时读取已安装的 `schematic-verified-layout/SKILL.md`，按其全部文字、模块边界与保存重开
 验收执行；通过宿主技能目录定位，不猜安装路径。现场写入前和失败恢复前读取

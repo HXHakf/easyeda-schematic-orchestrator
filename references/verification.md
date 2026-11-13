@@ -27,3 +27,5 @@ live-incomplete=现场执行或证据未完整；live-verified=具体现场操�
 deliver 要求 bundle 与报告都为 verified、属于同一 attempt、输入摘要相同、全部证据文件未变更，
 否则交付保持 incomplete。进程在复验途中退出也不能回退使用旧成功。
 这些是指定快照的检查结论；后续人工修改 EDA 后必须重新回读复验。
+
+绘图规范使用 [统一入口](schematic-design-rules.md) 的 verify 阶段清单；按规则 ID 关联已有机器报告与原生图面审阅，重复的细则继续引用原定义。

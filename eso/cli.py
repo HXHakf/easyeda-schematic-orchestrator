@@ -36,6 +36,9 @@ def main(argv=None):
     imp.add_argument("manifest"); imp.add_argument("--out",required=True)
     status = sub.add_parser("kb-evidence-status", help="audit pinned historical evidence without modifying it")
     status.add_argument("contract")
+    rules = sub.add_parser("rules", help="offline JLC-centered stage checklist; reuses existing validators")
+    rules.add_argument("--stage",choices=("design","layout","verify","all"),default="design")
+    rules.add_argument("--query"); rules.add_argument("--check",action="store_true"); rules.add_argument("--out")
     kbsearch = sub.add_parser("kb-search", help="search local canonical circuit topics and aliases")
     kbsearch.add_argument("query")
     kbsearch.add_argument("--parameters", help="JSON parameter object for missing-input hints")
@@ -104,6 +107,10 @@ def main(argv=None):
             elif args.command == "kb-material-withdraw": output = store.withdraw(args.sha256,args.reason)
             else:
                 output = import_manifest(load(args.manifest),store); dump(args.out,output)
+        elif args.command == "rules":
+            from .schematic_rules import checklist, rule_catalog, check_rules
+            output = check_rules(rule_catalog()) if args.check else checklist(args.stage,args.query)
+            if args.out: dump(args.out,output)
         elif args.command == "kb-search":
             from .knowledge import search
             output = search(args.query, load(args.parameters) if args.parameters else None)

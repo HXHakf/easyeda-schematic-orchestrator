@@ -2,7 +2,7 @@
 
 面向嘉立创 EDA 专业版的 AI 原理图设计工作流 Skill，复用
 [easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent) 的 CLI、daemon 和 EDA Agent Connector。
-当前版本：**0.5.0.dev3**（MVP，离线已验证；现场全链路尚未验收）。
+当前版本：**0.5.0.dev4**（MVP，离线已验证；现场全链路尚未验收）。
 
 本地可靠性改进：完整连接/NC/引用与网络 scope 对账、严格空白页清单、写前离线兼容探针、
 全部可见属性文字缺测阻断、显式多电源网络定义，以及只读 `diagnose`。
@@ -157,4 +157,6 @@ python scripts/demo_knowledge.py --out runs/knowledge-demo
 
 用户准备完整型号、封装和手册位置，宿主审阅摘录和真实器件库，`assess` 核验后进入现有确认与绘图流程。演示全部使用虚构数据，只证明离线接口和检查逻辑。实际放置、保存重开和回读尚待现场验收。详见 [知识库使用指南](references/knowledge-base.md) 与 [实施记录](docs/plans/circuit-knowledge.md)。
 
-0.5.0.dev3 增加私有器件缓存、v2 功能条件与证据、环境诊断和有限 MCU 组合。使用方法见 [资料复用与模块组合](references/knowledge-v2.md)，真实资料阻断情况见 [可行性检查](docs/plans/knowledge-real-material-feasibility.md)。
+0.5.0.dev4 增加私有器件缓存、v2 功能条件与证据、环境诊断和有限 MCU 组合。使用方法见 [资料复用与模块组合](references/knowledge-v2.md)，真实资料阻断情况见 [可行性检查](docs/plans/knowledge-real-material-feasibility.md)。
+
+原理图绘制可使用 `eso rules --stage design|layout|verify` 获取嘉立创核心的阶段清单。来源与既有检查器的对应关系见 [原理图设计规范](references/schematic-design-rules.md)。

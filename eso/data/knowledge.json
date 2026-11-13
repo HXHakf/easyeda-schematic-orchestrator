@@ -364,6 +364,42 @@
       "checked_on": "2026-11-13",
       "original_document_included": false,
       "review_scope": "资料可行性审查；不构成完整工况保证或真实库引脚验收"
+    },
+    {
+      "id": "jlc-schematic-guidance",
+      "title": "嘉立创原理图设计规范",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/pcb-design/schematic-guidance.html",
+      "kind": "schematic_design_guidance",
+      "ecosystem": "jlc",
+      "role": "core",
+      "review_scope": "正文四节：图签与纸张、模块与层次、去耦位置、未用引脚；官网 HTML 正文读取",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "redistribution_review": "保存原创规则摘要和定位，未转载原文或图片"
+    },
+    {
+      "id": "autodesk-schematic-tips",
+      "title": "Autodesk professional schematic design tips",
+      "url": "https://www.autodesk.com/products/fusion-360/blog/top-10-tips-draw-next-schematic-design-like-pro/",
+      "kind": "schematic_design_guidance",
+      "ecosystem": "external",
+      "role": "auxiliary",
+      "review_scope": "Tips 1–6：连接、标签、符号、位号、文字、流向，按嘉立创语义适配",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "redistribution_review": "保存原创规则摘要和定位，未转载原文或图片"
+    },
+    {
+      "id": "altium-schematic-symbols",
+      "title": "Altium useful schematic symbols",
+      "url": "https://resources.altium.com/p/guidelines-creating-useful-schematic-symbols",
+      "kind": "schematic_design_guidance",
+      "ecosystem": "external",
+      "role": "auxiliary",
+      "review_scope": "Standardized PCB Symbols / PCB Symbols for Integrated Circuits：一致性及逻辑分组，尺寸与网格建议不直接移植",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "redistribution_review": "保存原创规则摘要和定位，未转载原文或图片"
     }
   ],
   "upstream_candidates": [

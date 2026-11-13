@@ -1,0 +1,347 @@
+{
+  "schema_version": 1,
+  "version": "1.0.0",
+  "primary_source_id": "jlc-schematic-guidance",
+  "rules": [
+    {
+      "id": "document-identity",
+      "title": "图纸身份和输出比例",
+      "aliases": [
+        "图签",
+        "标题栏",
+        "版本"
+      ],
+      "stages": [
+        "design",
+        "verify"
+      ],
+      "basis": "jlc",
+      "summary": "登记图名、版本、日期及页序，按需要补充作者与组织；未知身份留待核实。优先评估 A4/A5 与实际打印可读性，调整图幅前核对既有页面。",
+      "source_refs": [
+        {
+          "source_id": "jlc-schematic-guidance",
+          "section": "§1：图纸信息与纸型"
+        }
+      ],
+      "reuse_refs": [
+        "extras/schematic-verified-layout/references/drawing-grammar.md"
+      ],
+      "verification": {
+        "machine": [],
+        "review": [
+          "核对真实图签及页面信息",
+          "检查标准纸张导出后的可读性"
+        ],
+        "policy": "纸型偏好属于建议，具体尺寸由实测内容和已确认页面决定。"
+      }
+    },
+    {
+      "id": "functional-modules",
+      "title": "功能分区和层次",
+      "aliases": [
+        "模块化",
+        "功能分区",
+        "分页"
+      ],
+      "stages": [
+        "design",
+        "layout",
+        "verify"
+      ],
+      "basis": "jlc",
+      "summary": "按逻辑功能组织模块，框和标题表达模块用途；复杂设计再按阅读任务分页或使用层次，检查跨页关系。",
+      "source_refs": [
+        {
+          "source_id": "jlc-schematic-guidance",
+          "section": "§2：逻辑模块及层次"
+        }
+      ],
+      "reuse_refs": [
+        "extras/schematic-verified-layout/references/drawing-grammar.md",
+        "extras/schematic-verified-layout/references/readability-gate.md"
+      ],
+      "verification": {
+        "machine": [
+          "eso.workflow.validate_plan",
+          "readability_audit module frame/boundary checks"
+        ],
+        "review": [
+          "模块归属与页名是否便于追踪"
+        ],
+        "policy": "现有项目的模块独立区域与跨模块标签策略继续引用 G0；该强度属于项目规则。"
+      }
+    },
+    {
+      "id": "power-peripherals",
+      "title": "芯片电源外围的归属",
+      "aliases": [
+        "去耦",
+        "旁路"
+      ],
+      "stages": [
+        "design",
+        "layout",
+        "verify"
+      ],
+      "basis": "jlc",
+      "summary": "存在芯片电源旁路时，将器件画在对应电源脚附近，使归属清楚；元件参数与实际 PCB 距离另据手册和布局核验。",
+      "source_refs": [
+        {
+          "source_id": "jlc-schematic-guidance",
+          "section": "§3：芯片电源旁路"
+        }
+      ],
+      "reuse_refs": [
+        "extras/schematic-verified-layout/references/drawing-grammar.md"
+      ],
+      "verification": {
+        "machine": [
+          "upstream module peripheral/direct checks"
+        ],
+        "review": [
+          "旁路器件属于哪个物理电源脚"
+        ],
+        "policy": "条件项，无芯片电源旁路的电路记录不适用。"
+      }
+    },
+    {
+      "id": "pin-disposition",
+      "title": "每个物理引脚的连接意图",
+      "aliases": [
+        "NC",
+        "未用引脚",
+        "悬空脚"
+      ],
+      "stages": [
+        "design",
+        "verify"
+      ],
+      "basis": "jlc",
+      "summary": "逐脚记录网络或有依据的未连接状态，确属未使用的脚才标记 NC；未知脚先核对器件资料。",
+      "source_refs": [
+        {
+          "source_id": "jlc-schematic-guidance",
+          "section": "§4：未使用引脚"
+        }
+      ],
+      "reuse_refs": [
+        "references/knowledge-base.md",
+        "references/verification.md"
+      ],
+      "verification": {
+        "machine": [
+          "eso.workflow.validate_plan",
+          "eso.reconcile.reconcile"
+        ],
+        "review": [
+          "NC 原因符合该型号手册"
+        ],
+        "policy": "把未知脚设为 NC 不能解决资料缺失。"
+      }
+    },
+    {
+      "id": "signal-flow",
+      "title": "页面主路径和流向",
+      "aliases": [
+        "阅读顺序",
+        "信号流向"
+      ],
+      "stages": [
+        "design",
+        "layout",
+        "verify"
+      ],
+      "basis": "auxiliary",
+      "summary": "先确定页面任务与主路径，保持信号及供电方向容易追踪。",
+      "source_refs": [
+        {
+          "source_id": "autodesk-schematic-tips",
+          "section": "Tip 6：版面逻辑"
+        }
+      ],
+      "reuse_refs": [
+        "extras/schematic-verified-layout/references/drawing-grammar.md"
+      ],
+      "verification": {
+        "machine": [],
+        "review": [
+          "从输入或电源沿主路径追至输出或负载"
+        ],
+        "policy": "朝向以电路语义和实际符号为准。"
+      }
+    },
+    {
+      "id": "net-semantics",
+      "title": "网络名与作用域",
+      "aliases": [
+        "标签",
+        "电源符号",
+        "网络名"
+      ],
+      "stages": [
+        "design",
+        "layout",
+        "verify"
+      ],
+      "basis": "auxiliary",
+      "summary": "使用有意义的网络名，明确局部、出页和电源的作用域。",
+      "source_refs": [
+        {
+          "source_id": "autodesk-schematic-tips",
+          "section": "Tip 2：连接及网名"
+        }
+      ],
+      "reuse_refs": [
+        "extras/schematic-verified-layout/references/drawing-grammar.md"
+      ],
+      "verification": {
+        "machine": [
+          "eso.planner.net_definitions",
+          "eso.reconcile.reconcile"
+        ],
+        "review": [
+          "标签用途与边界是否明确"
+        ],
+        "policy": "嘉立创实际网络规则优先，大小写风格作为项目约定。"
+      }
+    },
+    {
+      "id": "connection-junctions",
+      "title": "连接节点与交叉",
+      "aliases": [
+        "节点",
+        "交叉",
+        "接点"
+      ],
+      "stages": [
+        "layout",
+        "verify"
+      ],
+      "basis": "auxiliary",
+      "summary": "明确分支接点，减少四向交汇与交叉歧义。",
+      "source_refs": [
+        {
+          "source_id": "autodesk-schematic-tips",
+          "section": "Tip 1：连接交汇"
+        }
+      ],
+      "reuse_refs": [
+        "extras/schematic-verified-layout/references/drawing-grammar.md",
+        "extras/schematic-verified-layout/references/readability-gate.md"
+      ],
+      "verification": {
+        "machine": [
+          "upstream bridge-check",
+          "readability_audit crossings"
+        ],
+        "review": [
+          "渲染上的交汇表达是否清楚"
+        ],
+        "policy": "图面表达和真实网表分别核对。"
+      }
+    },
+    {
+      "id": "symbol-identity",
+      "title": "符号风格与物理脚映射",
+      "aliases": [
+        "符号",
+        "引脚映射",
+        "库一致性"
+      ],
+      "stages": [
+        "design",
+        "layout"
+      ],
+      "basis": "auxiliary",
+      "summary": "复用已核对的库符号并保持风格一致，逻辑位置须与物理脚编号分别核对。",
+      "source_refs": [
+        {
+          "source_id": "altium-schematic-symbols",
+          "section": "符号一致性与 IC 引脚分组章节"
+        },
+        {
+          "source_id": "autodesk-schematic-tips",
+          "section": "Tip 3：符号一致性"
+        }
+      ],
+      "reuse_refs": [
+        "extras/schematic-verified-layout/references/drawing-grammar.md",
+        "references/knowledge-base.md"
+      ],
+      "verification": {
+        "machine": [
+          "eso.bridge.observed_parts"
+        ],
+        "review": [
+          "必要时核对符号、封装和手册"
+        ],
+        "policy": "沿用嘉立创实测网格，不照搬辅助来源的 100mil 或固定符号尺寸。"
+      }
+    },
+    {
+      "id": "annotation-readability",
+      "title": "位号与可见文字",
+      "aliases": [
+        "标注",
+        "位号",
+        "文字"
+      ],
+      "stages": [
+        "layout",
+        "verify"
+      ],
+      "basis": "auxiliary",
+      "summary": "位号唯一，字段朝向一致且易读。",
+      "source_refs": [
+        {
+          "source_id": "autodesk-schematic-tips",
+          "section": "Tips 4–5：标注与文字"
+        }
+      ],
+      "reuse_refs": [
+        "extras/schematic-verified-layout/references/drawing-grammar.md",
+        "extras/schematic-verified-layout/references/readability-gate.md"
+      ],
+      "verification": {
+        "machine": [
+          "eso.workflow.validate_plan",
+          "eso.native_text.validate",
+          "upstream layout-lint"
+        ],
+        "review": [
+          "所有可见文字及打印比例"
+        ],
+        "policy": "使用实际文字和几何，避免隐藏或截短字段消除问题。"
+      }
+    },
+    {
+      "id": "final-verification",
+      "title": "保存重开与独立回读",
+      "aliases": [
+        "回读",
+        "保存重开",
+        "验收"
+      ],
+      "stages": [
+        "verify"
+      ],
+      "basis": "project",
+      "summary": "保存后重新打开，并对照计划复核器件、物理脚、网络及几何，保留原始回执和图面审阅。",
+      "source_refs": [],
+      "reuse_refs": [
+        "references/verification.md",
+        "references/live-recovery.md"
+      ],
+      "verification": {
+        "machine": [
+          "eso.workflow.Workflow.verify",
+          "eso.cli.delivery_eligibility"
+        ],
+        "review": [
+          "原生导出图的阅读顺序与未覆盖项"
+        ],
+        "policy": "本项是已有项目验收规则，原始来源中没有声明的能力按实际覆盖记录。"
+      }
+    }
+  ]
+}
