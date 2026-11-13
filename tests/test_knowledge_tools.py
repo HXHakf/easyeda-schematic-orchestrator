@@ -132,3 +132,24 @@ class KnowledgeToolsTests(unittest.TestCase):
         self.assertIn("class inventory", report["checks"]["upstream_compile"]["detail"])
         self.assertFalse(report["writes_to_eda"])
         self.assertFalse(report["live_verified"])
+
+    def test_connected_older_connector_is_reported_as_version_warning(self):
+        from eso.doctor import doctor
+
+        class Connected:
+            def run(self, args, **kwargs):
+                if args == ["--version"]:
+                    return {"stdout": "easyeda-agent v1.17.0"}
+                if args == ["health"]:
+                    return {
+                        "status": "found",
+                        "found": {"raw": {"windows": [{"windowId": "synthetic"}]}},
+                        "versionGate": {"verdict": "block", "connectors": ["1.16.0"]},
+                    }
+                raise AssertionError("unexpected command")
+
+        with patch("eso.doctor.EasyEDA", return_value=Connected()):
+            report = doctor(sys.executable, live=True)
+        self.assertEqual(report["checks"]["connection"]["status"], "passed")
+        self.assertEqual(report["checks"]["versions"]["status"], "warning")
+        self.assertFalse(report["live_verified"])

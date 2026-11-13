@@ -65,6 +65,7 @@ def doctor(binary="easyeda", *, live=False, target=None, run_dir=None, window=No
             "upstream", "unavailable", "安装上游 CLI 或显式指定 --easyeda；不会自动安装"
         )
     record("connection", "not_checked", "使用 --live 进行只读连接检查")
+    record("versions", "not_checked", "现场连接后核对配套版本")
     record("snapshot", "not_checked", "需要 --live 和明确 --target；不自动选择工程")
     record(
         "upstream_compile",
@@ -80,10 +81,12 @@ def doctor(binary="easyeda", *, live=False, target=None, run_dir=None, window=No
                 "raw", {}
             ).get("windows"):
                 raise Refused("no connected EDA window")
-            if health.get("versionGate", {}).get("verdict") not in ("ok",):
-                raise Refused(
-                    "upstream version gate is not ok: " + str(health.get("versionGate"))
-                )
+            versions = health.get("versionGate", {})
+            record(
+                "versions",
+                "passed" if versions.get("verdict") == "ok" else "warning",
+                versions,
+            )
             return {
                 "versions": health.get("versionGate"),
                 "host": health.get("hostCompatibility"),

@@ -48,7 +48,7 @@ eso doctor --live --target runs/target.json --out runs/doctor.json
 python scripts/demo_knowledge_v2.py --out runs/knowledge-v2-demo
 ```
 
-诊断报告包含本地工具、渲染器、连接、快照与指定工程的历史验收状态。指定现场 target 后，`upstream_compile` 使用本次原始快照运行离线 compose 和 apply dry-run 探针，报告快照兼容性。正式 prepare 继续检查具体设计。正式执行仍要求精确设计确认和完整执行门禁。
+诊断报告包含本地工具、渲染器、连接、配套版本、快照与指定工程的历史验收状态。连接可用且存在版本差异时，连接检查通过，版本检查给出 warning 及上游修复信息。指定现场 target 后，`upstream_compile` 使用本次原始快照运行离线 compose 和 apply dry-run 探针，报告快照兼容性。正式 prepare 继续检查具体设计。正式执行仍要求精确设计确认和完整执行门禁。
 
 渲染器随 ESO 包分发。`ESO_BROWSER` 可指定 Chromium 可执行文件，`ESO_LAYOUT_SKILL` 可覆盖兼容工具位置。
 
