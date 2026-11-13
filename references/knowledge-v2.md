@@ -1,6 +1,8 @@
 # 资料复用与有限模块组合
 
-本版开发能力覆盖 0.4 的离线资料流程和 0.5 的有限组合。真实电路验收状态见 `docs/plans/knowledge-real-material-feasibility.md`。
+本页用于具体项目选型后的器件资料复用与有限组合。通用知识卡先准备拓扑、计算方法与来源，
+项目开始后再整理对应模块资料、型号和工作条件。既有测试器件的审查状态见
+[项目示例资料记录](../docs/plans/knowledge-real-material-feasibility.md)。
 
 ## 用户与宿主输入
 

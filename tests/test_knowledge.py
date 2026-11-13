@@ -70,7 +70,7 @@ class KnowledgeTests(unittest.TestCase):
             outputs.append([row['id'] for row in json.loads(result.stdout)['matches']])
         self.assertEqual(outputs, [['npn-low-side-switch']] * 3)
 
-    def test_catalog_has_six_unique_topics_and_pending_sources_block_generation(self):
+    def test_catalog_has_six_unique_topics_and_guidance_cards_do_not_auto_generate(self):
         result = self.cli('kb-check')
         self.assertEqual(result.returncode, 0, result.stderr)
         report = json.loads(result.stdout)

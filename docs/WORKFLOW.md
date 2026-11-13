@@ -1,5 +1,8 @@
 # 原理图工作流
 
+通用知识库先准备连接、计算、适用条件和来源。用户提出具体项目后，再选型、整理模块手册并确定工况，
+进入下述设计流程。维护和发布标准见[范围记录](plans/knowledge-reuse-implementation.md)。
+
 绘图前读取安装态 schematic-verified-layout，并按 [现场经验与恢复约束](../references/live-recovery.md)
 执行能力预检、元数据先行、变更失效及部分 Apply 恢复。默认使用 typed CLI，不直接控制屏幕。
 
@@ -40,10 +43,10 @@
 compose 和 apply dry-run 有离线集成。collect 使用原生 SVG 派生测量处理 nullable 属性及缺 bbox，
 保留原始值并核对完整文字清单，依赖随包布局技能及 Chromium。
 
-本地开发版采用 v1.17.0 配套工具完成[开关样例](plans/npn-nmos-eda-acceptance.md)和
+代表性样例采用 v1.17.0 配套工具完成[开关样例](plans/npn-nmos-eda-acceptance.md)和
 [MCU 双支路样例](plans/mcu-switch-eda-acceptance.md)的 EDA 及图面验收，期间包含宿主实测修源与文字修正。
-v1.16.0 快照兼容问题继续由写前实际探针判断。严格 v2 资料仍有缺项，其生成路径的现场验收仍待完成。
-当前保持开发版，电气、仿真及实物的结论按实际检查记录。
+v1.16.0 快照兼容问题继续由写前实际探针判断。具体项目选型后按 v2 资料流程核验手册、参数与物理脚，
+电气、仿真及实物结果按该项目的实际检查记录。通用工作流的版本与发布验证见[验证记录](VALIDATION.md)。
 
 重复故障先按[现场问题复盘](../references/live-recovery.md)定位到对应阶段，操作接口沿用
 [测量衔接](../references/measurement-bridge.md)，证据范围按[交付指南](../references/verification.md#交付证据组织)记录。

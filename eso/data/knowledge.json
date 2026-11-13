@@ -400,6 +400,40 @@
       "checked_on": "2026-11-13",
       "original_document_included": false,
       "redistribution_review": "保存原创规则摘要和定位，未转载原文或图片"
+    },
+    {
+      "id": "jlc-gpio-led",
+      "title": "LED 控制实验：驱动原理与 GPIO 灌电流连接",
+      "kind": "publisher_educational_circuit_reference",
+      "url": "https://wiki.lceda.cn/zh-hans/course-projects/microcontroller/ti-simple-oscilloscope/led-project.html",
+      "locators": [
+        "LED灯驱动原理",
+        "点亮LED灯 / 项目分析"
+      ],
+      "recommended_use": "提取 GPIO 灌电流 LED 的极性、限流电阻和有效电平通用连接规则",
+      "review_scope": "已读驱动原理和项目分析；摘录通用连接规则，示例型号和阻值按项目另行选取",
+      "redistribution_review": "保存原创摘要、公式与章节引用，原页面单独访问",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
+    },
+    {
+      "id": "jlc-i2c-bus",
+      "title": "I2C总线协议介绍：开漏连接与上拉选择",
+      "kind": "publisher_educational_circuit_reference",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/practical-circuit/i2c-bus-introduce.html",
+      "locators": [
+        "I2C总线的特点",
+        "上拉电阻选择 / 上拉电阻计算思路"
+      ],
+      "recommended_use": "以开漏结构、SCL/SDA 上拉及上升时间和灌电流边界组织 I2C 主题",
+      "review_scope": "已读开漏特点和上拉边界；双向 MOS 连接的细节由既有 AN10441 辅助来源补充",
+      "redistribution_review": "保存原创摘要、公式与章节引用，原页面单独访问",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "ecosystem": "jlc",
+      "role": "core"
     }
   ],
   "upstream_candidates": [
@@ -734,7 +768,7 @@
       "auxiliary_source_ids": [],
       "asset_ids": [],
       "status": "knowledge-only",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "rule_ids": [
         "physical-pins",
         "operating-limits",
@@ -769,11 +803,31 @@
       "variants": [
         {
           "id": "series-diode",
-          "status": "candidate"
+          "status": "candidate",
+          "topology": {
+            "diode": {
+              "A": "input",
+              "K": "output"
+            }
+          }
         },
         {
           "id": "bridge",
-          "status": "candidate"
+          "status": "candidate",
+          "topology": {
+            "rectifier": {
+              "AC1": "input_positive",
+              "AC2": "input_negative",
+              "+": "output",
+              "-": "ground"
+            }
+          },
+          "ports": {
+            "input_positive": "输入电源端1",
+            "input_negative": "输入电源端2",
+            "output": "受保护正极",
+            "ground": "负载参考地"
+          }
         },
         {
           "id": "pmos",
@@ -782,6 +836,7 @@
       ],
       "calculations": [
         "P_diode = Iload * Vf",
+        "P_bridge ≈ 2 * Iload * Vf；输出参考地使用桥式整流负端",
         "P_mos = Iload² * RDS(on)"
       ],
       "counterexamples": [
@@ -789,7 +844,8 @@
         "超过栅源极限"
       ],
       "limitations": [
-        "需审阅反接、正常供电及掉电状态，暂不自动生成"
+        "需审阅反接、正常供电及掉电状态，暂不自动生成",
+        "PMOS 变体保留为候选，体二极管方向和驱动连接按对应资料继续审阅"
       ]
     },
     {
@@ -805,7 +861,7 @@
       "auxiliary_source_ids": [],
       "asset_ids": [],
       "status": "knowledge-only",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "rule_ids": [
         "physical-pins",
         "operating-limits",
@@ -840,7 +896,25 @@
       "variants": [
         {
           "id": "divider-rc",
-          "status": "candidate"
+          "status": "candidate",
+          "conditions": [
+            "ADC 与输入参考地一致",
+            "分压和采样建立要求在项目中核验"
+          ],
+          "topology": {
+            "top": {
+              "1": "input",
+              "2": "output"
+            },
+            "bottom": {
+              "1": "output",
+              "2": "ground"
+            },
+            "filter_optional": {
+              "1": "output",
+              "2": "ground"
+            }
+          }
         }
       ],
       "calculations": [
@@ -862,14 +936,14 @@
         "LED 指示灯",
         "GPIO LED indicator"
       ],
-      "primary_source_id": null,
+      "primary_source_id": "jlc-gpio-led",
       "related_core_source_ids": [],
       "auxiliary_source_ids": [],
       "asset_ids": [
         "block.led_indicator_gpio"
       ],
-      "status": "jlc_primary_source_pending",
-      "version": "1.0.0",
+      "status": "knowledge-only",
+      "version": "1.1.0",
       "rule_ids": [
         "physical-pins",
         "operating-limits",
@@ -877,34 +951,72 @@
       ],
       "conflicts": [],
       "verification": {
-        "sources": "primary-pending",
+        "sources": "reviewed-excerpts",
         "parameters": "per-design-required",
         "simulation": "not-run",
         "eda": "not-run",
         "pcb": "not-run",
         "hardware": "not-run"
       },
-      "evidence": [],
+      "evidence": [
+        {
+          "source_id": "jlc-gpio-led",
+          "section": "LED灯驱动原理；点亮LED灯 / 项目分析，低电平点亮的灌电流连接"
+        }
+      ],
       "ports": {
-        "input": "输入侧",
-        "output": "输出侧"
+        "supply": "LED 所在电源域",
+        "ground": "GPIO 参考地",
+        "control": "可灌电流的 GPIO，低电平点亮"
       },
       "required_parameters": [
-        "voltage_domains",
-        "selected_parts"
+        "supply_min_v",
+        "supply_max_v",
+        "gpio_vol_min_v",
+        "gpio_vol_max_v",
+        "led_vf_min_v",
+        "led_vf_max_v",
+        "led_current_min_a",
+        "led_current_max_a",
+        "gpio_sink_limit_a",
+        "resistor_tolerance_fraction",
+        "reset_state"
       ],
       "variants": [
         {
-          "id": "standard",
-          "status": "candidate"
+          "id": "gpio-sink",
+          "status": "candidate",
+          "conditions": [
+            "GPIO 与 LED 电源域兼容",
+            "GPIO 灌电流驱动",
+            "复位和高阻态按具体项目核验"
+          ],
+          "topology": {
+            "series": {
+              "1": "supply",
+              "2": "$led_anode"
+            },
+            "indicator": {
+              "A": "$led_anode",
+              "K": "control"
+            }
+          }
         }
       ],
-      "calculations": [],
+      "calculations": [
+        "Iled_max = max(0, Vsupply_max - Vf_min - VOL_min) / R_min",
+        "Iled_min = max(0, Vsupply_min - Vf_max - VOL_max) / R_max",
+        "P_R_max = max(0, Vsupply_max - Vf_min - VOL_min)² / R_min"
+      ],
       "counterexamples": [
-        "未核对具体器件与应用条件直接套用"
+        "LED 与 GPIO 直连而无串联限流",
+        "照搬其他颜色 LED 的正向压降",
+        "忽略 GPIO 单脚与端口总灌电流预算",
+        "把低电平点亮接法当成高电平点亮"
       ],
       "limitations": [
-        "嘉立创主来源待补齐，禁止自动生成"
+        "具体 LED 压降、电流、GPIO 电平和复位状态在项目选型后核验",
+        "此条目提供连接与计算参考，确定器件后由宿主编写并验证 plan"
       ]
     },
     {
@@ -914,14 +1026,14 @@
         "I²C 双向电平转换",
         "I2C open-drain level shifter"
       ],
-      "primary_source_id": null,
+      "primary_source_id": "jlc-i2c-bus",
       "related_core_source_ids": [],
       "auxiliary_source_ids": [
         "nexperia-an10441"
       ],
       "asset_ids": [],
-      "status": "jlc_primary_source_pending",
-      "version": "1.0.0",
+      "status": "knowledge-only",
+      "version": "1.1.0",
       "rule_ids": [
         "physical-pins",
         "operating-limits",
@@ -929,7 +1041,7 @@
       ],
       "conflicts": [],
       "verification": {
-        "sources": "primary-pending",
+        "sources": "reviewed-excerpts",
         "parameters": "per-design-required",
         "simulation": "not-run",
         "eda": "not-run",
@@ -938,30 +1050,89 @@
       },
       "evidence": [
         {
+          "source_id": "jlc-i2c-bus",
+          "section": "I2C总线的特点；上拉电阻选择 / 上拉电阻计算思路"
+        },
+        {
           "source_id": "nexperia-an10441",
-          "section": "主题正文；具体型号以本轮手册定位为准"
+          "section": "Rev.2，§2、§2.1 与图1（PDF p2），§2.1.1（PDF p3）；双向 MOS 连接和工作原理"
         }
       ],
       "ports": {
-        "input": "输入侧",
-        "output": "输出侧"
+        "low_supply": "低压侧上拉电源",
+        "high_supply": "高压侧上拉电源",
+        "low_sda": "低压侧 SDA",
+        "high_sda": "高压侧 SDA",
+        "low_scl": "低压侧 SCL",
+        "high_scl": "高压侧 SCL",
+        "ground": "共同参考地"
       },
       "required_parameters": [
-        "voltage_domains",
-        "selected_parts"
+        "low_supply_range_v",
+        "high_supply_range_v",
+        "bus_frequency_hz",
+        "bus_capacitance_f",
+        "rise_time_max_s",
+        "vol_max_v",
+        "sink_current_limit_a",
+        "existing_pullups",
+        "power_sequence"
       ],
       "variants": [
         {
-          "id": "standard",
-          "status": "candidate"
+          "id": "dual-nmos-open-drain",
+          "status": "candidate",
+          "conditions": [
+            "开漏双向总线",
+            "标准模式或快速模式参考拓扑",
+            "正常供电时高压侧电源不低于低压侧",
+            "上下电和掉电接口按具体项目核验"
+          ],
+          "topology": {
+            "sda_switch": {
+              "G": "low_supply",
+              "S": "low_sda",
+              "D": "high_sda"
+            },
+            "scl_switch": {
+              "G": "low_supply",
+              "S": "low_scl",
+              "D": "high_scl"
+            },
+            "sda_low_pullup": {
+              "1": "low_supply",
+              "2": "low_sda"
+            },
+            "sda_high_pullup": {
+              "1": "high_supply",
+              "2": "high_sda"
+            },
+            "scl_low_pullup": {
+              "1": "low_supply",
+              "2": "low_scl"
+            },
+            "scl_high_pullup": {
+              "1": "high_supply",
+              "2": "high_scl"
+            }
+          }
         }
       ],
-      "calculations": [],
+      "calculations": [
+        "Rp_min = (Vpullup_max - VOL_max) / IOL_budget",
+        "Rp_max = tr_max / (0.8473 * Cbus)，按对应电源域与总线条件计算",
+        "1/Rp_equivalent = Σ(1/Rp_existing)，计入各模块既有上拉",
+        "I_sink_total = I_pullup_low + I_pullup_high，核对拉低器件的总预算"
+      ],
       "counterexamples": [
-        "未核对具体器件与应用条件直接套用"
+        "两侧上拉均接高压电源，超过低压器件输入限值",
+        "把 MOS 的源漏或栅极电源域接反",
+        "将开漏转换拓扑直接套用到推挽接口",
+        "遗漏模块已有上拉导致并联电流过大"
       ],
       "limitations": [
-        "嘉立创主来源待补齐，禁止自动生成"
+        "具体 MOS、物理脚、电平阈值、导通条件和器件灌电流在项目阶段核验",
+        "当前提供通用拓扑参考，其他速率、长线和电源时序需要项目资料审阅"
       ]
     }
   ],

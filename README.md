@@ -2,14 +2,15 @@
 
 面向嘉立创 EDA 专业版的 AI 原理图设计工作流 Skill，复用
 [easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent) 的 CLI、daemon 和 EDA Agent Connector。
-当前版本为 **0.5.0.dev9**（开发版，NPN/NMOS 与 MCU 双支路样例的 EDA 及图面验收通过，严格电气依据仍有缺项）。
+当前版本为 **0.5.0**。提供通用原理图设计流程、嘉立创核心知识库、设计规范和可追溯的绘图验收。
+具体项目开始时，再确定应用场景、器件选型、模块手册及工作条件。
 
 本地可靠性改进：完整连接/NC/引用与网络 scope 对账、严格空白页清单、写前离线兼容探针、
 全部可见属性文字缺测阻断、显式多电源网络定义，以及只读 `diagnose`。
 用法与限制见 [可靠性改进说明](docs/RELIABILITY.md)。
 
-本开发版加入初始放置恢复、按验收轮次归档、目标互斥，以及目录核验、文字恢复、有限布局候选比较和分层证据索引。
-使用方式见 [辅助工具](references/workflow-assistance.md)。目标互斥、实测文字恢复和真实缺件补放已完成限定现场验收，见 [恢复验收](docs/plans/recovery-live-acceptance.md)。严格电气依据、严格 v2 真实生成现场链及完整效率对照仍待完成。
+本版提供初始放置恢复、按验收轮次归档、目标互斥，以及目录核验、文字恢复、有限布局候选比较和分层证据索引。
+使用方式见 [辅助工具](references/workflow-assistance.md)。目标互斥、实测文字恢复和真实缺件补放已完成限定现场验收，见 [恢复验收](docs/plans/recovery-live-acceptance.md)。具体项目的电气参数、手册适用条件与效率测量在项目应用时核验。
 
 ## 实际绘制效果与修复
 
@@ -69,8 +70,8 @@ Windows、已有安装的更新、路径自定义和上游缺失组件处理见 
 - stage/collect 衔接真实器件、完整引脚/位号/SVG 测量到上游 lib-layout，再无损编译本轮实例。
 - 复验开始即使旧成功失效；失败、证据变化或复验中断不能继续交付为通过。
 
-**当前已有 NPN/NMOS 现场记录，仍为开发版。** 使用匹配的 v1.17.0 CLI、daemon、Connector
-完成两套电路的真实放置、连接、保存重开、逐脚回读及图面复核。MCU 双支路样例也已完成保存重开和图面验收，见 [组合验收记录](docs/plans/mcu-switch-eda-acceptance.md)。严格电气依据仍有缺项。
+**已完成代表性 NPN/NMOS 现场流程验收。** 使用匹配的 v1.17.0 CLI、daemon、Connector
+完成两套电路的真实放置、连接、保存重开、逐脚回读及图面复核。MCU 双支路样例也已完成保存重开和图面验收，见 [组合验收记录](docs/plans/mcu-switch-eda-acceptance.md)。测试电路的电气假设和验证范围记录在对应报告中。
 历史本地构建 v1.16.1-dev.1 已复用上游 main 的十一类快照及引脚归属校验修复。
 旧版十类编译器仍会被放置前的实际快照探针拒绝；不只凭版本字符串判定。
 模拟流程、真实上游离线布局/compose/dry-run 不等于现场绘图通过。
@@ -162,7 +163,7 @@ MIT。与嘉立创、ST、Bosch 无官方隶属关系。私有运行目录可能
 
 ## 常用电路知识库
 
-0.3.0 新增本地嘉立创核心知识库与参数检查，不需要额外模型 API。六个主题中，NPN/NMOS 的静态电阻负载变体支持生成计划；防反接、ADC 分压为知识卡，LED 与 I²C 电平转换的嘉立创主来源待补齐。
+知识库包含六个唯一主题，均已登记嘉立创主来源。NPN/NMOS 的静态电阻负载变体支持参数检查与计划生成；防反接、ADC 分压、LED 指示和 I²C 开漏电平转换提供通用连接、计算与审阅要点。
 
 ```sh
 eso kb-check
@@ -170,8 +171,8 @@ eso kb-search 'NPN 低边开关'
 python scripts/demo_knowledge.py --out runs/knowledge-demo
 ```
 
-用户准备完整型号、封装和手册位置，宿主审阅摘录和真实器件库，`assess` 核验后进入现有确认与绘图流程。演示全部使用虚构数据，只证明离线接口和检查逻辑。真实 NPN/NMOS 通用方案已有有限 EDA 验收，严格知识库真实电气依据仍待补齐。详见 [知识库使用指南](references/knowledge-base.md)、[实施记录](docs/plans/circuit-knowledge.md) 与 [现场范围](docs/plans/npn-nmos-eda-acceptance.md)。
+使用 `kb-search` 可以先检索和学习通用电路。开始具体项目时，再准备型号、封装和手册位置，由宿主审阅资料与真实器件库，`assess` 核验后进入确认和绘图流程。演示使用合成数据验证离线接口，代表性真实样例验证 EDA 流程。详见 [知识库使用指南](references/knowledge-base.md)、[实施记录](docs/plans/circuit-knowledge.md) 与 [现场范围](docs/plans/npn-nmos-eda-acceptance.md)。
 
-0.5.0.dev4 增加私有器件缓存、v2 功能条件与证据、环境诊断和有限 MCU 组合。使用方法见 [资料复用与模块组合](references/knowledge-v2.md)，真实资料阻断情况见 [可行性检查](docs/plans/knowledge-real-material-feasibility.md)。
+本版包含私有器件资料缓存、v2 条件与证据、环境诊断和有限 MCU 组合。项目选型后使用 [资料复用与模块组合](references/knowledge-v2.md)，既有测试型号的资料审查保存在 [项目示例记录](docs/plans/knowledge-real-material-feasibility.md)。
 
 原理图绘制可使用 `eso rules --stage design|layout|verify` 获取嘉立创核心的阶段清单。来源与既有检查器的对应关系见 [原理图设计规范](references/schematic-design-rules.md)。
