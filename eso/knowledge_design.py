@@ -6,6 +6,9 @@ from .knowledge import catalog, check_contract_knowledge
 def make_knowledge_plan(contract):
     check_contract_knowledge(contract)
     k = contract['requirements']['knowledge']
+    if k.get('schema_version') == 2:
+        from .knowledge_v2 import normalize
+        k = normalize(k)
     data = catalog()
     topics = {t['id']:t for t in data['topics']}
     materials = {m['id']:m for m in k['materials']}
@@ -49,6 +52,9 @@ def make_knowledge_plan(contract):
 
 
 def make_bindings(contract):
+    if 'composition' in contract['requirements']:
+        from .knowledge_composition import make_composed_plan
+        return make_composed_plan(contract)[1]
     plan=make_knowledge_plan(contract)
     k=contract['requirements']['knowledge']
     materials={m['id']:m for m in k['materials']}
@@ -60,7 +66,11 @@ def check_knowledge_plan(plan, contract):
     if 'knowledge' not in contract['requirements']:
         if 'knowledge_evidence' in plan: raise Refused('orphan knowledge plan evidence')
         return
-    expected=make_knowledge_plan(contract)
+    if 'composition' in contract['requirements']:
+        from .knowledge_composition import make_composed_plan
+        expected=make_composed_plan(contract)[0]
+    else:
+        expected=make_knowledge_plan(contract)
     # Deterministic topology, provenance and model selection must survive host edits.
     if plan != expected:
         raise Refused('knowledge plan differs from checked topology/evidence; regenerate from requirements')

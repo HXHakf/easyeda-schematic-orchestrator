@@ -173,11 +173,20 @@ def evaluate(requirements, require_target=False):
         if tr_ns > limit: errors.append(f'I2C RC 上升时间估算 {tr_ns:.1f}ns 超过 {limit}ns；需调整参数')
     knowledge_report = None
     if 'knowledge' in v:
-        if profile != 'generic':
+        if profile != 'generic' and 'composition' not in v:
             errors.append('知识库首版只接入 generic 独立电路，不能覆盖 MCU/LDO 参考设计')
         from .knowledge import assess_knowledge
         knowledge_report = assess_knowledge(v['knowledge'])
         questions.extend(knowledge_report['questions'])
+    if 'composition' in v:
+        if knowledge_report is None:
+            errors.append('composition requires knowledge v2')
+        else:
+            from .knowledge_composition import assess_composition
+            composition_report = assess_composition(v, knowledge_report)
+            questions.extend(composition_report['questions'])
+            if composition_report['ready']:
+                knowledge_report['evidence'].update(composition_report['evidence'])
     v['default_provenance'] = defaults
     return {'values': v, 'defaults': defaults, 'questions': questions, 'next_questions': questions[:3],
             'selection_tasks': selections, 'errors': errors, 'ready': not questions and not selections and not errors,
@@ -222,12 +231,19 @@ def contract_summary(contract):
         for c in r['knowledge']['circuits']:
             lines += [f"- {c['id']}：{c['topic']} / {c['variant']}",
                       '- 端口：' + str(c['ports']), '- 工作条件：' + str(c['parameters'])]
-        for m in r['knowledge']['materials']:
+        display_materials = r['knowledge']['materials']
+        if r['knowledge'].get('schema_version') == 2:
+            display_materials = [{**m['record'], 'id':m['id'], 'fact_sections':{key:f['section'] for key,f in m['record']['facts'].items()}} for m in display_materials]
+        for m in display_materials:
             lines.append(f"- 器件 {m['id']}：{m['model']} / {m['package']}；手册 {m['datasheet']['revision']}，审阅者 {m['datasheet']['reviewed_by']}")
-        for m in r['knowledge']['materials']:
-            lines += [f"- {m['id']} 参数及工作限值：{m['facts']}", f"- 手册定位：{m['datasheet']['path']} / {m['fact_sections']}"]
+        for m in display_materials:
+            lines += [f"- {m['id']} 参数及工作限值：{m['facts']}", f"- 手册定位：{m['datasheet'].get('path', 'urn:sha256:' + m['datasheet']['sha256'])} / {m['fact_sections']}"]
         lines += ['- 参数核验：' + str(contract['knowledge_evidence']['calculations']),
                   '- 仅限静态电阻负载、共地、默认关闭；参数、温度与手册语义需审阅。']
+    if 'composition' in r:
+        lines += ['', 'MCU 模块组合：', str(r['composition']['connections']),
+                  '剩余 GPIO/端口预算审阅：' + r['composition']['budget_review'],
+                  '控制器预算检查：' + str(contract['knowledge_evidence']['controller_budget'])]
     target = contract.get('target')
     lines += ['', f"执行目标：{target['project_name']}（已内部绑定具体页面）。" if target else '执行目标：未绑定；当前仅为离线草稿。',
               '', '验收：逐脚连接/NC、规则、桥接和几何检查，保存并重载后重新回读。',

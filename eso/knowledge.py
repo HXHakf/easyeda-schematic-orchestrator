@@ -127,6 +127,9 @@ def assess_materials(materials):
 
 
 def assess_knowledge(knowledge):
+    if isinstance(knowledge, dict) and knowledge.get('schema_version') == 2:
+        from .knowledge_v2 import assess_v2
+        return assess_v2(knowledge)
     from .knowledge_rules import check_switch
     issues, calculations, cards, nets, controls = [], {}, {}, {}, {}
     def issue(field, message): issues.append({'field': 'knowledge.' + field, 'question': message, 'reason': '电路条件未通过'})
@@ -223,5 +226,10 @@ def check_contract_knowledge(contract):
         return
     report = assess_knowledge(k)
     if not report['ready']: raise Refused('knowledge inputs stale/incomplete: ' + str(report['questions']))
+    if 'composition' in contract['requirements']:
+        from .knowledge_composition import assess_composition
+        composition = assess_composition(contract['requirements'], report)
+        if not composition['ready']: raise Refused('composition inputs stale/incomplete: ' + str(composition['questions']))
+        report['evidence'].update(composition['evidence'])
     if contract.get('knowledge_evidence') != report['evidence']:
         raise Refused('knowledge evidence changed; regenerate and review contract')

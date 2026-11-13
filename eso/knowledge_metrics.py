@@ -8,6 +8,9 @@ METRICS = ('elapsed_seconds','question_rounds','connection_errors')
 
 
 def compare_runs(records):
+    if isinstance(records, dict):
+        from .knowledge_metrics_v2 import compare_measured
+        return compare_measured(records)
     if not isinstance(records,list): raise Refused('metrics must be a list of measured run records')
     groups=defaultdict(lambda: defaultdict(list))
     for row in records:

@@ -1,0 +1,1453 @@
+{
+  "schema_version": 1,
+  "circuit_type": "mcu-sensor",
+  "function_description": "synthetic switch test",
+  "knowledge": {
+    "schema_version": 2,
+    "materials": [
+      {
+        "id": "switch",
+        "record_sha256": "95df793ed647b92af535a5e84811e04cddc64c1e3629e9f12e082e78166dc97a",
+        "record": {
+          "schema_version": 2,
+          "manufacturer": "SYNTHETIC",
+          "model": "SYNTHETIC-switch",
+          "package": "TEST",
+          "kind": "npn",
+          "datasheet": {
+            "sha256": "c02259ef4d87309ee0cdcdc0b0c33e4e9a0ef93e8b068c685316caceab609ae1",
+            "model": "SYNTHETIC-switch",
+            "package": "TEST",
+            "revision": "fixture-1",
+            "pinout_section": "synthetic pin table",
+            "reviewed_by": "test fixture"
+          },
+          "pins": {
+            "B": "1",
+            "E": "2",
+            "C": "3"
+          },
+          "coverage": {
+            "ambient_c": [
+              0,
+              85
+            ],
+            "supply_v": [
+              3,
+              12
+            ],
+            "control_v": [
+              0,
+              3.3
+            ],
+            "load_current_a": [
+              0,
+              0.02
+            ],
+            "frequency_hz": [
+              0,
+              0
+            ],
+            "thermal_context": "synthetic-board"
+          },
+          "coverage_review": "SYNTHETIC full envelope reviewed",
+          "facts": {
+            "voltage_limit_v": {
+              "value": 30,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "current_limit_a": {
+              "value": 0.5,
+              "unit": "A",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "power_limit_w": {
+              "value": 0.25,
+              "unit": "W",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "rated_ambient_c": {
+              "value": 85,
+              "unit": "degC",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "off_input_max_v": {
+              "value": 0.3,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "input_leakage_max_a": {
+              "value": 1e-07,
+              "unit": "A",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "vbe_min_v": {
+              "value": 0.6,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "lower"
+            },
+            "vbe_max_v": {
+              "value": 0.9,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "vcesat_max_v": {
+              "value": 0.3,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "sat_test_ic_a": {
+              "value": 0.1,
+              "unit": "A",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "sat_test_ib_a": {
+              "value": 0.01,
+              "unit": "A",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "off_current_max_a": {
+              "value": 1e-06,
+              "unit": "A",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            }
+          }
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "22222222222222222222222222222222",
+          "verified_model": "SYNTHETIC-switch",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-switch",
+          "pins": {
+            "B": "1",
+            "E": "2",
+            "C": "3"
+          },
+          "evidence": "synthetic only"
+        }
+      },
+      {
+        "id": "series",
+        "record_sha256": "1a24c11401cebf4e10e9bffa505d1378f4f6b0c26d9929186c665f405981a017",
+        "record": {
+          "schema_version": 2,
+          "manufacturer": "SYNTHETIC",
+          "model": "SYNTHETIC-series",
+          "package": "TEST",
+          "kind": "resistor",
+          "datasheet": {
+            "sha256": "261522b36214ca6b81464ae40c850a75793dd3b611aeeb2e528f092bf2b32ae5",
+            "model": "SYNTHETIC-series",
+            "package": "TEST",
+            "revision": "fixture-1",
+            "pinout_section": "synthetic pin table",
+            "reviewed_by": "test fixture"
+          },
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "coverage": {
+            "ambient_c": [
+              0,
+              85
+            ],
+            "supply_v": [
+              3,
+              12
+            ],
+            "control_v": [
+              0,
+              3.3
+            ],
+            "load_current_a": [
+              0,
+              0.02
+            ],
+            "frequency_hz": [
+              0,
+              0
+            ],
+            "thermal_context": "synthetic-board"
+          },
+          "coverage_review": "SYNTHETIC full envelope reviewed",
+          "facts": {
+            "resistance_ohm": {
+              "value": 1000,
+              "unit": "ohm",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "nominal"
+            },
+            "tolerance_fraction": {
+              "value": 0.01,
+              "unit": "1",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "power_limit_w": {
+              "value": 0.125,
+              "unit": "W",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "voltage_limit_v": {
+              "value": 50,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "rated_ambient_c": {
+              "value": 85,
+              "unit": "degC",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            }
+          }
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "22222222222222222222222222222222",
+          "verified_model": "SYNTHETIC-series",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-series",
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "evidence": "synthetic only"
+        }
+      },
+      {
+        "id": "bias",
+        "record_sha256": "12b42a681381c017bf09371410fb37bbecfc81f752b7123d6fbb41dec54d40b8",
+        "record": {
+          "schema_version": 2,
+          "manufacturer": "SYNTHETIC",
+          "model": "SYNTHETIC-bias",
+          "package": "TEST",
+          "kind": "resistor",
+          "datasheet": {
+            "sha256": "6963c672e538fd527287d4173a036e3c96fe149930891c6e3567fa288e67809c",
+            "model": "SYNTHETIC-bias",
+            "package": "TEST",
+            "revision": "fixture-1",
+            "pinout_section": "synthetic pin table",
+            "reviewed_by": "test fixture"
+          },
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "coverage": {
+            "ambient_c": [
+              0,
+              85
+            ],
+            "supply_v": [
+              3,
+              12
+            ],
+            "control_v": [
+              0,
+              3.3
+            ],
+            "load_current_a": [
+              0,
+              0.02
+            ],
+            "frequency_hz": [
+              0,
+              0
+            ],
+            "thermal_context": "synthetic-board"
+          },
+          "coverage_review": "SYNTHETIC full envelope reviewed",
+          "facts": {
+            "resistance_ohm": {
+              "value": 100000,
+              "unit": "ohm",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "nominal"
+            },
+            "tolerance_fraction": {
+              "value": 0.01,
+              "unit": "1",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "power_limit_w": {
+              "value": 0.125,
+              "unit": "W",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "voltage_limit_v": {
+              "value": 50,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "rated_ambient_c": {
+              "value": 85,
+              "unit": "degC",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            }
+          }
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "22222222222222222222222222222222",
+          "verified_model": "SYNTHETIC-bias",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-bias",
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "evidence": "synthetic only"
+        }
+      },
+      {
+        "id": "load",
+        "record_sha256": "20f9d8d6ab81e405b10893bb4a7afcd25383e45ebcad1b518cee313a95ae682f",
+        "record": {
+          "schema_version": 2,
+          "manufacturer": "SYNTHETIC",
+          "model": "SYNTHETIC-load",
+          "package": "TEST",
+          "kind": "resistor",
+          "datasheet": {
+            "sha256": "2508527526960dabc361680c5f91df2be614833bf1cbb948aac36ecdf1fa8955",
+            "model": "SYNTHETIC-load",
+            "package": "TEST",
+            "revision": "fixture-1",
+            "pinout_section": "synthetic pin table",
+            "reviewed_by": "test fixture"
+          },
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "coverage": {
+            "ambient_c": [
+              0,
+              85
+            ],
+            "supply_v": [
+              3,
+              12
+            ],
+            "control_v": [
+              0,
+              3.3
+            ],
+            "load_current_a": [
+              0,
+              0.02
+            ],
+            "frequency_hz": [
+              0,
+              0
+            ],
+            "thermal_context": "synthetic-board"
+          },
+          "coverage_review": "SYNTHETIC full envelope reviewed",
+          "facts": {
+            "resistance_ohm": {
+              "value": 1000,
+              "unit": "ohm",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "nominal"
+            },
+            "tolerance_fraction": {
+              "value": 0.01,
+              "unit": "1",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "power_limit_w": {
+              "value": 0.25,
+              "unit": "W",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "voltage_limit_v": {
+              "value": 50,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "rated_ambient_c": {
+              "value": 85,
+              "unit": "degC",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            }
+          }
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "22222222222222222222222222222222",
+          "verified_model": "SYNTHETIC-load",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-load",
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "evidence": "synthetic only"
+        }
+      },
+      {
+        "id": "mos_switch",
+        "record_sha256": "84a447bda3f7c6e5b73debf795d18f70d84ba98d3423ba9569bc03a3936d7477",
+        "record": {
+          "schema_version": 2,
+          "manufacturer": "SYNTHETIC",
+          "model": "SYNTHETIC-switch",
+          "package": "TEST",
+          "kind": "nmos",
+          "datasheet": {
+            "sha256": "c02259ef4d87309ee0cdcdc0b0c33e4e9a0ef93e8b068c685316caceab609ae1",
+            "model": "SYNTHETIC-switch",
+            "package": "TEST",
+            "revision": "fixture-1",
+            "pinout_section": "synthetic pin table",
+            "reviewed_by": "test fixture"
+          },
+          "pins": {
+            "G": "1",
+            "S": "2",
+            "D": "3"
+          },
+          "coverage": {
+            "ambient_c": [
+              0,
+              85
+            ],
+            "supply_v": [
+              3,
+              12
+            ],
+            "control_v": [
+              0,
+              3.3
+            ],
+            "load_current_a": [
+              0,
+              0.02
+            ],
+            "frequency_hz": [
+              0,
+              0
+            ],
+            "thermal_context": "synthetic-board"
+          },
+          "coverage_review": "SYNTHETIC full envelope reviewed",
+          "facts": {
+            "voltage_limit_v": {
+              "value": 30,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "current_limit_a": {
+              "value": 0.5,
+              "unit": "A",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "power_limit_w": {
+              "value": 0.25,
+              "unit": "W",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "rated_ambient_c": {
+              "value": 85,
+              "unit": "degC",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "off_input_max_v": {
+              "value": 0.3,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "input_leakage_max_a": {
+              "value": 1e-07,
+              "unit": "A",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "rds_on_max_ohm": {
+              "value": 0.08,
+              "unit": "ohm",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "rds_test_vgs_v": {
+              "value": 2.5,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "gate_voltage_limit_v": {
+              "value": 12,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "off_current_max_a": {
+              "value": 1e-06,
+              "unit": "A",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            }
+          }
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "22222222222222222222222222222222",
+          "verified_model": "SYNTHETIC-switch",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-switch",
+          "pins": {
+            "G": "1",
+            "S": "2",
+            "D": "3"
+          },
+          "evidence": "synthetic only"
+        }
+      },
+      {
+        "id": "mos_series",
+        "record_sha256": "271797017a06aa25a44fe8fbe38b7718662826c12fef128e6ee4529e3d1aa6df",
+        "record": {
+          "schema_version": 2,
+          "manufacturer": "SYNTHETIC",
+          "model": "SYNTHETIC-series",
+          "package": "TEST",
+          "kind": "resistor",
+          "datasheet": {
+            "sha256": "261522b36214ca6b81464ae40c850a75793dd3b611aeeb2e528f092bf2b32ae5",
+            "model": "SYNTHETIC-series",
+            "package": "TEST",
+            "revision": "fixture-1",
+            "pinout_section": "synthetic pin table",
+            "reviewed_by": "test fixture"
+          },
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "coverage": {
+            "ambient_c": [
+              0,
+              85
+            ],
+            "supply_v": [
+              3,
+              12
+            ],
+            "control_v": [
+              0,
+              3.3
+            ],
+            "load_current_a": [
+              0,
+              0.02
+            ],
+            "frequency_hz": [
+              0,
+              0
+            ],
+            "thermal_context": "synthetic-board"
+          },
+          "coverage_review": "SYNTHETIC full envelope reviewed",
+          "facts": {
+            "resistance_ohm": {
+              "value": 470,
+              "unit": "ohm",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "nominal"
+            },
+            "tolerance_fraction": {
+              "value": 0.01,
+              "unit": "1",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "power_limit_w": {
+              "value": 0.125,
+              "unit": "W",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "voltage_limit_v": {
+              "value": 50,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "rated_ambient_c": {
+              "value": 85,
+              "unit": "degC",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            }
+          }
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "22222222222222222222222222222222",
+          "verified_model": "SYNTHETIC-series",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-series",
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "evidence": "synthetic only"
+        }
+      },
+      {
+        "id": "mos_bias",
+        "record_sha256": "12b42a681381c017bf09371410fb37bbecfc81f752b7123d6fbb41dec54d40b8",
+        "record": {
+          "schema_version": 2,
+          "manufacturer": "SYNTHETIC",
+          "model": "SYNTHETIC-bias",
+          "package": "TEST",
+          "kind": "resistor",
+          "datasheet": {
+            "sha256": "6963c672e538fd527287d4173a036e3c96fe149930891c6e3567fa288e67809c",
+            "model": "SYNTHETIC-bias",
+            "package": "TEST",
+            "revision": "fixture-1",
+            "pinout_section": "synthetic pin table",
+            "reviewed_by": "test fixture"
+          },
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "coverage": {
+            "ambient_c": [
+              0,
+              85
+            ],
+            "supply_v": [
+              3,
+              12
+            ],
+            "control_v": [
+              0,
+              3.3
+            ],
+            "load_current_a": [
+              0,
+              0.02
+            ],
+            "frequency_hz": [
+              0,
+              0
+            ],
+            "thermal_context": "synthetic-board"
+          },
+          "coverage_review": "SYNTHETIC full envelope reviewed",
+          "facts": {
+            "resistance_ohm": {
+              "value": 100000,
+              "unit": "ohm",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "nominal"
+            },
+            "tolerance_fraction": {
+              "value": 0.01,
+              "unit": "1",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "power_limit_w": {
+              "value": 0.125,
+              "unit": "W",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "voltage_limit_v": {
+              "value": 50,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "rated_ambient_c": {
+              "value": 85,
+              "unit": "degC",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            }
+          }
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "22222222222222222222222222222222",
+          "verified_model": "SYNTHETIC-bias",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-bias",
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "evidence": "synthetic only"
+        }
+      },
+      {
+        "id": "mos_load",
+        "record_sha256": "20f9d8d6ab81e405b10893bb4a7afcd25383e45ebcad1b518cee313a95ae682f",
+        "record": {
+          "schema_version": 2,
+          "manufacturer": "SYNTHETIC",
+          "model": "SYNTHETIC-load",
+          "package": "TEST",
+          "kind": "resistor",
+          "datasheet": {
+            "sha256": "2508527526960dabc361680c5f91df2be614833bf1cbb948aac36ecdf1fa8955",
+            "model": "SYNTHETIC-load",
+            "package": "TEST",
+            "revision": "fixture-1",
+            "pinout_section": "synthetic pin table",
+            "reviewed_by": "test fixture"
+          },
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "coverage": {
+            "ambient_c": [
+              0,
+              85
+            ],
+            "supply_v": [
+              3,
+              12
+            ],
+            "control_v": [
+              0,
+              3.3
+            ],
+            "load_current_a": [
+              0,
+              0.02
+            ],
+            "frequency_hz": [
+              0,
+              0
+            ],
+            "thermal_context": "synthetic-board"
+          },
+          "coverage_review": "SYNTHETIC full envelope reviewed",
+          "facts": {
+            "resistance_ohm": {
+              "value": 1000,
+              "unit": "ohm",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "nominal"
+            },
+            "tolerance_fraction": {
+              "value": 0.01,
+              "unit": "1",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "power_limit_w": {
+              "value": 0.25,
+              "unit": "W",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "voltage_limit_v": {
+              "value": 50,
+              "unit": "V",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            },
+            "rated_ambient_c": {
+              "value": 85,
+              "unit": "degC",
+              "basis": "guaranteed",
+              "section": "synthetic table",
+              "test_conditions": "synthetic envelope",
+              "bound": "upper"
+            }
+          }
+        },
+        "library": {
+          "libraryUuid": "11111111111111111111111111111111",
+          "deviceUuid": "22222222222222222222222222222222",
+          "verified_model": "SYNTHETIC-load",
+          "verified_package": "TEST",
+          "expected_name": "SYNTHETIC-load",
+          "pins": {
+            "1": "1",
+            "2": "2"
+          },
+          "evidence": "synthetic only"
+        }
+      }
+    ],
+    "circuits": [
+      {
+        "id": "channel1",
+        "topic": "npn-low-side-switch",
+        "variant": "resistive-dc",
+        "ports": {
+          "supply": "V12",
+          "ground": "GND",
+          "control": "CTRL1"
+        },
+        "roles": {
+          "switch": "switch",
+          "series": "series",
+          "bias": "bias",
+          "load": "load"
+        },
+        "parameters": {
+          "supply_voltage_v": 12,
+          "control_high_min_v": 3,
+          "control_high_max_v": 3.3,
+          "control_low_max_v": 0.1,
+          "gpio_source_limit_ma": 8,
+          "ambient_max_c": 50,
+          "frequency_hz": 0,
+          "default_state": "off",
+          "gpio_leakage_max_ua": 0.1,
+          "supply_min_v": 11,
+          "ambient_min_c": 20,
+          "on_current_min_a": 0.01,
+          "on_current_max_a": 0.013,
+          "off_current_max_a": 1e-05,
+          "thermal_context": "synthetic-board"
+        }
+      },
+      {
+        "id": "channel2",
+        "topic": "nmos-low-side-switch",
+        "variant": "resistive-dc",
+        "ports": {
+          "supply": "V12",
+          "ground": "GND",
+          "control": "CTRL2"
+        },
+        "roles": {
+          "switch": "mos_switch",
+          "series": "mos_series",
+          "bias": "mos_bias",
+          "load": "mos_load"
+        },
+        "parameters": {
+          "supply_voltage_v": 12,
+          "control_high_min_v": 3,
+          "control_high_max_v": 3.3,
+          "control_low_max_v": 0.1,
+          "gpio_source_limit_ma": 8,
+          "ambient_max_c": 50,
+          "frequency_hz": 0,
+          "default_state": "off",
+          "gpio_leakage_max_ua": 0.1,
+          "supply_min_v": 11,
+          "ambient_min_c": 20,
+          "on_current_min_a": 0.01,
+          "on_current_max_a": 0.013,
+          "off_current_max_a": 1e-05,
+          "thermal_context": "synthetic-board"
+        }
+      }
+    ]
+  },
+  "mcu": "STM32F103C8T6",
+  "input_voltage_v": 3.3,
+  "logic_voltage_v": 3.3,
+  "power_source": "external-regulated",
+  "clock": "internal",
+  "debug": "swd",
+  "passive_package": "0603",
+  "sensor": "BMP280",
+  "sensor_form": "bare-chip",
+  "bus": "i2c",
+  "bus_speed_hz": 100000,
+  "i2c_pullups": "new",
+  "pullup_ohm": 4700,
+  "bus_capacitance_pf": 100,
+  "composition": {
+    "mode": "stable-powered-static",
+    "controller": {
+      "record_sha256": "cce17376841ad7c5ab14ff46e24c399a2eb5404c5830704d406982f5dabf139d",
+      "record": {
+        "schema_version": 2,
+        "manufacturer": "SYNTHETIC",
+        "model": "STM32F103C8T6",
+        "package": "LQFP48",
+        "kind": "mcu",
+        "datasheet": {
+          "sha256": "89126e5a28ba25b2e47492af7d8a1cab54bee1c86bd973b2e5c66a51cd6d266e",
+          "model": "STM32F103C8T6",
+          "package": "LQFP48",
+          "revision": "synthetic-1",
+          "pinout_section": "synthetic pins",
+          "reviewed_by": "test fixture"
+        },
+        "pins": {
+          "VBAT_1": "1",
+          "PC13_2": "2",
+          "PC14_3": "3",
+          "PC15_4": "4",
+          "PD0_5": "5",
+          "PD1_6": "6",
+          "NRST_7": "7",
+          "VSSA_8": "8",
+          "VDDA_9": "9",
+          "PA0_10": "10",
+          "PA1_11": "11",
+          "PA2_12": "12",
+          "PA3_13": "13",
+          "PA4_14": "14",
+          "PA5_15": "15",
+          "PA6_16": "16",
+          "PA7_17": "17",
+          "PB0_18": "18",
+          "PB1_19": "19",
+          "PB2_20": "20",
+          "PB10_21": "21",
+          "PB11_22": "22",
+          "VSS_23": "23",
+          "VDD_24": "24",
+          "PB12_25": "25",
+          "PB13_26": "26",
+          "PB14_27": "27",
+          "PB15_28": "28",
+          "PA8_29": "29",
+          "PA9_30": "30",
+          "PA10_31": "31",
+          "PA11_32": "32",
+          "PA12_33": "33",
+          "PA13_34": "34",
+          "VSS_35": "35",
+          "VDD_36": "36",
+          "PA14_37": "37",
+          "PA15_38": "38",
+          "PB3_39": "39",
+          "PB4_40": "40",
+          "PB5_41": "41",
+          "PB6_42": "42",
+          "PB7_43": "43",
+          "BOOT0_44": "44",
+          "PB8_45": "45",
+          "PB9_46": "46",
+          "VSS_47": "47",
+          "VDD_48": "48"
+        },
+        "coverage": {
+          "ambient_c": [
+            0,
+            85
+          ],
+          "supply_v": [
+            3.3,
+            3.3
+          ],
+          "control_v": [
+            0,
+            3.3
+          ],
+          "load_current_a": [
+            0,
+            0.05
+          ],
+          "frequency_hz": [
+            0,
+            0
+          ],
+          "thermal_context": "synthetic-board"
+        },
+        "coverage_review": "synthetic GPIO envelope",
+        "facts": {
+          "gpio_voh_min_v": {
+            "value": 3,
+            "unit": "V",
+            "basis": "guaranteed",
+            "bound": "lower",
+            "section": "synthetic GPIO",
+            "test_conditions": "synthetic stable 3.3V"
+          },
+          "gpio_voh_max_v": {
+            "value": 3.3,
+            "unit": "V",
+            "basis": "guaranteed",
+            "bound": "upper",
+            "section": "synthetic GPIO",
+            "test_conditions": "synthetic stable 3.3V"
+          },
+          "gpio_vol_max_v": {
+            "value": 0.1,
+            "unit": "V",
+            "basis": "guaranteed",
+            "bound": "upper",
+            "section": "synthetic GPIO",
+            "test_conditions": "synthetic stable 3.3V"
+          },
+          "gpio_source_limit_ma": {
+            "value": 8,
+            "unit": "mA",
+            "basis": "guaranteed",
+            "bound": "upper",
+            "section": "synthetic GPIO",
+            "test_conditions": "synthetic stable 3.3V"
+          },
+          "gpio_leakage_max_ua": {
+            "value": 0.1,
+            "unit": "uA",
+            "basis": "guaranteed",
+            "bound": "upper",
+            "section": "synthetic GPIO",
+            "test_conditions": "synthetic stable 3.3V"
+          },
+          "port_a_source_limit_ma": {
+            "value": 20,
+            "unit": "mA",
+            "basis": "guaranteed",
+            "bound": "upper",
+            "section": "synthetic GPIO",
+            "test_conditions": "synthetic stable 3.3V"
+          },
+          "port_b_source_limit_ma": {
+            "value": 20,
+            "unit": "mA",
+            "basis": "guaranteed",
+            "bound": "upper",
+            "section": "synthetic GPIO",
+            "test_conditions": "synthetic stable 3.3V"
+          },
+          "total_source_limit_ma": {
+            "value": 30,
+            "unit": "mA",
+            "basis": "guaranteed",
+            "bound": "upper",
+            "section": "synthetic GPIO",
+            "test_conditions": "synthetic stable 3.3V"
+          }
+        }
+      }
+    },
+    "base_bindings": {
+      "U1": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "STM32F103C8T6",
+        "verified_package": "LQFP48",
+        "expected_name": "STM32F103C8T6",
+        "pins": {
+          "VBAT_1": "1",
+          "PC13_2": "2",
+          "PC14_3": "3",
+          "PC15_4": "4",
+          "PD0_5": "5",
+          "PD1_6": "6",
+          "NRST_7": "7",
+          "VSSA_8": "8",
+          "VDDA_9": "9",
+          "PA0_10": "10",
+          "PA1_11": "11",
+          "PA2_12": "12",
+          "PA3_13": "13",
+          "PA4_14": "14",
+          "PA5_15": "15",
+          "PA6_16": "16",
+          "PA7_17": "17",
+          "PB0_18": "18",
+          "PB1_19": "19",
+          "PB2_20": "20",
+          "PB10_21": "21",
+          "PB11_22": "22",
+          "VSS_23": "23",
+          "VDD_24": "24",
+          "PB12_25": "25",
+          "PB13_26": "26",
+          "PB14_27": "27",
+          "PB15_28": "28",
+          "PA8_29": "29",
+          "PA9_30": "30",
+          "PA10_31": "31",
+          "PA11_32": "32",
+          "PA12_33": "33",
+          "PA13_34": "34",
+          "VSS_35": "35",
+          "VDD_36": "36",
+          "PA14_37": "37",
+          "PA15_38": "38",
+          "PB3_39": "39",
+          "PB4_40": "40",
+          "PB5_41": "41",
+          "PB6_42": "42",
+          "PB7_43": "43",
+          "BOOT0_44": "44",
+          "PB8_45": "45",
+          "PB9_46": "46",
+          "VSS_47": "47",
+          "VDD_48": "48"
+        },
+        "evidence": "synthetic library"
+      },
+      "U2": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "BMP280",
+        "verified_package": "TEST",
+        "expected_name": "BMP280",
+        "pins": {
+          "GND_1": "1",
+          "CSB_2": "2",
+          "SDI_3": "3",
+          "SCK_4": "4",
+          "SDO_5": "5",
+          "VDDIO_6": "6",
+          "GND_7": "7",
+          "VDD_8": "8"
+        },
+        "evidence": "synthetic library"
+      },
+      "J1": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "PinHeader 1x02 2.54",
+        "verified_package": "TEST",
+        "expected_name": "PinHeader 1x02 2.54",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "J2": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "PinHeader 1x05 2.54",
+        "verified_package": "TEST",
+        "expected_name": "PinHeader 1x05 2.54",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2",
+          "3_3": "3",
+          "4_4": "4",
+          "5_5": "5"
+        },
+        "evidence": "synthetic library"
+      },
+      "R1": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "4700ohm 0603 1%",
+        "verified_package": "TEST",
+        "expected_name": "4700ohm 0603 1%",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "R2": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "4700ohm 0603 1%",
+        "verified_package": "TEST",
+        "expected_name": "4700ohm 0603 1%",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "R3": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "10kohm 0603 1%",
+        "verified_package": "TEST",
+        "expected_name": "10kohm 0603 1%",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "R4": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "10kohm 0603 1%",
+        "verified_package": "TEST",
+        "expected_name": "10kohm 0603 1%",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "R5": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "10kohm 0603 1%",
+        "verified_package": "TEST",
+        "expected_name": "10kohm 0603 1%",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "C1": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "100nF 0603 X7R 16V",
+        "verified_package": "TEST",
+        "expected_name": "100nF 0603 X7R 16V",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "C2": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "100nF 0603 X7R 16V",
+        "verified_package": "TEST",
+        "expected_name": "100nF 0603 X7R 16V",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "C3": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "100nF 0603 X7R 16V",
+        "verified_package": "TEST",
+        "expected_name": "100nF 0603 X7R 16V",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "C4": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "100nF 0603 X7R 16V",
+        "verified_package": "TEST",
+        "expected_name": "100nF 0603 X7R 16V",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "C5": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "4.7uF 0603 X5R 10V",
+        "verified_package": "TEST",
+        "expected_name": "4.7uF 0603 X5R 10V",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "C6": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "100nF 0603 X7R 16V",
+        "verified_package": "TEST",
+        "expected_name": "100nF 0603 X7R 16V",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "C7": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "100nF 0603 X7R 16V",
+        "verified_package": "TEST",
+        "expected_name": "100nF 0603 X7R 16V",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      },
+      "C8": {
+        "libraryUuid": "33333333333333333333333333333333",
+        "deviceUuid": "44444444444444444444444444444444",
+        "verified_model": "100nF 0603 X7R 16V",
+        "verified_package": "TEST",
+        "expected_name": "100nF 0603 X7R 16V",
+        "pins": {
+          "1_1": "1",
+          "2_2": "2"
+        },
+        "evidence": "synthetic library"
+      }
+    },
+    "connections": [
+      {
+        "circuit_id": "channel1",
+        "gpio_pin": "10",
+        "supply_net": "V12",
+        "ground_net": "GND",
+        "reset_high_z_review": "synthetic reset state table"
+      },
+      {
+        "circuit_id": "channel2",
+        "gpio_pin": "11",
+        "supply_net": "V12",
+        "ground_net": "GND",
+        "reset_high_z_review": "synthetic reset state table"
+      }
+    ],
+    "supplies": [
+      {
+        "net": "V12",
+        "min_v": 11,
+        "max_v": 12,
+        "ground": "GND",
+        "evidence": "synthetic regulated supply"
+      }
+    ],
+    "port_budget_ma": {
+      "A": 20,
+      "B": 20
+    },
+    "total_budget_ma": 30,
+    "budget_review": "synthetic remaining budget after base loads"
+  }
+}

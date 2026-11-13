@@ -2,7 +2,7 @@
 name: easyeda-schematic-orchestrator
 description: "当用户说“我要画原理图”“帮我设计电路”“画一个 STM32 最小系统”，或在原理图任务中要求补全外围、修改连接时使用。默认面向嘉立创 EDA 专业版，先整理需求、追问缺参并确认 Design Contract，再复用 easyeda-agent 绘图、回读与验收。用户无需指定 Skill 名；纯原理讲解、仅 PCB 操作或普通软件工作流开发不自动触发。首版写入仅限专用测试工程。"
 metadata:
-  version: "0.3.0"
+  version: "0.5.0.dev1"
 ---
 
 # EasyEDA Schematic Orchestrator / Designer
@@ -75,3 +75,7 @@ metadata:
 用户要求实际绘图、已确认对应 Contract 且目标是获准测试工程后，才进入 live execute。
 维护工作流时运行单元测试和离线 CLI 集成；
 实际工程与未验证状态保留在忽略的运行目录，不将私有 UUID、绝对路径或凭据发布到 GitHub。
+
+## 资料复用与组合开发能力
+
+提供选型表或手册目录时，阅读 [v2 资料流程](references/knowledge-v2.md)。先审阅事实与适用包络，通过 kb-import 整理草稿，补齐当前库核验后创建契约。用户确认必须绑定具体契约。MCU 组合使用显式 GPIO 与电源映射，真实验收状态见可行性报告。

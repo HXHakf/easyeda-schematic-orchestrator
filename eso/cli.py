@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 from . import __version__
@@ -20,7 +21,21 @@ def main(argv=None):
     p.add_argument("--easyeda", default="easyeda", help="upstream executable (never auto-installs)")
     p.add_argument("--evidence", help="private raw CLI receipts directory")
     p.add_argument("--window", help="exact live connector window ID; still verifies project and document")
+    p.add_argument("--material-store", help="private material cache directory; also ESO_MATERIAL_STORE")
     sub = p.add_subparsers(dest="command", required=True)
+    doctor = sub.add_parser("doctor", help="read-only readiness; never installs, upgrades or writes EDA")
+    doctor.add_argument("--live", action="store_true"); doctor.add_argument("--target")
+    doctor.add_argument("--run-dir"); doctor.add_argument("--out")
+    add = sub.add_parser("kb-material-add", help="register reviewed immutable facts and document locator")
+    add.add_argument("record"); add.add_argument("--document", required=True)
+    listing = sub.add_parser("kb-material-list")
+    for key in ("manufacturer", "model", "package"): listing.add_argument("--"+key)
+    withdraw = sub.add_parser("kb-material-withdraw")
+    withdraw.add_argument("sha256"); withdraw.add_argument("--reason", required=True)
+    imp = sub.add_parser("kb-import", help="resolve manifest to a draft; never supplies library review or approval")
+    imp.add_argument("manifest"); imp.add_argument("--out",required=True)
+    status = sub.add_parser("kb-evidence-status", help="audit pinned historical evidence without modifying it")
+    status.add_argument("contract")
     kbsearch = sub.add_parser("kb-search", help="search local canonical circuit topics and aliases")
     kbsearch.add_argument("query")
     kbsearch.add_argument("--parameters", help="JSON parameter object for missing-input hints")
@@ -68,9 +83,26 @@ def main(argv=None):
         a.add_argument("--run-dir", required=True)
         if action == "deliver": a.add_argument("--out", required=True)
     args = p.parse_args(argv)
+    if args.material_store: os.environ["ESO_MATERIAL_STORE"] = args.material_store
     try:
         output = None
-        if args.command == "kb-search":
+        if args.command == "doctor":
+            from .doctor import doctor
+            output = doctor(args.easyeda,live=args.live,target=load(args.target) if args.target else None,
+                            run_dir=args.run_dir,window=args.window)
+            if args.out: dump(args.out,output)
+        elif args.command == "kb-evidence-status":
+            from .knowledge_v2 import evidence_status
+            output = evidence_status(load(args.contract))
+        elif args.command in ("kb-material-add","kb-material-list","kb-material-withdraw","kb-import"):
+            from .materials import MaterialStore, import_manifest
+            store = MaterialStore()
+            if args.command == "kb-material-add": output = {"record_sha256":store.add(load(args.record),args.document)}
+            elif args.command == "kb-material-list": output = {"materials":store.list(manufacturer=args.manufacturer,model=args.model,package=args.package)}
+            elif args.command == "kb-material-withdraw": output = store.withdraw(args.sha256,args.reason)
+            else:
+                output = import_manifest(load(args.manifest),store); dump(args.out,output)
+        elif args.command == "kb-search":
             from .knowledge import search
             output = search(args.query, load(args.parameters) if args.parameters else None)
         elif args.command == "kb-metrics":

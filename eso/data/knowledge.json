@@ -319,6 +319,51 @@
       "original_document_included": false,
       "ecosystem": "jlc",
       "role": "core"
+    },
+    {
+      "id": "onsemi-mmbt3904l",
+      "title": "onsemi MMBT3904L / SMMBT3904L",
+      "url": "https://www.onsemi.com/pdf/datasheet/mmbt3904lt1-d.pdf",
+      "revision": "Rev.15, September 2026",
+      "locators": [
+        "p1 thermal/pinout; p2 electrical conditions"
+      ],
+      "kind": "manufacturer_datasheet",
+      "ecosystem": "external",
+      "role": "auxiliary",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "review_scope": "资料可行性审查；不构成完整工况保证或真实库引脚验收"
+    },
+    {
+      "id": "aos-ao3400a",
+      "title": "AOS AO3400A",
+      "url": "https://www.aosmd.com/sites/default/files/res/datasheets/AO3400A.pdf",
+      "revision": "Rev.3.1, July 2023",
+      "locators": [
+        "p1 package/thermal; p2 static parameters and notes"
+      ],
+      "kind": "manufacturer_datasheet",
+      "ecosystem": "external",
+      "role": "auxiliary",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "review_scope": "资料可行性审查；不构成完整工况保证或真实库引脚验收"
+    },
+    {
+      "id": "yageo-rc-l",
+      "title": "Yageo RC_L resistor family",
+      "url": "https://www.yageogroup.com/content/datasheet/asset/file/PYU-RC_GROUP_51_ROHS_L",
+      "revision": "V14, November 2025",
+      "locators": [
+        "p2 ordering; p5 ratings; derating and test conditions"
+      ],
+      "kind": "manufacturer_datasheet",
+      "ecosystem": "external",
+      "role": "auxiliary",
+      "checked_on": "2026-11-13",
+      "original_document_included": false,
+      "review_scope": "资料可行性审查；不构成完整工况保证或真实库引脚验收"
     }
   ],
   "upstream_candidates": [
@@ -424,7 +469,9 @@
         "jlc-bjt-gpio-error"
       ],
       "auxiliary_source_ids": [
-        "nexperia-bjt-handbook"
+        "nexperia-bjt-handbook",
+        "onsemi-mmbt3904l",
+        "yageo-rc-l"
       ],
       "asset_ids": [
         "lib.transistor_buzzer_driver_live"
@@ -538,7 +585,9 @@
         "jlc-load-switch-circuit"
       ],
       "auxiliary_source_ids": [
-        "nexperia-an11158"
+        "nexperia-an11158",
+        "aos-ao3400a",
+        "yageo-rc-l"
       ],
       "asset_ids": [],
       "status": "executable-bounded",

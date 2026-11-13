@@ -13,12 +13,17 @@ from .core import Refused, file_digest, load
 TRANSFORM = [1, 0, 0, -1, 0, 0]
 
 
+def renderer_path():
+    explicit = os.environ.get('ESO_LAYOUT_SKILL')
+    helper = Path(explicit)/'scripts/measure_svg_text.py' if explicit else Path(__file__).with_name('svg_text.py')
+    if not helper.is_file():
+        raise Refused('native text renderer missing; repair ESO installation or ESO_LAYOUT_SKILL')
+    return helper
+
+
 def render(svg):
     """Reuse the installed layout skill's isolated renderer, not the user browser."""
-    skill = Path(os.environ.get('ESO_LAYOUT_SKILL', Path.home()/'.codex/skills/schematic-verified-layout'))
-    helper = skill/'scripts/measure_svg_text.py'
-    if not helper.is_file():
-        raise Refused('native text renderer missing: install schematic-verified-layout or set ESO_LAYOUT_SKILL')
+    helper = renderer_path()
     with tempfile.TemporaryDirectory(prefix='eso-text-') as directory:
         out = Path(directory)/'texts.json'
         proc = subprocess.run([sys.executable, str(helper), str(svg), '--transform',

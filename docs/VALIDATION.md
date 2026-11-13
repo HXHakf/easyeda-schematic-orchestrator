@@ -1,3 +1,9 @@
+# 0.5.0.dev1 验证记录
+
+2026-11-13 在 macOS、Python 3.13 上完成配置官方 v1.17.0 CLI 的 146 项完整单元及离线集成测试。旧演示、v1 知识演示、v2 双开关及 MCU 组合演示通过。独立 wheel 安装可运行 kb-check、doctor 及内置文字渲染器。
+
+当前为开发版。真实器件资料阻断及现场未完成项见 docs/plans/knowledge-real-material-feasibility.md。历史记录如下。
+
 # 常用电路知识库验证：0.3.0（本地开发分支）
 
 日期为 2026-11-13。

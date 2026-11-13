@@ -208,9 +208,15 @@
         },
         "circuits": {
           "type": "array"
+        },
+        "schema_version": {
+          "const": 2
         }
       },
       "additionalProperties": false
+    },
+    "composition": {
+      "type": "object"
     }
   },
   "required": [

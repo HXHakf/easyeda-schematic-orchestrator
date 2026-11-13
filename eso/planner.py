@@ -9,6 +9,9 @@ MCU_PINS = "VBAT PC13 PC14 PC15 PD0 PD1 NRST VSSA VDDA PA0 PA1 PA2 PA3 PA4 PA5 P
 def make_plan(contract):
     validate(contract, "contract")
     r = contract["requirements"]
+    if "composition" in r:
+        from .knowledge_composition import make_composed_plan
+        return make_composed_plan(contract)[0]
     if "knowledge" in r:
         from .knowledge_design import make_knowledge_plan
         return make_knowledge_plan(contract)
