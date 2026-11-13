@@ -26,7 +26,7 @@ def main(argv=None):
     doctor = sub.add_parser("doctor", help="read-only readiness; never installs, upgrades or writes EDA")
     doctor.add_argument("--live", action="store_true"); doctor.add_argument("--target")
     doctor.add_argument("--run-dir"); doctor.add_argument("--out")
-    add = sub.add_parser("kb-material-add", help="register reviewed immutable facts and document locator")
+    add = sub.add_parser("kb-material-add", help="register immutable source draft or reviewed facts and document locator")
     add.add_argument("record"); add.add_argument("--document", required=True)
     listing = sub.add_parser("kb-material-list")
     for key in ("manufacturer", "model", "package"): listing.add_argument("--"+key)
@@ -97,7 +97,9 @@ def main(argv=None):
         elif args.command in ("kb-material-add","kb-material-list","kb-material-withdraw","kb-import"):
             from .materials import MaterialStore, import_manifest
             store = MaterialStore()
-            if args.command == "kb-material-add": output = {"record_sha256":store.add(load(args.record),args.document)}
+            if args.command == "kb-material-add":
+                record = load(args.record)
+                output = {"record_sha256":store.add(record,args.document), "status":record.get("status","reviewed")}
             elif args.command == "kb-material-list": output = {"materials":store.list(manufacturer=args.manufacturer,model=args.model,package=args.package)}
             elif args.command == "kb-material-withdraw": output = store.withdraw(args.sha256,args.reason)
             else:

@@ -65,3 +65,13 @@ python scripts/demo_knowledge_v2.py --out runs/knowledge-v2-demo
 这些字段由宿主按原始资料审阅填写。软件能发现条件不包含和状态不匹配，手册未给出的保证仍需补充依据。字段格式更新使校验器内容哈希变化，现有契约需要重新生成并确认。
 
 多份手册缺失、损坏或被撤回时，资料检查集中列出全部受影响的材料 ID。
+
+## 分阶段录入真实资料
+
+资料可先以 `status=draft` 保存。草稿保留完整器件身份、手册哈希及定位、已核对的引脚、带原始测试条件的数值和 `missing_evidence`。草稿省略尚未审阅的 coverage 与 coverage_review，missing_evidence 至少列出一项具体缺口。草稿保存原始保证值或典型值，条件化推导在完整审阅版本中录入。
+
+草稿沿用 kb-material-add 和 kb-material-list 接口。列表显示 status，导入报告通过 draft_candidates 列出匹配的草稿版本及缺项。即使清单明确指定草稿哈希，导入也保留缺项，设计契约和执行检查继续阻断。
+
+完成审阅后另存完整记录，填写 coverage、coverage_review 等依据，设置 status=reviewed 或省略 status，并移除 missing_evidence。新增记录生成独立哈希，原草稿保留。升级后的完整记录仍需通过当前工程的 assess 与库绑定核验。
+
+合成草稿样例位于 examples/knowledge-v2/draft-material.json，配套文档为 documents/switch.txt。真实原厂 PDF、草稿和库查询回执保存在用户私有目录。

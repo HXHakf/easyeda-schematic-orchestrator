@@ -107,6 +107,30 @@ RECORD = obj(
 )
 
 
+# Old records omit status and retain the full reviewed-record requirements.
+RECORD["properties"]["status"] = {"const": "reviewed"}
+DRAFT_RECORD = deepcopy(RECORD)
+DRAFT_RECORD["properties"]["status"] = {"const": "draft"}
+DRAFT_RECORD["properties"]["missing_evidence"] = {
+    "type": "array",
+    "items": TEXT,
+    "minItems": 1,
+    "uniqueItems": True,
+}
+DRAFT_RECORD["required"] = [
+    key for key in RECORD["required"] if key not in ("coverage", "coverage_review")
+] + ["status", "missing_evidence"]
+for key in ("coverage", "coverage_review"):
+    DRAFT_RECORD["properties"].pop(key)
+DRAFT_RECORD["properties"]["facts"]["additionalProperties"]["properties"]["basis"] = {
+    "enum": ["guaranteed", "typical"]
+}
+DRAFT_RECORD["properties"]["facts"]["additionalProperties"]["properties"].pop(
+    "derivation"
+)
+RECORD = {"oneOf": [RECORD, DRAFT_RECORD]}
+
+
 def shape(value, schema):
     errors = list(Draft202012Validator(schema).iter_errors(value))
     if errors:
@@ -158,6 +182,16 @@ def validate_record(record):
         raise Refused("invalid physical pin mapping")
     if record["kind"] == "mcu" and set(pins.values()) != {str(i) for i in range(1, 49)}:
         raise Refused("bounded MCU requires full LQFP48 pin inventory")
+    if record.get("status") == "draft":
+        for key, fact in record["facts"].items():
+            if fact["unit"] != fact_unit(key):
+                raise Refused("unsupported/wrong canonical unit: " + key)
+            for axis, limits in (
+                fact.get("applicability", {}).get("coverage", {}).items()
+            ):
+                if axis != "thermal_context" and limits[0] > limits[1]:
+                    raise Refused("reversed source applicability: " + key + "." + axis)
+        return record
     for key, bounds in record["coverage"].items():
         if key != "thermal_context" and bounds[0] > bounds[1]:
             raise Refused("reversed coverage: " + key)
@@ -388,6 +422,10 @@ class MaterialStore:
         revoked = self.withdrawal(sha)
         if revoked:
             raise Refused("withdrawn material: " + str(revoked))
+        if record.get("status") == "draft":
+            raise Refused(
+                "draft material requires review: " + str(record["missing_evidence"])
+            )
         return self.document(record["datasheet"]["sha256"])
 
     def document(self, sha):
@@ -419,6 +457,7 @@ class MaterialStore:
                 rows.append(
                     {
                         "record_sha256": path.stem,
+                        "status": record.get("status", "reviewed"),
                         "record": record,
                         "withdrawal": self.withdrawal(path.stem),
                     }
@@ -469,12 +508,25 @@ def import_manifest(manifest, store=None):
                     or r["record_sha256"] == row["record_sha256"]
                 )
             ]
+            drafts = [
+                item for item in matches if item["record"].get("status") == "draft"
+            ]
+            matches = [
+                item for item in matches if item["record"].get("status") != "draft"
+            ]
             if len(matches) != 1:
                 issues.append(
                     {
                         "id": row["id"],
                         "reason": "missing or ambiguous reviewed material",
                         "document_sha256": sha,
+                        "draft_candidates": [
+                            {
+                                "record_sha256": item["record_sha256"],
+                                "missing_evidence": item["record"]["missing_evidence"],
+                            }
+                            for item in drafts
+                        ],
                         "candidates": [r["record_sha256"] for r in matches],
                     }
                 )

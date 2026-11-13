@@ -1,0 +1,123 @@
+{
+  "schema_version": 2,
+  "manufacturer": "SYNTHETIC",
+  "model": "SYNTHETIC-switch",
+  "package": "TEST",
+  "kind": "npn",
+  "datasheet": {
+    "sha256": "c02259ef4d87309ee0cdcdc0b0c33e4e9a0ef93e8b068c685316caceab609ae1",
+    "model": "SYNTHETIC-switch",
+    "package": "TEST",
+    "revision": "fixture-1",
+    "pinout_section": "synthetic pin table",
+    "reviewed_by": "test fixture"
+  },
+  "pins": {
+    "B": "1",
+    "E": "2",
+    "C": "3"
+  },
+  "facts": {
+    "voltage_limit_v": {
+      "value": 30,
+      "unit": "V",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    },
+    "current_limit_a": {
+      "value": 0.5,
+      "unit": "A",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    },
+    "power_limit_w": {
+      "value": 0.25,
+      "unit": "W",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    },
+    "rated_ambient_c": {
+      "value": 85,
+      "unit": "degC",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    },
+    "off_input_max_v": {
+      "value": 0.3,
+      "unit": "V",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    },
+    "input_leakage_max_a": {
+      "value": 1e-07,
+      "unit": "A",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    },
+    "vbe_min_v": {
+      "value": 0.6,
+      "unit": "V",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "lower"
+    },
+    "vbe_max_v": {
+      "value": 0.9,
+      "unit": "V",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    },
+    "vcesat_max_v": {
+      "value": 0.3,
+      "unit": "V",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    },
+    "sat_test_ic_a": {
+      "value": 0.1,
+      "unit": "A",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    },
+    "sat_test_ib_a": {
+      "value": 0.01,
+      "unit": "A",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    },
+    "off_current_max_a": {
+      "value": 1e-06,
+      "unit": "A",
+      "basis": "guaranteed",
+      "section": "synthetic table",
+      "test_conditions": "synthetic envelope",
+      "bound": "upper"
+    }
+  },
+  "status": "draft",
+  "missing_evidence": [
+    "SYNTHETIC: off-state input/current envelope missing",
+    "SYNTHETIC: thermal operating conditions require review"
+  ]
+}
