@@ -51,3 +51,7 @@ jobs:
           subprocess.run([str(python), str(skill / 'scripts/demo_workflow.py'),
                           '--out', str(root / 'demo')], cwd=root, check=True)
           launch(['assess', str(skill / 'examples/requirements.json')])
+          for pattern in ['test_material_atomicity.py', 'test_install.py']:
+              subprocess.run([str(python), '-I', '-m', 'unittest', 'discover',
+                              '-s', str(skill / 'tests'), '-p', pattern, '-v'],
+                             cwd=root, check=True)
