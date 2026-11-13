@@ -95,3 +95,40 @@ class KnowledgeToolsTests(unittest.TestCase):
         self.assertEqual(len(d["knowledge"]["materials"]), 4)
         self.assertFalse(any("library" in m for m in d["knowledge"]["materials"]))
         self.assertNotIn("approval", d)
+
+    @unittest.skipUnless(
+        os.environ.get("EASYEDA_BIN"), "set EASYEDA_BIN for offline compiler"
+    )
+    def test_live_diagnostic_reports_compiler_rejection_without_eda_writes(self):
+        from eso.adapter import EasyEDA
+        from eso.doctor import doctor
+        from test_bridge import fixture as geometry_fixture, TARGET
+
+        _, _, _, snapshot, _, _, _ = geometry_fixture(self.root)
+        binary = os.environ["EASYEDA_BIN"]
+
+        class RecordedReads(EasyEDA):
+            def snapshot(self, target):
+                return snapshot
+
+            def run(self, args, **kwargs):
+                if args == ["health"]:
+                    return {
+                        "status": "found",
+                        "found": {"raw": {"windows": [{"windowId": "synthetic"}]}},
+                        "versionGate": {"verdict": "ok"},
+                    }
+                if (
+                    args[0] != "--version"
+                    and args[:2] != ["sch", "compose"]
+                    and args[-1] != "--dry-run"
+                ):
+                    raise AssertionError("unexpected live/write command")
+                return super().run(args, **kwargs)
+
+        with patch("eso.doctor.EasyEDA", return_value=RecordedReads(binary)):
+            report = doctor(binary, live=True, target=TARGET)
+        self.assertEqual(report["checks"]["upstream_compile"]["status"], "failed")
+        self.assertIn("class inventory", report["checks"]["upstream_compile"]["detail"])
+        self.assertFalse(report["writes_to_eda"])
+        self.assertFalse(report["live_verified"])

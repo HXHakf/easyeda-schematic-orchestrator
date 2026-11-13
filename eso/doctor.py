@@ -91,9 +91,11 @@ def doctor(binary="easyeda", *, live=False, target=None, run_dir=None, window=No
 
         probe("connection", connection)
         if target:
+            raw_snapshot = {}
 
             def snapshot():
                 raw = adapter.snapshot(target)
+                raw_snapshot.update(raw)
                 data = result(raw)
                 page = data.get("pagePrimitives")
                 classes = {
@@ -125,6 +127,20 @@ def doctor(binary="easyeda", *, live=False, target=None, run_dir=None, window=No
                 }
 
             probe("snapshot", snapshot)
+            if checks["snapshot"]["status"] == "passed":
+
+                def compile_snapshot():
+                    from .compatibility import probe_snapshot
+
+                    with tempfile.TemporaryDirectory(
+                        prefix="eso-doctor-compose-"
+                    ) as directory:
+                        report = probe_snapshot(
+                            adapter, raw_snapshot, target, directory
+                        )
+                    return report
+
+                probe("upstream_compile", compile_snapshot)
     if live and not adapter:
         record("connection", "unavailable", "缺少上游 CLI，未尝试连接")
     if run_dir:
