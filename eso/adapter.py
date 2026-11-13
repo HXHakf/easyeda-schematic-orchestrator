@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import subprocess
+import uuid
 from pathlib import Path
 from .core import Refused, dump, now
 
@@ -32,6 +33,7 @@ class EasyEDA:
         env = dict(os.environ, EASYEDA_NO_AUTOSTART="1")
         self.counter += 1
         started = now()
+        label = started.replace(":", "").replace(".", "") + "-" + uuid.uuid4().hex
         try:
             p = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8", env=env, timeout=timeout)
             receipt = {"started_at": started, "argv": argv, "exit_code": p.returncode,
@@ -41,11 +43,10 @@ class EasyEDA:
                        "stdout": (e.stdout or b"").decode(errors="replace") if isinstance(e.stdout, bytes) else e.stdout,
                        "stderr": (e.stderr or b"").decode(errors="replace") if isinstance(e.stderr, bytes) else e.stderr}
             if self.evidence:
-                dump(self.evidence / f"{self.counter:03d}-{args[0]}-timeout.json", receipt)
+                dump(self.evidence / f"{label}-{self.counter:03d}-{args[0]}-timeout.json", receipt)
             raise Refused("CLI timed out: write may have landed; STOP and read back before any retry") from e
         if self.evidence:
-            # Timestamp avoids overwriting an earlier process's evidence.
-            label = started.replace(":", "").replace(".", "")
+            # A per-call identity also preserves receipts from concurrent processes.
             dump(self.evidence / f"{label}-{self.counter:03d}-{args[0]}.json", receipt)
         if check and p.returncode:
             raise Refused(f"upstream exited {p.returncode}: {p.stderr.strip() or p.stdout[-1000:]}")

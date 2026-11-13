@@ -1,4 +1,4 @@
-# 原理图工作流 0.2
+# 原理图工作流
 
 绘图前读取安装态 schematic-verified-layout，并按 [现场经验与恢复约束](../references/live-recovery.md)
 执行能力预检、元数据先行、变更失效及部分 Apply 恢复。默认使用 typed CLI，不直接控制屏幕。
@@ -12,10 +12,10 @@
 | 设计确认 | contract.json + 中文.md | 默认和假设可见；确实获得该版本的人类确认 |
 | 电路计划 | plan、bindings | 物理脚 net/NC、功能归属、准确库身份/型号及原厂依据 |
 | 测试页初始放置 | stage.json、journal | 空白页、精确目标、兼容预检、只有本轮器件，失败先回读 |
-| 实测与上游布局 | 原始快照、位号/SVG/边界、layout-input、composition | 完整观测、唯一归属、证据哈希一致；调用上游 lib-layout |
-| 编译与执行 | queue、bundle、journal | dry-run；保持已有本轮 native ID；执行前基线未变 |
+| 实测与上游布局 | 原始快照、位号/SVG/边界、layout-input、composition | 完整观测、唯一归属、证据哈希一致；上游模块求解及完整整页检查通过 |
+| 编译与执行 | queue、bundle、journal | dry-run；保持已有本轮 native ID；执行前基线未变；写后重新采集属性与文字 |
 | 复验 | attempt、report、history | 先失效旧结论，再保存、重载、新回读及各规则检查 |
-| 交付 | manifest 与工程产物 | 本轮输入/证据完整且未变；缺项如实列出 |
+| 交付 | manifest、补充审计、图面报告与工程产物 | 同一修订证据完整且未变；宿主修正及缺项如实列出 |
 
 ## 正常交互
 
@@ -36,10 +36,14 @@
 
 ## 当前验证边界
 
-分类、回合更新、计划/确认、模拟 stage→collect→prepare、复验失效和交付证据核验有自动测试。
-测量适配输出已被真实上游 lib-layout 接受；materialize、compose 和 apply dry-run 也有离线集成。
-十类/十一类快照兼容问题仍阻断当前发布版现场闭环，不能把接口实现或模拟通过写成硬件完成。
-下层 typed 链的现场绘图验证与 ESO 标准自动链验收分别记录。collect 已支持 nullable 属性/
-缺 bbox 的原生 SVG 测量回放，保留 raw 值并核对完整文字清单；依赖安装态布局技能及 Chromium。
-完整 STM32 模块的上游布局仍可能耗尽搜索预算，不能将采集修复说成全自动布局保证。
-保存重开后的属性 ID 重建可用独立语义对账辅助审查，不能替代完整验收。
+需求、资料、计划/确认、恢复、复验失效和交付证据核验已有自动测试，上游 materialize、lib-layout、
+compose 和 apply dry-run 有离线集成。collect 使用原生 SVG 派生测量处理 nullable 属性及缺 bbox，
+保留原始值并核对完整文字清单，依赖随包布局技能及 Chromium。
+
+本地开发版采用 v1.17.0 配套工具完成[开关样例](plans/npn-nmos-eda-acceptance.md)和
+[MCU 双支路样例](plans/mcu-switch-eda-acceptance.md)的 EDA 及图面验收，期间包含宿主实测修源与文字修正。
+v1.16.0 快照兼容问题继续由写前实际探针判断。严格 v2 资料仍有缺项，其生成路径的现场验收仍待完成。
+当前保持开发版，电气、仿真及实物的结论按实际检查记录。
+
+重复故障先按[现场问题复盘](../references/live-recovery.md)定位到对应阶段，操作接口沿用
+[测量衔接](../references/measurement-bridge.md)，证据范围按[交付指南](../references/verification.md#交付证据组织)记录。

@@ -51,7 +51,7 @@ def diagnose(run_dir, *, snapshot=None, connectivity=None, adapter=None):
             data = result(snapshot)
             parts = data.get('components')
             if not isinstance(parts, list): raise Refused('diagnostic snapshot component inventory unavailable')
-            parts = [p for p in parts if p.get('componentType') != 'sheet']
+            parts = [p for p in parts if p.get('componentType') == 'part']
             expected = {c['ref']: c for c in plan['components']}
             observed = {p.get('designator'): p for p in parts}
             if len(observed) != len(parts) or None in observed:

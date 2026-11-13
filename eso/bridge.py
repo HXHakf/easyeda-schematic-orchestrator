@@ -113,7 +113,15 @@ def observed_parts(plan, snapshot, bindings, target):
     return by_ref
 
 
-def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, svg_path, *, text_measurements=None):
+def layout_budget(value):
+    if type(value) is not int or not 1 <= value <= 1000000:
+        raise Refused('layout candidate budget must be an integer from 1 to 1000000')
+    return value
+
+
+def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, svg_path, *,
+                       text_measurements=None, max_candidates=20000):
+    max_candidates = layout_budget(max_candidates)
     validate_plan(plan, contract)
     target = contract.get('target')
     if not target: raise Refused('measurement bridge requires an exact target')
@@ -212,7 +220,7 @@ def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, s
     # intent in a derived source, never substituted as observed readback.
     source = {'schemaVersion': 1, 'connectivity': canonical, 'sheet': paper, 'sheetBorder': border,
             'keepouts': [bbox(k.get('bbox'), 'keepout') for k in geometry.get('keepouts', [])],
-            'measurements': measurements, 'layoutModules': layout_modules, 'maxCandidates': 20000}
+            'measurements': measurements, 'layoutModules': layout_modules, 'maxCandidates': max_candidates}
     return source
 
 
@@ -223,6 +231,11 @@ class DesignBridge:
         self.root.mkdir(parents=True, exist_ok=True)
 
     def stage(self, contract, approval, plan, bindings):
+        from .locking import target_lock
+        with target_lock(contract.get('target')):
+            return self._stage_locked(contract, approval, plan, bindings)
+
+    def _stage_locked(self, contract, approval, plan, bindings):
         check_confirmation(contract, approval); validate_plan(plan, contract)
         if (self.root / 'stage.json').exists(): raise Refused('placement already started; inspect actual state before retrying')
         target = contract.get('target')
@@ -246,6 +259,8 @@ class DesignBridge:
             if device.get('uuid') != key[1] or device.get('libraryUuid') != key[0] or device.get('name') != b['expected_name']:
                 raise Refused(c['ref'] + ': live library identity/name differs from selection')
             dump(self.root / 'library' / (key[1] + '.json'), raw)
+        from .assistance import catalog_review
+        dump(self.root / 'catalog-review.json', catalog_review(bindings, [result(raw)['device'] for raw in seen.values()]))
         for name, data in (('contract', contract), ('approval', approval), ('plan', plan), ('bindings', bindings), ('expected', ir), ('before-placement', before)):
             dump(self.root / (name + '.json'), data)
         self.adapter.run(['sch', 'materialize', self.root / 'expected.json', '--out', self.root / 'place.json'], json_output=False)
@@ -278,20 +293,29 @@ class DesignBridge:
         dump(self.root / 'stage.json', state)
         return state
 
-    def collect(self):
+    def collect(self, *, max_candidates=20000):
+        from .locking import target_lock
+        target = load(self.root / 'stage.json')['target']
+        with target_lock(target):
+            if load(self.root / 'stage.json')['target'] != target:
+                raise Refused('target changed while acquiring lock')
+            return self._collect_locked(max_candidates=max_candidates)
+
+    def _collect_locked(self, *, max_candidates=20000):
+        max_candidates = layout_budget(max_candidates)
         state = load(self.root / 'stage.json')
         if state['state'] not in ('placed', 'measurement-incomplete', 'layout-compiled', 'measuring'):
             raise Refused('only successfully staged owned parts can be measured; partial placement must first be reconciled')
         state['state'] = 'measuring'
         dump(self.root / 'stage.json', state)
         try:
-            return self._collect_once(state)
+            return self._collect_once(state, max_candidates=max_candidates)
         except Exception as error:
             state.update(state='measurement-incomplete', error=str(error))
             dump(self.root / 'stage.json', state)
             raise
 
-    def _collect_once(self, state):
+    def _collect_once(self, state, *, max_candidates=20000):
         contract, plan, bindings = (load(self.root / (n + '.json')) for n in ('contract', 'plan', 'bindings'))
         for name, data in (('contract', contract), ('plan', plan), ('bindings', bindings)):
             if digest(data) != state[name + '_sha256']: raise Refused('staging input changed: ' + name)
@@ -318,7 +342,8 @@ class DesignBridge:
             dump(self.root / 'native-text-measurements.json', text)
             _, coverage = validate(snapshot, svg, text)
             dump(self.root / 'native-text-coverage.json', coverage)
-        source = build_layout_input(contract, plan, bindings, snapshot, labels, sheet, svg, text_measurements=text)
+        source = build_layout_input(contract, plan, bindings, snapshot, labels, sheet, svg,
+                                    text_measurements=text, max_candidates=max_candidates)
         dump(self.root / 'layout-input.json', source)
         names = ('measured-snapshot.json', 'designators.json', 'measured-sheet.svg', 'sheet-export.json', 'sheet-geometry.json', 'layout-input.json')
         if text is not None: names += ('native-text-measurements.json', 'native-text-coverage.json')

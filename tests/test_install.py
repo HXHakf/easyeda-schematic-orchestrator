@@ -99,6 +99,30 @@ class InstallTests(unittest.TestCase):
             self.assertEqual((skill / "old").read_text(), "original")
             self.assertEqual(launcher.read_text(), "original launcher")
 
+    def test_installed_skill_includes_usable_layout_guidance_and_auditors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            skill, runtime, bin_dir = self.paths(Path(directory))
+            python = runtime / "venv/bin/python"
+            python.parent.mkdir(parents=True)
+            python.touch()
+            (runtime / installer.MARKER).write_text('{"owner":"' + installer.OWNER + '"}')
+            with patch.object(installer.subprocess, "run"):
+                installer.install(ROOT, skill, runtime, bin_dir)
+            layout = skill / "extras/schematic-verified-layout"
+            for name in ("SKILL.md", "references/drawing-grammar.md",
+                         "scripts/circuit_audit.py", "scripts/readability_audit.py"):
+                self.assertTrue((layout / name).is_file(), name)
+            # Exercise the copied compatibility API without relying on checkout imports.
+            probe = ("import importlib.util,sys; "
+                     "s=importlib.util.spec_from_file_location('renderer',sys.argv[1]); "
+                     "m=importlib.util.module_from_spec(s); s.loader.exec_module(m); "
+                     "assert callable(m.measure); "
+                     "assert 'svg' in m.prepare_svg('<svg xmlns=\"http://www.w3.org/2000/svg\"/>')")
+            result = subprocess.run([sys.executable, "-I", "-c", probe,
+                                     str(layout / "scripts/measure_svg_text.py")],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     @unittest.skipIf(installer.os.name == "nt", "POSIX quoting check")
     def test_launcher_quotes_runtime_paths_and_preserves_arguments(self):
         with tempfile.TemporaryDirectory(prefix="eso space ' ") as directory:

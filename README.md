@@ -2,11 +2,14 @@
 
 面向嘉立创 EDA 专业版的 AI 原理图设计工作流 Skill，复用
 [easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent) 的 CLI、daemon 和 EDA Agent Connector。
-当前版本：**0.5.0.dev4**（MVP，离线已验证；现场全链路尚未验收）。
+当前版本：**0.5.0.dev8**（开发版，NPN/NMOS 与 MCU 双支路样例的 EDA 及图面验收通过，严格电气依据仍有缺项）。
 
 本地可靠性改进：完整连接/NC/引用与网络 scope 对账、严格空白页清单、写前离线兼容探针、
 全部可见属性文字缺测阻断、显式多电源网络定义，以及只读 `diagnose`。
-用法与限制见 [可靠性改进说明](docs/RELIABILITY.md)。这些改动尚未发布新版本。
+用法与限制见 [可靠性改进说明](docs/RELIABILITY.md)。
+
+本开发版加入初始放置恢复、按验收轮次归档、目标互斥，以及目录核验、文字恢复、有限布局候选比较和分层证据索引。
+使用方式见 [辅助工具](references/workflow-assistance.md)。严格电气依据、新增写入路径的现场验收及完整效率对照仍待完成。
 
 ## 实际绘制效果与修复
 
@@ -14,7 +17,8 @@
 
 上图来自保存、重开后重新导出的测试原理图：外部稳压3.3V、I²C、SWD、内部时钟，21件器件、97物理脚。
 来源及验证范围见 [效果图说明](docs/images/README.md)。这是下层 typed 链现场结果；
-ESO 标准全自动链仍未完成现场验收，未验证 PCB、固件或硬件功能。
+此 STM32/BMP280 示例的 ESO 标准链尚未现场验收。后续 NPN/NMOS 已完成带宿主源修订的
+分阶段 EDA 数据验收，范围见 [现场记录](docs/plans/npn-nmos-eda-acceptance.md)；PCB、固件与硬件功能仍未验证。
 
 本次集成 nullable 属性/缺 bbox 的原生 SVG 测量、文字缺测拒绝、引脚别名一致性和 collect→prepare
 测量证据衔接。配套 [布局技能](extras/schematic-verified-layout/SKILL.md) 随仓库提供；
@@ -65,8 +69,9 @@ Windows、已有安装的更新、路径自定义和上游缺失组件处理见 
 - stage/collect 衔接真实器件、完整引脚/位号/SVG 测量到上游 lib-layout，再无损编译本轮实例。
 - 复验开始即使旧成功失效；失败、证据变化或复验中断不能继续交付为通过。
 
-**当前尚未完成真实 EDA 全链路验收。** 本地开发构建 v1.16.1-dev.1 已复用上游 main 的
-十一类快照及引脚归属校验修复，原始现场快照和保存重开后的新快照均通过编译及 dry-run。
+**当前已有 NPN/NMOS 现场记录，仍为开发版。** 使用匹配的 v1.17.0 CLI、daemon、Connector
+完成两套电路的真实放置、连接、保存重开、逐脚回读及图面复核。MCU 双支路样例也已完成保存重开和图面验收，见 [组合验收记录](docs/plans/mcu-switch-eda-acceptance.md)。严格电气依据仍有缺项。
+历史本地构建 v1.16.1-dev.1 已复用上游 main 的十一类快照及引脚归属校验修复。
 旧版十类编译器仍会被放置前的实际快照探针拒绝；不只凭版本字符串判定。
 模拟流程、真实上游离线布局/compose/dry-run 不等于现场绘图通过。
 
@@ -130,14 +135,24 @@ eso verify --run-dir runs/private/final
 eso deliver --run-dir runs/private/final --out runs/private/manifest.json
 ```
 
-具体证据与绑定要求见 [测量衔接](references/measurement-bridge.md)。
+具体证据与绑定要求见 [测量衔接](references/measurement-bridge.md)。已选定合法整页方案时可追加 `prepare --layout-page page.json`，所选文件会复制并固定摘要。
 已有合格 composition 也可直接 prepare，未提供 placement-run 时仍只接受空白测试页。
 每次 prepare 使用新目录。失败后先回读/诊断；不能盲目重复 stage/execute 或删除执行锁继续。
 verify/deliver 未通过返回退出码3；输入/操作拒绝为2；正常命令为0。
 
+初始放置中断后，可使用以下入口核对实例、补放缺件并重新测量。原目录及执行锁保留。
+
+```bash
+eso recover-stage --run-dir runs/interrupted --out runs/recovered
+eso collect --run-dir runs/recovered --max-candidates 100000
+```
+
 ## 文档
 
 - [工作流](docs/WORKFLOW.md) · [架构](docs/ARCHITECTURE.md)
+- [现场问题复盘与恢复](references/live-recovery.md) · [验收证据组织](references/verification.md#交付证据组织)
+- [执行可靠性与辅助工具](references/workflow-assistance.md)
+- [深入审查与改进优先级](docs/plans/workflow-improvement-review.md)
 - [输入与追问](references/input-and-questions.md) · [设计确认](references/design-contract.md)
 - [上游适配](references/upstream-adapter.md) · [验收](references/verification.md)
 - [验证记录](docs/VALIDATION.md) · [独立行为评估](docs/TRIGGER-EVAL-0.2.md)
@@ -155,7 +170,7 @@ eso kb-search 'NPN 低边开关'
 python scripts/demo_knowledge.py --out runs/knowledge-demo
 ```
 
-用户准备完整型号、封装和手册位置，宿主审阅摘录和真实器件库，`assess` 核验后进入现有确认与绘图流程。演示全部使用虚构数据，只证明离线接口和检查逻辑。实际放置、保存重开和回读尚待现场验收。详见 [知识库使用指南](references/knowledge-base.md) 与 [实施记录](docs/plans/circuit-knowledge.md)。
+用户准备完整型号、封装和手册位置，宿主审阅摘录和真实器件库，`assess` 核验后进入现有确认与绘图流程。演示全部使用虚构数据，只证明离线接口和检查逻辑。真实 NPN/NMOS 通用方案已有有限 EDA 验收，严格知识库真实电气依据仍待补齐。详见 [知识库使用指南](references/knowledge-base.md)、[实施记录](docs/plans/circuit-knowledge.md) 与 [现场范围](docs/plans/npn-nmos-eda-acceptance.md)。
 
 0.5.0.dev4 增加私有器件缓存、v2 功能条件与证据、环境诊断和有限 MCU 组合。使用方法见 [资料复用与模块组合](references/knowledge-v2.md)，真实资料阻断情况见 [可行性检查](docs/plans/knowledge-real-material-feasibility.md)。
 

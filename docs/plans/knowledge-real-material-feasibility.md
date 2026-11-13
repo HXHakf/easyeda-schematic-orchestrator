@@ -1,6 +1,10 @@
 # 真实资料可行性检查（2026-11-13）
 
-状态：source-only / live-incomplete。来源只登记在 `eso/data/knowledge.json`；下表引用唯一 ID。PDF 原文未纳入仓库。此处是工程摘录审查，不是已可执行的材料记录。
+资料状态：source-only / 严格知识库执行仍 incomplete。来源只登记在 `eso/data/knowledge.json`；下表引用唯一 ID。PDF 原文未纳入仓库。此处是工程摘录审查，不是已可执行的材料记录。
+
+后续已在用户确认工程假设后，使用通用 authored plan 完成两套有限 EDA 数据验收，见
+[开关现场记录](npn-nmos-eda-acceptance.md)，后续 MCU 双支路也已完成 [组合验收](mcu-switch-eda-acceptance.md)。
+电气依据缺项继续保留，下文保留初次资料审查及工具链修复历史。
 
 | 候选 | 已找到的依据 | 尚未满足的条件 | 结论 |
 |---|---|---|---|

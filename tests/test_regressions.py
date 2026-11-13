@@ -5,6 +5,8 @@ import copy
 import contextlib
 import io
 import json
+import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch
 from eso import cli
@@ -15,6 +17,39 @@ import test_workflow as fixtures
 
 
 class ReviewRegressions(unittest.TestCase):
+    def test_delivery_requires_every_core_check_and_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            adapter = fixtures.FakeAdapter()
+            workflow, ir = fixtures.OrchestrationTests().prepare(directory, adapter)
+            adapter.actual = ir
+            workflow.execute()
+            original = workflow.verify()
+            for field in ('checks', 'evidence_files'):
+                for name in original[field]:
+                    with self.subTest(field=field, missing=name):
+                        report = copy.deepcopy(original)
+                        del report[field][name]
+                        eligible, issues = cli.delivery_eligibility(workflow.root, report)
+                        self.assertFalse(eligible, (field, name))
+                        self.assertTrue(issues)
+
+    def test_separate_adapters_preserve_each_timeout_receipt(self):
+        from eso.adapter import EasyEDA
+
+        with tempfile.TemporaryDirectory() as directory, patch(
+            'eso.adapter.now', return_value='2026-11-13T00:00:00+00:00'
+        ):
+            for output in (b'first partial write', b'second partial write'):
+                adapter = EasyEDA(sys.executable, evidence=directory)
+                with patch('eso.adapter.subprocess.run', side_effect=subprocess.TimeoutExpired(
+                    'synthetic', 1, output=output
+                )), self.assertRaises(Refused):
+                    adapter.run(['sch', 'save'])
+            receipts = [load(path) for path in Path(directory).glob('*-timeout.json')]
+            self.assertEqual(len(receipts), 2)
+            self.assertEqual({r['stdout'] for r in receipts},
+                             {'first partial write', 'second partial write'})
+
     def test_form_change_invalidates_inferred_pullups(self):
         previous = evaluate(fixtures.requirements())["values"]
         previous["sensor_form"] = "module"

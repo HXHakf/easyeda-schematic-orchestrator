@@ -131,6 +131,7 @@ def doctor(binary="easyeda", *, live=False, target=None, run_dir=None, window=No
 
             probe("snapshot", snapshot)
             if checks["snapshot"]["status"] == "passed":
+                from .workflow import is_blank
 
                 def compile_snapshot():
                     from .compatibility import probe_snapshot
@@ -143,7 +144,14 @@ def doctor(binary="easyeda", *, live=False, target=None, run_dir=None, window=No
                         )
                     return report
 
-                probe("upstream_compile", compile_snapshot)
+                if is_blank(result(raw_snapshot)):
+                    probe("upstream_compile", compile_snapshot)
+                else:
+                    record(
+                        "upstream_compile", "not_checked",
+                        "synthetic replacement probe requires a proven blank page; "
+                        "occupied pages require their actual prepare/compose/dry-run evidence",
+                    )
     if live and not adapter:
         record("connection", "unavailable", "缺少上游 CLI，未尝试连接")
     if run_dir:

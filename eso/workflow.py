@@ -9,6 +9,10 @@ from .adapter import result
 from .requirements import evaluate
 from .reconcile import reconcile
 
+VERIFICATION_CHECKS = frozenset(('reconciliation', 'drc', 'structure', 'bridge', 'geometry'))
+VERIFICATION_FILES = ('save.json', 'reload.json', 'actual-connectivity.json', 'drc-command.json',
+                      'structure-command.json', 'bridge-command.json', 'geometry-command.json')
+
 
 def validate_plan(plan, contract):
     validate(plan, "plan")
@@ -164,7 +168,7 @@ class Workflow:
         self.root = Path(run_dir).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def prepare(self, contract, approval, plan, composition_path, before_path, placement_run=None):
+    def prepare(self, contract, approval, plan, composition_path, before_path, placement_run=None, *, layout_page=None):
         if (self.root / "bundle.json").exists() or (self.root / "execution-started.lock").exists():
             raise Refused("prepare requires a fresh run directory; preserve prior execution and verification records")
         check_confirmation(contract, approval)
@@ -183,6 +187,7 @@ class Workflow:
         # MVP never replaces/clears existing components or drawings.
         # Full design from a clean empty page is the supported execution path.
         data = result(before)
+        recovery_artifacts = []
         if placement_run:
             from .bridge import observed_parts
             stage_root = Path(placement_run)
@@ -197,6 +202,21 @@ class Workflow:
             parts = observed_parts(plan, before, bindings, target)
             if {ref: p['primitiveId'] for ref, p in parts.items()} != stage['primitive_ids']:
                 raise Refused("staged native instances changed")
+            if 'recovery_sha256' in stage:
+                from .recovery import checked_recovery
+                recovery_path = stage_root / 'recovery.json'
+                recovery = checked_recovery(stage_root, stage)
+                history = recovery['source_artifacts']
+                (self.root / 'recovery-proof.json').write_bytes(recovery_path.read_bytes())
+                recovery_artifacts.append('recovery-proof.json')
+                for name, sha in history.items():
+                    if not isinstance(name, str) or Path(name).name != name:
+                        raise Refused('invalid recovery source evidence name')
+                    copied = self.root / ('recovery-source--' + name)
+                    copied.write_bytes((stage_root / ('source--' + name)).read_bytes())
+                    if file_digest(copied) != sha:
+                        raise Refused('recovery source evidence changed: ' + name)
+                    recovery_artifacts.append(copied.name)
             if data.get("wires") or any(p.get("net") or p.get("noConnected") is not False for c in parts.values() for p in c["pins"]):
                 raise Refused("staged page must still be fully unwired")
             measurement_manifest = stage_root / "measurement-evidence.json"
@@ -229,13 +249,21 @@ class Workflow:
         command = ["sch", "compose", "--from", composition_copy, "--before", before_copy,
                    "--out", out, "--playbook", queue, "--replace"]
         if placement_run: command.append("--preserve-instances")
+        if layout_page is not None:
+            page_copy = self.root / 'layout-page.json'
+            page_copy.write_bytes(Path(layout_page).read_bytes())
+            command += ['--layout-page', page_copy]
         self.adapter.run(command, json_output=False)
         validate_queue(load(queue), target)
         self.adapter.run(["sch", "apply", queue, "--dry-run"], json_output=False)
         artifacts = {name: file_digest(self.root / name) for name in
                      ("contract.json", "approval.json", "plan.json", "expected.json", "composition.json", "before.json", "apply.json", "upstream-plan.json")}
+        if layout_page is not None:
+            artifacts['layout-page.json'] = file_digest(page_copy)
         if placement_run:
             for name in ("staging-proof.json", "measurement-evidence.json", *["measurement--" + n for n in required_measurements]):
+                artifacts[name] = file_digest(self.root / name)
+            for name in recovery_artifacts:
                 artifacts[name] = file_digest(self.root / name)
         bundle = {"schema_version": 1, "state": "prepared", "target": target, "artifacts": artifacts,
                   "baseline_fingerprint": snapshot_fingerprint(before), "created_at": now()}
@@ -243,6 +271,14 @@ class Workflow:
         return bundle
 
     def execute(self):
+        from .locking import target_lock
+        target = load(self.root / 'bundle.json')['target']
+        with target_lock(target):
+            if load(self.root / 'bundle.json')['target'] != target:
+                raise Refused('target changed while acquiring lock')
+            return self._execute_locked()
+
+    def _execute_locked(self):
         bundle = load(self.root / "bundle.json")
         self._check_bundle(bundle)
         if bundle["state"] != "prepared":
@@ -281,31 +317,49 @@ class Workflow:
         validate_queue(load(self.root / "apply.json"), bundle["target"])
 
     def verify(self):
+        from .locking import target_lock
+        target = load(self.root / 'bundle.json')['target']
+        with target_lock(target):
+            if load(self.root / 'bundle.json')['target'] != target:
+                raise Refused('target changed while acquiring lock')
+            return self._verify_locked()
+
+    def _verify_locked(self):
         bundle = load(self.root / "bundle.json")
         if bundle["state"] not in ("applied-unverified", "incomplete", "verified", "verifying"):
             raise Refused("a never-executed run cannot be certified")
         attempt = uuid.uuid4().hex
+        history = self.root / 'verification-history' / attempt
+        history.mkdir(parents=True, exist_ok=False)
         bundle.update(state="verifying", verification_attempt=attempt)
         dump(self.root / "bundle.json", bundle)
         pending = {"schema_version": 1, "state": "verifying", "level": "not-verified",
                    "attempt": attempt, "checked_at": now(), "unverified": ["verification in progress"]}
+        dump(history / "verification.json", pending)
         dump(self.root / "verification.json", pending)
         try:
             self._check_bundle(bundle)
-            report = self._verify_once(bundle)
-            files = ("save.json", "reload.json", "actual-connectivity.json", "drc-command.json",
-                     "structure-command.json", "bridge-command.json", "geometry-command.json")
+            for name in bundle['artifacts']:
+                (history / name).write_bytes((self.root / name).read_bytes())
+            dump(history / 'bundle.json', bundle)
+            report = self._verify_once(bundle, history)
             report.update(attempt=attempt, bundle_artifacts_sha256=digest(bundle["artifacts"]),
-                          evidence_files={name: file_digest(self.root / name) for name in files})
+                          evidence_files={name: file_digest(self.root / name) for name in VERIFICATION_FILES})
         except Exception as error:
             report = {"schema_version": 1, "state": "incomplete", "level": "live-incomplete",
                       "attempt": attempt, "error": str(error), "checked_at": now(),
                       "unverified": ["latest verification failed; older success is invalid"]}
+            report['evidence_format'] = 2
+            report['attempt_files'] = {p.name: file_digest(p) for p in history.iterdir() if p.is_file() and p.name != "verification.json"}
+            dump(history / 'verification.json', report)
             dump(self.root / "verification.json", report)
             dump(self.root / "verification-history" / f"{attempt}.json", report)
             bundle.update(state="incomplete", error=str(error))
             dump(self.root / "bundle.json", bundle)
             raise
+        report['evidence_format'] = 2
+        report['attempt_files'] = {p.name: file_digest(p) for p in history.iterdir() if p.is_file() and p.name != "verification.json"}
+        dump(history / 'verification.json', report)
         dump(self.root / "verification.json", report)
         dump(self.root / "verification-history" / f"{attempt}.json", report)
         bundle["state"] = report["state"]
@@ -313,21 +367,27 @@ class Workflow:
         dump(self.root / "bundle.json", bundle)
         return report
 
-    def _verify_once(self, bundle):
+    def _verify_once(self, bundle, history):
+        def record(name, raw):
+            dump(history / name, raw)
+            dump(self.root / name, raw)
+
         target, evidence = bundle["target"], {}
         self.adapter.guard(target)
         saved = self.adapter.run(["sch", "save"], target=target)
-        dump(self.root / "save.json", saved)
+        record("save.json", saved)
         if result(saved).get("saved") is not True:
             raise Refused("save did not return boolean saved:true")
         reload_receipt = self.adapter.run(["doc", "reload", target["document_uuid"], "--json"], target=target)
-        dump(self.root / "reload.json", reload_receipt)
+        record("reload.json", reload_receipt)
         if (reload_receipt.get("status") != "passed" or reload_receipt.get("saved") is not True
                 or reload_receipt.get("closed") is not True or reload_receipt.get("reloaded") != target["document_uuid"]):
             raise Refused("real document reload not confirmed; inspect receipt")
         self.adapter.guard(target)
+        initial_snapshot = self.adapter.snapshot(target)
+        record('initial-snapshot.json', initial_snapshot)
         actual = self.adapter.run(["sch", "connectivity"], target=target)
-        dump(self.root / "actual-connectivity.json", actual)
+        record("actual-connectivity.json", actual)
         evidence["reconciliation"] = reconcile(load(self.root / "expected.json"), actual)
         # Use receipts even on nonzero exits; never treat missing fields as zero findings.
         for key, args in (("drc", ["sch", "drc", "--strict", "--json"]),
@@ -335,7 +395,7 @@ class Workflow:
                           ("bridge", ["sch", "bridge-check", "--json"]),
                           ("geometry", ["sch", "layout-lint", "--strict", "--json"])):
             raw = self.adapter.run(args, target=target, check=False, json_output=False)
-            dump(self.root / f"{key}-command.json", raw)
+            record(f"{key}-command.json", raw)
             try:
                 document = json.loads(raw["stdout"])
                 # layout-lint uses a bare report; the other three use typed envelopes.
@@ -345,11 +405,15 @@ class Workflow:
                 parsed, passed = {}, False
             evidence[key] = {"passed": raw["exit_code"] == 0 and passed, "result": parsed,
                              "exit_code": raw["exit_code"]}
+        final_snapshot = self.adapter.snapshot(target)
+        record('final-snapshot.json', final_snapshot)
+        if snapshot_fingerprint(initial_snapshot) != snapshot_fingerprint(final_snapshot):
+            raise Refused('page changed during verification; collect a new consistent attempt')
         passed = all(e.get("passed") is True for e in evidence.values())
         report = {"schema_version": 1, "state": "verified" if passed else "incomplete",
                   "level": "live-verified" if passed else "live-incomplete", "checks": evidence,
                   "unverified": ["hardware operation", "firmware", "PCB", "full UI ERC warning list", "visual export review"],
-                  "checked_at": now()}
+                  "checked_at": now(), "snapshot_sha256": file_digest(history / "final-snapshot.json")}
         return report
 
 

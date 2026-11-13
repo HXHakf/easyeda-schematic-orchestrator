@@ -208,9 +208,40 @@ class ReadabilityTests(unittest.TestCase):
         scene = scene_of([(['a', '1'], [0, 0], 'right'), (['b', '1'], [60, 0], 'left')],
                          [('w1', [[0, 0], [20, 0]]), ('w2', [[60, 0], [40, 0]])],
                          labels=[('l1', [20, 0], 'n'), ('l2', [40, 0], 'n')])
-        result = read.audit_readability(target, scene)
+        result = read.audit_readability(target, scene, strict=True)
         self.assertNotIn('module-physical-crossing', self.codes(result))
         self.assertTrue(result['passed'], result['findings'])
+
+    def test_each_module_boundary_tree_requires_its_own_matching_label(self):
+        target = target_of([('a', 'A1'), ('b', 'B1')],
+                           [('n', 'N', [['a', '1'], ['b', '1']])],
+                           modules=[{'id': 'one', 'members': ['a']},
+                                    {'id': 'two', 'members': ['b']}])
+        scene = scene_of([(['a', '1'], [0, 0], 'right'),
+                          (['b', '1'], [60, 0], 'left')],
+                         [('w1', [[0, 0], [20, 0]]), ('w2', [[60, 0], [40, 0]])],
+                         labels=[('l1', [20, 0], 'n')])
+        result = read.audit_readability(target, scene, strict=True)
+        self.assertFalse(result['passed'])
+        self.assertIn('label-bridged-net', self.codes(result, 'advisory'))
+
+    def test_cross_module_labels_still_report_a_split_inside_one_module(self):
+        target = target_of([('a', 'A1'), ('b', 'B1'), ('c', 'C1')],
+                           [('n', 'N', [['a', '1'], ['b', '1'], ['c', '1']])],
+                           modules=[{'id': 'one', 'members': ['a', 'c']},
+                                    {'id': 'two', 'members': ['b']}])
+        scene = scene_of([(['a', '1'], [0, 0], 'right'),
+                          (['b', '1'], [80, 0], 'left'),
+                          (['c', '1'], [0, 40], 'right')],
+                         [('a-wire', [[0, 0], [20, 0]]),
+                          ('b-wire', [[80, 0], [60, 0]]),
+                          ('c-wire', [[0, 40], [20, 40]])],
+                         labels=[('a-label', [20, 0], 'n'),
+                                 ('b-label', [60, 0], 'n'),
+                                 ('c-label', [20, 40], 'n')])
+        result = read.audit_readability(target, scene, strict=True)
+        self.assertFalse(result['passed'])
+        self.assertIn('label-bridged-net', self.codes(result, 'advisory'))
 
     def test_overlapping_module_frames_are_hard(self):
         target, scene = two_modules()

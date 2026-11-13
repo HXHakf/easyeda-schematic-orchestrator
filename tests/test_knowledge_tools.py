@@ -105,6 +105,10 @@ class KnowledgeToolsTests(unittest.TestCase):
         from test_bridge import fixture as geometry_fixture, TARGET
 
         _, _, _, snapshot, _, _, _ = geometry_fixture(self.root)
+        # The replacement probe is only applicable to a proven blank page.
+        data = snapshot["result"]
+        data["components"] = data["components"][:1]
+        data["pagePrimitives"]["components"] = data["components"]
         binary = os.environ["EASYEDA_BIN"]
 
         class RecordedReads(EasyEDA):
@@ -132,6 +136,54 @@ class KnowledgeToolsTests(unittest.TestCase):
         self.assertIn("class inventory", report["checks"]["upstream_compile"]["detail"])
         self.assertFalse(report["writes_to_eda"])
         self.assertFalse(report["live_verified"])
+
+    def test_occupied_page_keeps_blank_replacement_probe_not_checked(self):
+        import copy
+        from eso.doctor import doctor
+        from test_bridge import fixture as geometry_fixture, TARGET
+
+        _, _, _, snapshot, _, _, _ = geometry_fixture(self.root)
+
+        class Occupied:
+            def snapshot(self, target):
+                return snapshot
+
+            def run(self, args, **kwargs):
+                if args == ["--version"]:
+                    return {"stdout": "easyeda-agent v1.17.0"}
+                if args == ["health"]:
+                    return {
+                        "status": "found",
+                        "found": {"raw": {"windows": [{"windowId": "synthetic"}]}},
+                        "versionGate": {"verdict": "ok"},
+                    }
+                raise AssertionError("occupied page must not use replacement probe")
+
+        for content in ("part", "text", "orphan-attribute"):
+            with self.subTest(content=content):
+                data = snapshot["result"]
+                if content != "part":
+                    data["components"] = data["components"][:1]
+                    data["pagePrimitives"]["components"] = data["components"]
+                data["pagePrimitives"]["texts"] = (
+                    [{"primitiveId": "synthetic-note", "Content": "test"}]
+                    if content == "text" else []
+                )
+                data["pagePrimitives"]["attributes"] = (
+                    [{"primitiveId": "synthetic-orphan", "ParentPrimitiveId": "unknown"}]
+                    if content == "orphan-attribute" else []
+                )
+                before = copy.deepcopy(snapshot)
+                with patch("eso.doctor.EasyEDA", return_value=Occupied()), patch(
+                    "eso.native_text.render", return_value={"texts": [{"id": "probe"}]}
+                ):
+                    report = doctor(sys.executable, live=True, target=TARGET)
+                self.assertEqual(report["checks"]["snapshot"]["status"], "passed")
+                self.assertEqual(report["checks"]["upstream_compile"]["status"], "not_checked")
+                self.assertIn("blank", report["checks"]["upstream_compile"]["detail"])
+                self.assertFalse(report["live_verified"])
+                self.assertFalse(report["writes_to_eda"])
+                self.assertEqual(snapshot, before)
 
     def test_connected_older_connector_is_reported_as_version_warning(self):
         from eso.doctor import doctor

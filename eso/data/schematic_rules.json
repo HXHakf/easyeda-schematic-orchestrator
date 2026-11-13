@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "primary_source_id": "jlc-schematic-guidance",
   "rules": [
     {
@@ -101,7 +101,7 @@
         "review": [
           "旁路器件属于哪个物理电源脚"
         ],
-        "policy": "条件项，无芯片电源旁路的电路记录不适用。"
+        "policy": "条件项，无芯片电源旁路的电路记录不适用。 局部 3g 距离用于初始排布参考，按真实符号、完整文字净空及可追踪的实体直连审阅归属。"
       }
     },
     {

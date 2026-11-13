@@ -63,6 +63,18 @@ class BridgeTests(unittest.TestCase):
                     page['pins'][0]['componentId'],page['pins'][2]['componentId']=page['pins'][2]['componentId'],page['pins'][0]['componentId']
                 with self.subTest(duplicate=duplicate),self.assertRaises(Refused):observed_parts(p,s,b,TARGET)
 
+    def test_explicit_layout_budget_is_retained_and_invalid_values_refuse(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            contract, plan, bindings, snapshot, labels, sheet, svg = fixture(root)
+            source = build_layout_input(contract, plan, bindings, snapshot, labels, sheet, svg,
+                                        max_candidates=100000)
+            self.assertEqual(source['maxCandidates'], 100000)
+            for value in (0, -1, True, 1000001, 2.5):
+                with self.subTest(value=value), self.assertRaises(Refused):
+                    build_layout_input(contract, plan, bindings, snapshot, labels, sheet, svg,
+                                       max_candidates=value)
+
     def test_bridge_retains_raw_snapshot_and_authors_target_nets(self):
         with tempfile.TemporaryDirectory() as directory:
             c,p,b,s,l,g,svg = fixture(Path(directory)); original = copy.deepcopy(s)
@@ -105,6 +117,72 @@ class BridgeTests(unittest.TestCase):
             (bridge.root/'measured-sheet.svg').write_text('changed after collection')
             with self.assertRaisesRegex(Refused,'measurement evidence changed'):
                 Workflow(a,root/'run').prepare(c,approval,p,bridge.root/'composition.json',bridge.root/'measured-snapshot.json',bridge.root)
+
+    def test_selected_page_is_copied_compiled_and_hash_protected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            contract, plan, bindings, snapshot, labels, geometry, svg = fixture(root)
+            adapter = FakeBridgeAdapter(contract, plan, bindings, snapshot, labels, geometry)
+            approval = confirm(contract, digest(contract), 'SYNTHETIC HUMAN')
+            bridge = DesignBridge(adapter, root / 'stage')
+            bridge.stage(contract, approval, plan, bindings)
+            bridge.collect()
+            page = root / 'selected-page.json'
+            dump(page, {'schemaVersion': 1, 'title': 'SYNTHETIC selected page'})
+            workflow = Workflow(adapter, root / 'run')
+            bundle = workflow.prepare(
+                contract, approval, plan, bridge.root / 'composition.json',
+                bridge.root / 'measured-snapshot.json', bridge.root, layout_page=page)
+            copied = workflow.root / 'layout-page.json'
+            self.assertEqual(load(copied), load(page))
+            self.assertEqual(bundle['artifacts']['layout-page.json'], file_digest(copied))
+            command = next(call for call in adapter.calls if call[:2] == ['sch', 'compose'] and '--layout-page' in call)
+            self.assertEqual(command[command.index('--layout-page') + 1], str(copied))
+            page.write_text('original moved or changed after preparation')
+            self.assertEqual(load(copied)['title'], 'SYNTHETIC selected page')
+            copied.write_text('tampered prepared page')
+            calls = len(adapter.calls)
+            with self.assertRaisesRegex(Refused, 'prepared artifact changed'):
+                workflow.execute()
+            self.assertEqual(len(adapter.calls), calls)
+
+    def test_recovery_provenance_is_pinned_with_the_prepared_bundle(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            contract, plan, bindings, snapshot, labels, geometry, svg = fixture(root)
+            adapter = FakeBridgeAdapter(contract, plan, bindings, snapshot, labels, geometry)
+            approval = confirm(contract, digest(contract), 'SYNTHETIC HUMAN')
+            bridge = DesignBridge(adapter, root / 'stage')
+            bridge.stage(contract, approval, plan, bindings)
+            bridge.collect()
+            original_queue = bridge.root / 'place.json'
+            (bridge.root / 'source--place.json').write_bytes(original_queue.read_bytes())
+            parent = {'source_artifacts': {'place.json': file_digest(original_queue)},
+                      'known_primitive_ids': {'R1': 'fixture-native-part'}}
+            dump(bridge.root / 'source--recovery.json', parent)
+            (bridge.root / 'source--source--place.json').write_bytes(original_queue.read_bytes())
+            recovery = {'source_artifacts': {
+                'place.json': file_digest(original_queue),
+                'recovery.json': file_digest(bridge.root / 'source--recovery.json'),
+                'source--place.json': file_digest(original_queue)},
+                'known_primitive_ids': {'R1': 'fixture-native-part'}}
+            dump(bridge.root / 'recovery.json', recovery)
+            state = load(bridge.root / 'stage.json')
+            state['recovery_sha256'] = digest(recovery)
+            dump(bridge.root / 'stage.json', state)
+            workflow = Workflow(adapter, root / 'run')
+            bundle = workflow.prepare(contract, approval, plan, bridge.root / 'composition.json',
+                                      bridge.root / 'measured-snapshot.json', bridge.root)
+            self.assertIn('recovery-proof.json', bundle['artifacts'])
+            self.assertIn('recovery-source--source--place.json', bundle['artifacts'])
+            (workflow.root / 'recovery-proof.json').write_text('changed')
+            with self.assertRaises(Refused):
+                workflow.execute()
+            (bridge.root / 'source--place.json').write_text('changed source history')
+            with self.assertRaises(Refused):
+                Workflow(adapter, root / 'another-run').prepare(
+                    contract, approval, plan, bridge.root / 'composition.json',
+                    bridge.root / 'measured-snapshot.json', bridge.root)
 
     def test_collect_rejects_incomplete_or_unowned_page(self):
         for mutation in ('missing-page', 'unknown-wires', 'unowned-object'):

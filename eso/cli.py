@@ -8,7 +8,7 @@ from .adapter import EasyEDA
 from .core import Refused, confirm, digest, dump, load
 from .planner import make_plan
 from .requirements import contract_from, contract_summary, evaluate, merge_answers, parse_seed
-from .workflow import Workflow, validate_plan
+from .workflow import Workflow, validate_plan, VERIFICATION_CHECKS, VERIFICATION_FILES
 
 
 def main(argv=None):
@@ -47,6 +47,22 @@ def main(argv=None):
     sub.add_parser("kb-check", help="check catalog source/alias/rule uniqueness")
     kbbind = sub.add_parser("kb-bindings", help="export reviewed material library bindings; no EDA calls")
     kbbind.add_argument("contract"); kbbind.add_argument("--out", required=True)
+    catalog_review = sub.add_parser('catalog-review', help='compare retained catalog records with selected bindings')
+    for field in ('bindings', 'devices', 'out'):
+        catalog_review.add_argument('--' + field, required=True)
+    compare = sub.add_parser('layout-compare', help='rank a bounded set of audited layout candidates')
+    compare.add_argument('manifest'); compare.add_argument('--out', required=True)
+    for command in ('text-restore-preview', 'text-restore-apply', 'evidence-index'):
+        parser = sub.add_parser(command)
+        parser.add_argument('--run-dir', required=True)
+        parser.add_argument('--out', required=True)
+        if command == 'text-restore-preview':
+            parser.add_argument('--reference', required=True)
+        elif command == 'text-restore-apply':
+            parser.add_argument('--preview', required=True)
+        else:
+            parser.add_argument('--reviews')
+            parser.add_argument('--attempt', help='audit one retained attempt independently of current inputs')
     intake = sub.add_parser("intake", help="conservative seed extraction; agent semantic review still required")
     intake.add_argument("--text", required=True); intake.add_argument("--out", required=True)
     assess = sub.add_parser("assess", help="dynamic questions/defaults and electrical conflicts")
@@ -76,11 +92,16 @@ def main(argv=None):
     for field in ("contract", "approval", "plan", "composition", "before", "run-dir"):
         prepare.add_argument("--" + field, required=True)
     prepare.add_argument("--placement-run", help="owned staging/measurement proof; preserves native instances")
+    prepare.add_argument("--layout-page", help="selected upstream layout-sheet-plan page; compiled without repacking")
     stage = sub.add_parser("stage", help="place reviewed library parts only in an approved blank test page")
     for field in ("contract", "approval", "plan", "bindings", "run-dir"):
         stage.add_argument("--" + field, required=True)
     collect = sub.add_parser("collect", help="read measured parts/designators/sheet, then call upstream lib-layout")
     collect.add_argument("--run-dir", required=True)
+    collect.add_argument("--max-candidates", type=int, default=20000, help="bounded upstream layout search, 1..1000000")
+    recover = sub.add_parser("recover-stage", help="reconcile journal ownership and place only missing reviewed parts")
+    recover.add_argument("--run-dir", required=True, help="original interrupted staging directory")
+    recover.add_argument("--out", required=True, help="fresh recovery staging directory")
     for action in ("execute", "verify", "status", "deliver"):
         a = sub.add_parser(action)
         a.add_argument("--run-dir", required=True)
@@ -156,18 +177,48 @@ def main(argv=None):
             output = diagnose(args.run_dir, snapshot=load(args.snapshot) if args.snapshot else None,
                               connectivity=load(args.connectivity) if args.connectivity else None,
                               adapter=EasyEDA(args.easyeda, args.evidence, window=args.window) if args.live else None)
+        elif args.command == 'catalog-review':
+            from .assistance import catalog_review
+            output = catalog_review(load(args.bindings), load(args.devices))
+            dump(args.out, output)
+        elif args.command == 'layout-compare':
+            from .assistance import compare_layouts
+            manifest = load(args.manifest)
+            output = compare_layouts(manifest['candidates'], manifest['max_candidates'])
+            dump(args.out, output)
+        elif args.command == 'evidence-index':
+            from .evidence import evidence_index
+            output = evidence_index(args.run_dir, load(args.reviews) if args.reviews else None, attempt=args.attempt)
+            dump(args.out, output)
+        elif args.command == 'text-restore-preview':
+            from .assistance import text_restore_preview
+            root = Path(args.run_dir)
+            contract = load(root / 'contract.json')
+            adapter = EasyEDA(args.easyeda, args.evidence, window=args.window)
+            from .locking import target_lock
+            with target_lock(contract['target']):
+                output = text_restore_preview(load(args.reference), adapter.snapshot(contract['target']))
+                output['contract_sha256'] = digest(contract)
+                output['reference'] = load(args.reference)
+            dump(args.out, output)
+        elif args.command == 'text-restore-apply':
+            from .assistance import apply_text_restore
+            output = apply_text_restore(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir, args.preview, args.out)
         elif args.command == "status": output = load(Path(args.run_dir) / "bundle.json")
         elif args.command == "deliver": output = delivery_manifest(args.run_dir, args.out)
+        elif args.command == "recover-stage":
+            from .recovery import recover_stage
+            output = recover_stage(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir, args.out)
         elif args.command in ("stage", "collect"):
             from .bridge import DesignBridge
             bridge = DesignBridge(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir)
             if args.command == "stage":
                 output = bridge.stage(load(args.contract), load(args.approval), load(args.plan), load(args.bindings))
-            else: output = bridge.collect()
+            else: output = bridge.collect(max_candidates=args.max_candidates)
         else:
             workflow = Workflow(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir)
             if args.command == "prepare":
-                output = workflow.prepare(load(args.contract), load(args.approval), load(args.plan), args.composition, args.before, args.placement_run)
+                output = workflow.prepare(load(args.contract), load(args.approval), load(args.plan), args.composition, args.before, args.placement_run, layout_page=args.layout_page)
             elif args.command == "execute": output = workflow.execute()
             elif args.command == "verify": output = workflow.verify()
         print(json.dumps(output, ensure_ascii=False, indent=2))
@@ -209,12 +260,17 @@ def delivery_eligibility(root, report):
             issues.append("verification belongs to a different attempt")
         if report.get("bundle_artifacts_sha256") != digest(bundle["artifacts"]):
             issues.append("verification belongs to different prepared inputs")
-        if not report.get("evidence_files") or not report.get("checks") or not all(
-                check.get("passed") is True for check in report["checks"].values()):
+        checks, evidence_files = report.get("checks"), report.get("evidence_files")
+        if (not isinstance(checks, dict) or not VERIFICATION_CHECKS.issubset(checks)
+                or not all(isinstance(check, dict) and check.get("passed") is True for check in checks.values())
+                or not isinstance(evidence_files, dict) or not set(VERIFICATION_FILES).issubset(evidence_files)):
             issues.append("verification has no complete passing check evidence")
         for name, sha in {**bundle["artifacts"], **report.get("evidence_files", {})}.items():
             if Path(name).name != name or file_digest(root / name) != sha:
                 issues.append("prepared input or verification evidence changed: " + name)
+        if report.get('evidence_format') == 2:
+            from .evidence import check_attempt
+            check_attempt(root, report)
     except (OSError, ValueError, KeyError, TypeError) as error:
         issues.append("verification evidence unavailable: " + str(error))
     return not issues, issues

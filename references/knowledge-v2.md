@@ -75,3 +75,7 @@ python scripts/demo_knowledge_v2.py --out runs/knowledge-v2-demo
 完成审阅后另存完整记录，填写 coverage、coverage_review 等依据，设置 status=reviewed 或省略 status，并移除 missing_evidence。新增记录生成独立哈希，原草稿保留。升级后的完整记录仍需通过当前工程的 assess 与库绑定核验。
 
 合成草稿样例位于 examples/knowledge-v2/draft-material.json，配套文档为 documents/switch.txt。真实原厂 PDF、草稿和库查询回执保存在用户私有目录。
+
+
+`doctor --live` 的合成替换编译探针只适用于已证明空白的页面。占用页面的该项为 `not_checked`，
+实际方案使用对应 `prepare` 的编译及 dry-run 证据。指定 `--run-dir` 后显示的历史验收仍与当前快照检查分开。

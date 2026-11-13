@@ -28,7 +28,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import circuit_audit as ca  # noqa: E402  (same directory, shared contact model)
 
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 EPS = ca.EPS
 OBJECT_CAP = 40
 POWER_PATTERNS = (
@@ -419,6 +419,8 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
         # 4. Labels must be boundaries, not a way to hide a missing wire.
         nseg = len(segments)
         pin_node = {ca.pin_key(p['pin']): nseg + i for i, p in enumerate(pins)}
+        module_of = {cid: module['id'] for module in target.get('modules', [])
+                     for cid in module['members']}
         bridged = []
         for net_id, net_pins in sorted(pins_by_net.items()):
             if net_id not in nets or is_power_name(nets[net_id]['name']):
@@ -430,7 +432,17 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
                 continue
             carries = any(label['net'] == net_id for label in labels)
             if carries:
-                bridged.append(f'{net_id}:{len(trees)}trees')
+                module_trees = defaultdict(set)
+                for pin in net_pins:
+                    module_trees[module_of.get(pin['pin'][0])].add(phys.root(pin_node[ca.pin_key(pin['pin'])]))
+                label_trees = {phys.root(i) for label in labels if label['net'] == net_id
+                               for i, (_, page, a, b) in enumerate(segments)
+                               if page == label['page'] and ca.on(ca.point(label['at']), a, b)}
+                boundary_only = (None not in module_trees and len(module_trees) > 1
+                                 and all(len(roots) == 1 for roots in module_trees.values())
+                                 and trees <= label_trees)
+                if not boundary_only:
+                    bridged.append(f'{net_id}:{len(trees)}trees')
             else:
                 add(findings, 'net-not-physically-connected', 'hard', [f'{net_id}:{len(trees)}trees'])
         if bridged:
