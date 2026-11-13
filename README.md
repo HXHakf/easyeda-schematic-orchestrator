@@ -2,8 +2,9 @@
 
 面向嘉立创 EDA 专业版的 AI 原理图设计工作流 Skill，复用
 [easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent) 的 CLI、daemon 和 EDA Agent Connector。
-当前版本为 **0.5.0**。提供通用原理图设计流程、嘉立创核心知识库、设计规范和可追溯的绘图验收。
-具体项目开始时，再确定应用场景、器件选型、模块手册及工作条件。
+当前版本为 **0.5.1**。提供通用原理图设计流程、嘉立创核心知识库、设计规范和可追溯的绘图验收。
+具体项目开始时，再确定应用场景、器件选型及工作条件。以所选模块官方手册的应用电路为设计基线，
+按需求调整并记录理由。用户只提供型号时，由宿主 AI 检索下载手册并查看应用电路图。
 
 本地可靠性改进：完整连接/NC/引用与网络 scope 对账、严格空白页清单、写前离线兼容探针、
 全部可见属性文字缺测阻断、显式多电源网络定义，以及只读 `diagnose`。
@@ -171,7 +172,7 @@ eso kb-search 'NPN 低边开关'
 python scripts/demo_knowledge.py --out runs/knowledge-demo
 ```
 
-使用 `kb-search` 可以先检索和学习通用电路。开始具体项目时，再准备型号、封装和手册位置，由宿主审阅资料与真实器件库，`assess` 核验后进入确认和绘图流程。演示使用合成数据验证离线接口，代表性真实样例验证 EDA 流程。详见 [知识库使用指南](references/knowledge-base.md)、[实施记录](docs/plans/circuit-knowledge.md) 与 [现场范围](docs/plans/npn-nmos-eda-acceptance.md)。
+使用 `kb-search` 可以先检索和学习通用电路。开始具体项目时，用户提供所选型号和需求，宿主获取对应手册、核对官方应用电路与真实器件库，`assess` 核验后进入确认和绘图流程。演示使用合成数据验证离线接口，代表性真实样例验证 EDA 流程。详见 [知识库使用指南](references/knowledge-base.md)、[实施记录](docs/plans/circuit-knowledge.md) 与 [现场范围](docs/plans/npn-nmos-eda-acceptance.md)。
 
 本版包含私有器件资料缓存、v2 条件与证据、环境诊断和有限 MCU 组合。项目选型后使用 [资料复用与模块组合](references/knowledge-v2.md)，既有测试型号的资料审查保存在 [项目示例记录](docs/plans/knowledge-real-material-feasibility.md)。
 
