@@ -50,7 +50,8 @@ metadata:
    只规划时可离线开始；不要为一张 LDO 电路追问 MCU/传感器。触发代表进入需求流程，不代表已获绘图授权。
 2. **理解与分轮补问**。读 [输入与追问](references/input-and-questions.md)。宿主模型复核原文的
    功能、否定、纠正、多电源域与约束；`intake` 只作种子提取。运行 `assess`，面向用户只展示
-   `next_questions` 中最关键的至多三项，其余 blockers 留在内部。用户说“帮我选”时用 `update`
+   需用户决定的最关键问题，每轮至多三项；可自行检索的手册与资料路径缺项先由宿主补齐后重跑 assess，
+   其余 blockers 留在内部。用户说“帮我选”时用 `update`
    记录，按 `selection_tasks` 查证候选，不能反复逼问准确型号或擅自选搜索第一项。
    使用常用电路知识库时，先读 [知识库输入与核验](references/knowledge-base.md)。用户提供已选模块或器件型号，宿主获取手册、核对官方应用电路并核验真实库身份，运行 `kb-search` 后填写 `requirements.knowledge`。当前可自动生成 NPN/NMOS 静态电阻负载低侧开关；候选主题不会自动执行。禁止把示例虚构参数、型号、UUID 作为真实选型。
 3. **重算候选默认**。每轮回答后运行 `update` / `assess`。默认值连同推断条件保存，条件变化

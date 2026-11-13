@@ -10,7 +10,8 @@
 | 其他电路 | 功能与明确约束 | 宿主模型依据功能补充约束和 unresolved |
 
 每次 assess 同时返回 questions（全部阻断项）与 next_questions（优先的至多三项）。
-面向用户只问下一轮关键问题，已有答案不重复问。接口输出 ready=true 只说明已结构化字段无阻断，
+可自行查证的手册、文档路径与资料摘录缺项先转为宿主检索、下载或阅读任务，补齐后重新 assess。
+面向用户只问需要用户决定的下一轮关键问题，已有答案不重复问。接口输出 ready=true 只说明已结构化字段无阻断，
 不证明型号、封装、拓扑或器件适用性正确；semantic_review_required 始终保留。
 
 用户可以说“帮我选”。用 update 把该字段转为 selection_requests，模型收到 selection_tasks，
