@@ -63,8 +63,9 @@ py -3 scripts/install.py
 
 Codex 应发现两个独立 Skill：本项目负责需求编排，`easyeda-agent` 负责 EDA 工具。
 若未发现新 Skill，让客户端重新加载或重启；不要为了测试发现机制创建用户聊天或修改模型设置。
-其他宿主可用 `--skill-dir` 指向其支持的 Skill 位置，但本项目仅实测 Codex 发现与 macOS 安装；
-Windows/Linux 安装器分支及其他宿主尚未现场验证。
+其他宿主可用 `--skill-dir` 指向其支持的 Skill 位置。CI 覆盖 Linux、macOS、Windows 的
+独立安装、重复安装和安装后回归，Codex Skill 发现与 EDA 现场验收已在 macOS 实测。
+其他宿主的 Skill 发现方式仍需按该宿主核验。
 
 ## 3. 离线烟雾测试（无 EDA 写入）
 
@@ -81,13 +82,15 @@ Windows 将上述 Python 换为 `.local\share\easyeda-schematic-orchestrator\ven
 命令入口换为 `eso.cmd`，PowerShell 用 `& "完整路径" 参数` 执行。
 自定义目录时使用安装器实际输出，不能继续抄默认路径。
 成功条件：版本输出、出现缺参问题、demo 产生中文 Contract **草稿**和电路计划，
-状态仍待用户确认；不得出现 approval 或 EDA 调用。未设置 `EASYEDA_BIN` 时三项上游离线集成会跳过。
+状态仍待用户确认；不得出现 approval 或 EDA 调用。上游离线集成需要设置 `EASYEDA_BIN`，
+未设置时对应测试显示跳过，具体数量以当前测试输出为准。
 
 ## 4. 补齐上游能力（已有则不重复安装）
 
 上游源码/安装文档：[easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent)。
-本项目实测基线为 [v1.16.0 Release](https://github.com/zhoushoujianwork/easyeda-agent/releases/tag/v1.16.0)，
-不是推荐其作为完整现场兼容组合。优先保留本机已有安装，先检查实际能力再决定是否升级。
+代表性 EDA 现场验收使用配套的 v1.17.0 CLI、daemon 与 Connector，范围见
+[验证记录](VALIDATION.md)。历史 v1.16.0 快照兼容问题见下文。
+优先保留本机已有安装，先检查实际能力再决定是否升级。
 
 若缺 CLI 或上游 Skill，AI 按以下方式安装缺失项：
 
@@ -117,9 +120,9 @@ materialize/lib-layout/compose/apply dry-run。该测试不会执行非 dry-run 
 先检查当前 `easyeda daemon start --help`，按用户已授权的本机测试用途启动，避免自动 Skill 更新。
 保存原始发现结果到忽略的私有运行目录。
 
-**已知现场阻断**：实测 CLI v1.16.0 compose 接受十类 pagePrimitives，而 Connector 回读有十一类（含 pins）。
-stage 在首次放置前拒绝此组合。不要删除 pins、伪造快照或跳过检查；保持 `live-incomplete`，
-待上游兼容版本经测试后再执行。不要仅因为上游 main 有新代码就宣称已修复。
+**历史兼容问题**发生于 CLI v1.16.0，其 compose 接受十类 pagePrimitives，Connector 回读有十一类（含 pins）。
+stage 在首次放置前拒绝此组合。配套 v1.17.0 已完成限定现场验收，当前环境仍须通过实际快照的
+compose/dry-run 探针。遇到不兼容时保留原始快照与 `live-incomplete` 状态，按实际能力处理。
 
 完整入口、参数、测量与重放约束见 [README](../README.md)、[工作流](WORKFLOW.md) 和
 [测量衔接](../references/measurement-bridge.md)。内置确定性计划限 STM32F103C8T6 最小系统与 BMP280 参考；
