@@ -74,7 +74,9 @@ class KnowledgePipelineTests(unittest.TestCase):
                 self.assertEqual(flow.execute()['state'],'applied-unverified')
                 self.assertEqual(flow.verify()['state'],'verified')
                 self.assertIn(['doc','reload',TARGET['document_uuid'],'--json'],adapter.calls)
-                self.assertEqual(delivery_manifest(flow.root,root/'delivery.json')['state'],'verified')
+                manifest = delivery_manifest(flow.root, root / 'delivery.json')
+                self.assertEqual(manifest['core_state'], 'verified')
+                self.assertEqual(manifest['state'], 'incomplete')
                 # A changed physical net must invalidate the previous passing readback.
                 adapter.actual['connections'][0]['netId']='net-GND'
                 self.assertEqual(flow.verify()['state'],'incomplete')

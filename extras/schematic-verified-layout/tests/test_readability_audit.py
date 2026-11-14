@@ -97,6 +97,49 @@ def two_modules(frame_gap=20.0, with_frames=True, titles=True):
 
 
 class ReadabilityTests(unittest.TestCase):
+    def test_same_net_crossing_needs_a_visible_junction(self):
+        target = target_of([('a', 'A1'), ('b', 'B1'), ('c', 'C1'), ('d', 'D1')],
+                           [('g', 'GND', [['a', '1'], ['b', '1'], ['c', '1'], ['d', '1']])])
+        target['modules'][0]['direct'] = [[['a', '1'], ['b', '1']], [['c', '1'], ['d', '1']]]
+        scene = scene_of([(['a', '1'], [0, 20], 'right'), (['b', '1'], [40, 20], 'left'),
+                          (['c', '1'], [20, 0], 'up'), (['d', '1'], [20, 40], 'down')],
+                         [('horizontal', [[0, 20], [40, 20]]), ('vertical', [[20, 0], [20, 40]])],
+                         labels=[('ground1', [0, 20], 'g'), ('ground2', [20, 0], 'g')])
+        self.assertTrue(audit.audit_scene(target, scene)['passed'])
+        bad = read.audit_readability(target, scene, strict=True)
+        self.assertFalse(bad['passed'])
+        self.assertIn('same-net-crossing', self.codes(bad, 'hard'))
+        self.assertEqual(bad['metrics']['crossings'], 1)
+        scene['junctions'] = [{'page': 'p', 'at': [20, 20]}]
+        self.assertTrue(read.audit_readability(target, scene, strict=True)['passed'])
+
+    def test_collinear_waypoint_tolerance_cannot_hide_a_crossing(self):
+        target, scene = straight_pair(10)
+        scene['pins'][0]['at'] = [0, 20]
+        scene['pins'][1]['at'] = [40, 20]
+        scene['pins'][2].update(at=[20, 0], direction='up')
+        scene['pins'][3].update(at=[20, 40], direction='down')
+        scene['wires'][0]['points'] = [[0, 20], [20, 20 + 1e-10], [40, 20]]
+        scene['wires'][1]['points'] = [[20, 0], [20, 40]]
+        result = read.audit_readability(target, scene, strict=True)
+        self.assertFalse(result['passed'])
+        self.assertIn('foreign-net-crossing', self.codes(result, 'hard'))
+        self.assertEqual(result['metrics']['crossings'], 1)
+
+    def test_free_annotation_cannot_cross_or_touch_a_module_frame(self):
+        target, scene = two_modules()
+        scene['textInventory'].append('note')
+        scene['texts'].append({'id': 'note', 'page': 'p', 'bbox': [50, 41, 65, 44]})
+        for box in ([50, 41, 65, 44], [52, 41, 65, 44]):
+            scene['texts'][-1]['bbox'] = box
+            result = read.audit_readability(target, scene, strict=True)
+            self.assertFalse(result['passed'])
+            self.assertIn('text-frame-overlap', self.codes(result, 'hard'))
+        scene['texts'][-1]['bbox'] = [55, 41, 70, 44]
+        self.assertTrue(read.audit_readability(target, scene, strict=True)['passed'])
+        scene['texts'][-1].update(page='other', bbox=[50, 41, 65, 44])
+        self.assertTrue(read.audit_readability(target, scene, strict=True)['passed'])
+
     def setUp(self):
         self.assertIsNotNone(read, 'readability_audit must be importable')
 

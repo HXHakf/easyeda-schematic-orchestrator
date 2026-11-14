@@ -105,7 +105,9 @@ def main(argv=None):
     for action in ("execute", "verify", "status", "deliver"):
         a = sub.add_parser(action)
         a.add_argument("--run-dir", required=True)
-        if action == "deliver": a.add_argument("--out", required=True)
+        if action == "deliver":
+            a.add_argument("--out", required=True)
+            a.add_argument("--reviews", help="bound geometry and object-specific visual review files")
     args = p.parse_args(argv)
     if args.material_store: os.environ["ESO_MATERIAL_STORE"] = args.material_store
     try:
@@ -205,7 +207,7 @@ def main(argv=None):
             from .assistance import apply_text_restore
             output = apply_text_restore(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir, args.preview, args.out)
         elif args.command == "status": output = load(Path(args.run_dir) / "bundle.json")
-        elif args.command == "deliver": output = delivery_manifest(args.run_dir, args.out)
+        elif args.command == "deliver": output = delivery_manifest(args.run_dir, args.out, args.reviews)
         elif args.command == "recover-stage":
             from .recovery import recover_stage
             output = recover_stage(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir, args.out)
@@ -230,14 +232,30 @@ def main(argv=None):
         return 2
 
 
-def delivery_manifest(run_dir, output_path):
+def delivery_manifest(run_dir, output_path, reviews_path=None):
     from .core import file_digest
     root = Path(run_dir).resolve()
     if not root.is_dir(): raise Refused("run directory missing")
     verification = root / "verification.json"
     report = load(verification) if verification.exists() else {}
     eligible, issues = delivery_eligibility(root, report)
+    core_state = 'verified' if eligible else 'incomplete'
+    drawing = None
+    if reviews_path is None:
+        issues.append('final delivery requires --reviews with geometry and object-specific visual assessments')
+        eligible = False
+    else:
+        from .evidence import evidence_index
+        try:
+            drawing = evidence_index(root, load(reviews_path))
+            if drawing['eda_evidence_complete'] is not True:
+                issues.append('drawing evidence is incomplete')
+                eligible = False
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            issues.append('drawing evidence unavailable: ' + str(error))
+            eligible = False
     manifest = {"schema_version": 1, "state": "verified" if eligible else "incomplete",
+                "core_state": core_state, "drawing": drawing,
                 "level": report.get("level", "not-live-verified") if eligible else "not-verified",
                 "files": [{"path": str(f.relative_to(root)), "sha256": file_digest(f)}
                           for f in sorted(root.rglob("*")) if f.is_file() and f.resolve() != Path(output_path).resolve()],

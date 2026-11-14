@@ -2,7 +2,7 @@
 name: easyeda-schematic-orchestrator
 description: "当用户说“我要画原理图”“帮我设计电路”“画一个 STM32 最小系统”，或在原理图任务中要求补全外围、修改连接时使用。默认面向嘉立创 EDA 专业版，先整理需求、追问缺参并确认 Design Contract，再复用 easyeda-agent 绘图、回读与验收。用户无需指定 Skill 名；纯原理讲解、仅 PCB 操作或普通软件工作流开发不自动触发。首版写入仅限专用测试工程。"
 metadata:
-  version: "0.5.1"
+  version: "0.5.2"
 ---
 
 # EasyEDA Schematic Orchestrator / Designer
@@ -107,3 +107,8 @@ metadata:
 
 正常入口已接入目标互斥及按 attempt 固定证据。目录核验、文字恢复、有限布局候选比较及分层交付索引的
 命令与输入格式见 [辅助工具](references/workflow-assistance.md)。先完成对应阶段的真实核验，再依据工具报告推进。
+
+图面复核先查[可读性复盘](references/live-recovery.md#图面可读性复盘)。当前交付使用
+`eso deliver --run-dir ... --reviews reviews.json --out ...`，关联同轮完整几何与逐项图面审阅。
+按实际导出图记录阅读顺序、外围归属、重复支路、符号与标签方向、字号及页面留白的对象和判断，
+关闭图面问题后交付。候选选择和交付会重查同网无接点交叉及全部可见文字穿框，旧报告的通过状态仍需复核。

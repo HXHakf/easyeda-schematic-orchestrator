@@ -92,6 +92,7 @@ eso layout-compare runs/candidates.json --out runs/layout-comparison.json
 
 ```sh
 eso evidence-index --run-dir runs/final --reviews runs/reviews.json --out runs/evidence-index.json
+eso deliver --run-dir runs/final --reviews runs/reviews.json --out runs/manifest.json
 ```
 
 reviews 文件包含 attempt、contract_sha256、snapshot_sha256，以及 layers 对象。
@@ -105,6 +106,10 @@ contract_sha256 使用契约的规范 JSON 摘要，与确认摘要一致。snap
 | visual | snapshot、svg、preview、report | scope 为 host-visual-review，提供 reviewer、原始文件摘要及覆盖审阅 |
 
 geometry 会与该轮快照及计划核对引脚、net/NC、实体、导线、标签、模块框和外部文字测量。
+当前索引直接重查 scene 中的无接点交叉和全部文字穿框，旧报告的通过状态仍需符合当前图面检查。
+scene.junctions 用于当前交付时，每项还需 svgId 指向同轮原生 SVG 的实心接点 circle。
+当前支持顶层 shapeBox 中无变换、可见且使用不透明十六进制填充的原生接点，核对 x／负 y 坐标与半径。
+缺少接点或其他未支持的表示方式返回缺项，按实际导图补齐可核验的证据。
 visual 报告的 files 包含 snapshot/svg/preview 的摘要，coverage 对象必须包含下列严格布尔通过项。
 
 ```json
@@ -121,3 +126,26 @@ visual 报告的 files 包含 snapshot/svg/preview 的摘要，coverage 对象�
 索引保留 core 的原始状态，补充层标为 host-reviewed。当前 core、geometry 和 visual 均完整时，
 eda_evidence_complete=true。电气保持独立状态。报告选择、审阅结论及原始采集真实性仍由宿主负责。
 缺层显示 not_checked，旧报告、错图、缺项或文件替换会使对应关联失败。
+
+### 逐项图面审阅
+
+0.5.2 起，当前 visual 报告还提供 drawing_review 对象。其中 checks 必须包含下面六项，
+每项提供严格布尔 passed、非空 objects 列表和非空 assessment 观察说明。
+
+| checks 键 | 审阅内容 |
+|---|---|
+| reading_order | 页面读者任务、输入到输出的阅读顺序，以及模块间是否折返 |
+| peripheral_grouping | 复位、去耦、上拉／下拉等外围与实际功能引脚的归属和绕行 |
+| repeated_branches | 重复支路、接口的相对排布及标题是否一致，无重复支路时说明情况 |
+| orientations_and_labels | 电源／地符号、器件和标签方向，局部命名是否影响阅读 |
+| typography | 按最终显示或打印尺寸核对字号、文字层级、标题和自由说明的净空 |
+| page_balance | 图幅、模块密度、留白、标题锚点和注释区域 |
+
+drawing_review.open_findings 为列表。发现的问题写明对象、位置与处理状态，修正后用新导图复核，
+已关闭问题保留在独立审阅历史中。当前 open_findings 为空、六项均通过且对象和判断完整时才可完成图面审阅。
+宿主根据实际图面填写内容，Python 核对记录完整性及几何规则。
+
+deliver 需要当前完整的 core、geometry 和 visual。缺少 --reviews、缺层或图面问题未关闭时输出
+state=incomplete，返回退出码 3，并保留 core_state 说明原有机器检查状态。
+已有核心报告和契约可继续读取，原始内容及确认保留。历史索引用 --attempt 按原始报告复核，
+当前最终交付补齐新的图面证据。电气及实物验证按项目范围单独记录。

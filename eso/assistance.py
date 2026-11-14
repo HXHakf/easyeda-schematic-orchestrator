@@ -103,14 +103,17 @@ def compare_layouts(candidates, budget):
         for report in reports:
             if not hashes.issubset(set(report.get('inputSha256', {}).values())):
                 raise Refused('candidate reports do not bind the current target and scene')
-        passed = all(r.get('passed') is True for r in reports) and reports[1].get('strict') is True
+        from .drawing_checks import drawing_obstacles
+        obstacles = drawing_obstacles(scene)
+        passed = (all(r.get('passed') is True for r in reports) and reports[1].get('strict') is True
+                  and not any(obstacles.values()))
         bends = sum(max(0, len(w['points']) - 2) for w in scene['wires'])
         length = sum(abs(a[0]-b[0]) + abs(a[1]-b[1]) for w in scene['wires'] for a,b in zip(w['points'],w['points'][1:]))
         boxes = [f['bbox'] for f in scene.get('moduleFrames', [])]
         area = sum((b[2]-b[0])*(b[3]-b[1]) for b in boxes)
         if any(type(v) not in (float, int) or not math.isfinite(v) or v < 0 for v in (bends,length,area)):
             raise Refused('invalid candidate geometry metrics')
-        rows.append({'id': cid, 'passed': passed, 'score': [bends,length,area],
+        rows.append({'id': cid, 'passed': passed, 'drawing_findings': obstacles, 'score': [bends,length,area],
                      'inputs': {key: file_digest(candidate[key]) for key in ('target','scene','geometry_report','readability_report')}})
     if len(targets) != 1:
         raise Refused('layout candidates must share the same target intent')

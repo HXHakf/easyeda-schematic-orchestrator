@@ -19,7 +19,7 @@
 | 实测与上游布局 | 原始快照、位号/SVG/边界、layout-input、composition | 完整观测、唯一归属、证据哈希一致；上游模块求解及完整整页检查通过 |
 | 编译与执行 | queue、bundle、journal | dry-run；保持已有本轮 native ID；执行前基线未变；写后重新采集属性与文字 |
 | 复验 | attempt、report、history | 先失效旧结论，再保存、重载、新回读及各规则检查 |
-| 交付 | manifest、补充审计、图面报告与工程产物 | 同一修订证据完整且未变；宿主修正及缺项如实列出 |
+| 交付 | manifest、补充审计、图面报告与工程产物 | deliver --reviews 绑定同轮 core/geometry/visual，六项图面判断及问题关闭完整；宿主修正及缺项如实列出 |
 
 ## 正常交互
 

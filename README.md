@@ -2,7 +2,7 @@
 
 面向嘉立创 EDA 专业版的 AI 原理图绘制工作流。将需求、官方应用电路、通用知识库、设计确认、真实器件绘图和回读验收串成可追溯的流程。
 
-**当前版本 0.5.1** · Python ≥3.10 · 本机 Skill + CLI · MIT
+**当前版本 0.5.2** · Python ≥3.10 · 本机 Skill + CLI · MIT
 
 宿主 AI 负责理解需求、查阅资料和设计审阅，Python 执行确定性校验，
 [easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent) 提供 CLI、daemon 与 EDA Agent Connector 绘图能力。
@@ -106,6 +106,8 @@ Typical Application / Application Circuit / Reference Schematic 所在图页，
 
 宿主根据当前状态调用分阶段命令，核对测量、编译与回读结果。中断后先诊断并读取现场，
 初始放置恢复使用 `recover-stage` 保留已有实例、补放缺件。
+最终交付通过 `deliver --reviews` 关联同轮几何和六项图面审阅。
+同网无接点交叉、文字穿框、缺失审阅或未关闭问题会阻断交付，具体复盘见[图面可读性](references/live-recovery.md#图面可读性复盘)。
 命令与证据要求见[工作流](docs/WORKFLOW.md)、[测量衔接](references/measurement-bridge.md)和[现场恢复](references/live-recovery.md)。
 
 ## 常用电路知识库
@@ -149,7 +151,7 @@ NPN/NMOS 自动变体支持的条件和边界见[知识库使用指南](referenc
 
 ### 已有验证记录
 
-- 软件发布记录包含 209 项主测试、71 项附加审计、三套离线演示和独立 wheel 探针。主测试为软件回归，真实上游离线集成为可选配置。[验证记录](docs/VALIDATION.md)
+- 软件验证包含 215 项主测试、74 项附加审计、三套离线演示与独立打包检查。主测试为软件回归，真实上游离线集成为可选配置。[验证记录](docs/VALIDATION.md)
 - CI 覆盖 Python 3.10 / 3.13 单元测试，以及 Linux、macOS、Windows 的独立安装、重复安装和安装后回归。[GitHub Actions](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml)
 - NPN/NMOS、MCU 双支路及受控缺件恢复样例已完成限定 EDA 现场验收，包含真实器件、保存重开、连接回读与图面复核，过程中的宿主修订保留在报告中。[开关样例](docs/plans/npn-nmos-eda-acceptance.md) · [组合样例](docs/plans/mcu-switch-eda-acceptance.md) · [恢复样例](docs/plans/recovery-live-acceptance.md)
 
@@ -157,13 +159,23 @@ NPN/NMOS 自动变体支持的条件和边界见[知识库使用指南](referenc
 写前使用实际快照与离线编译探针核验兼容性。环境诊断、具体目标验收和历史结果分别报告。
 版本与兼容细节见[安装指南](docs/AI-SETUP.md)和[上游研究记录](docs/RESEARCH.md)。
 
-## 图纸预览
+## 现场样例与图面复核
 
-![STM32F103C8T6 与 BMP280 原生原理图](docs/images/stm32-bmp280-native.png)
+![STM32F103C8T6 与 NPN、NMOS 双支路的 EDA 原生原理图](docs/images/stm32-npn-nmos-native.png)
 
-图中为 STM32F103C8T6 + BMP280，外部稳压 3.3V、I²C、SWD 和内部时钟，共 21 件器件、97 个物理脚。
-此图来自下层 typed 链保存重开后的原生导出，其 ESO 标准链现场验收仍待完成。
-图片来源、图面限制和验证范围见[效果图说明](docs/images/README.md)。
+历史组合样例，STM32F103C8T6 + MMBT3904LT1G + AO3400A，
+包含 3.3V MCU、SWD 和两条 12V 静态电阻负载支路，共 21 件器件、93 个物理脚、32 个 NC。
+图纸于 2026-11-13 保存重开后原生导出，完成连接回读与图面复核，过程中包含宿主实测布局修订和文字恢复。
+0.5.2 的图面复核发现两处同网无接点交叉，当前图面待重排，电气性能待验证。
+旧现场记录与本次复审分别保留，复盘见[图面可读性](references/live-recovery.md#图面可读性复盘)。
+
+| 更多历史效果图 | 内容与当前状态 |
+|---|---|
+| [NPN 低侧开关](docs/images/README.md#npn-低侧开关) | MMBT3904LT1G，独立供电与控制端子 |
+| [NMOS 低侧开关](docs/images/README.md#nmos-低侧开关) | AO3400A，复审发现三行说明穿框，待修订 |
+| [缺件恢复测试](docs/images/README.md#缺件恢复测试) | 保留 1 件已有实例，补放 5 件，再完成接线与保存重开 |
+
+完整图、图片来源和早期 STM32 + BMP280 预览见[效果图库](docs/images/README.md)。
 
 ## 开发与离线验证
 

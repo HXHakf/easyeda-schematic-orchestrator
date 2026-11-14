@@ -13,6 +13,52 @@ from .core import Refused, file_digest, load
 TRANSFORM = [1, 0, 0, -1, 0, 0]
 
 
+def validate_junctions(svg, junctions):
+    """Bind declared junctions to visible native SVG dots before crossing exemptions."""
+    if not junctions:
+        return
+    import math
+    from .svg_text import prepare_svg
+    from .drawing_checks import coordinates, EPS
+    root = ET.fromstring(prepare_svg(Path(svg).read_text(encoding='utf-8-sig')))
+    if any(element.tag.split('}')[-1] == 'style' for element in root.iter()):
+        raise Refused('junction visibility with stylesheets requires explicit measurement support')
+    parents = {child: parent for parent in root.iter() for child in parent}
+    ids = {}
+    for element in root.iter():
+        if element.get('id'):
+            if element.get('id') in ids:
+                raise Refused('junction SVG has duplicate IDs')
+            ids[element.get('id')] = element
+    for junction in junctions:
+        dot = ids.get(junction.get('svgId'))
+        parent = parents.get(dot)
+        if (dot is None or dot.tag.split('}')[-1] != 'circle' or parent is None
+                or 'shapeBox' not in parent.get('class', '').split() or parents.get(parent) is not root):
+            raise Refused('junction requires an observed native SVG dot and svgId')
+        styles = {}
+        for element in (root, parent, dot):
+            style = dict(pair.strip().split(':', 1) for pair in element.get('style', '').split(';') if ':' in pair)
+            styles.update({key: value.strip().lower() for key, value in element.attrib.items()
+                           if key in ('fill', 'visibility', 'display')})
+            styles.update({key.strip(): value.strip().lower() for key, value in style.items()})
+            if (element.get('transform') or any(key in style for key in ('transform', 'clip-path', 'mask', 'filter'))
+                    or any(element.get(key) for key in ('clip-path', 'mask', 'filter'))
+                    or styles.get('display') == 'none' or styles.get('visibility') in ('hidden', 'collapse')):
+                raise Refused('junction dot must be visible in untransformed native coordinates')
+            for key in ('opacity', 'fill-opacity'):
+                value = float(style.get(key, element.get(key, '1')))
+                if not math.isfinite(value) or value <= 0:
+                    raise Refused('junction dot must be visible')
+        if not re.fullmatch(r'#[0-9a-f]{3}(?:[0-9a-f]{3})?', styles.get('fill', '')):
+            raise Refused('junction dot requires the supported opaque native hex fill')
+        at = coordinates(junction['at'], 2)
+        x, y, radius = float(dot.get('cx', 'nan')), -float(dot.get('cy', 'nan')), float(dot.get('r', 'nan'))
+        if (not all(math.isfinite(value) for value in (x, y, radius)) or radius <= 0
+                or abs(x - at[0]) > EPS or abs(y - at[1]) > EPS):
+            raise Refused('junction dot geometry differs from declared junction')
+
+
 def renderer_path():
     explicit = os.environ.get('ESO_LAYOUT_SKILL')
     helper = Path(explicit)/'scripts/measure_svg_text.py' if explicit else Path(__file__).with_name('svg_text.py')

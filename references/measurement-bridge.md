@@ -23,8 +23,11 @@ eso prepare --contract contract.json --approval approval.json --plan plan.json \
   --placement-run runs/staging --run-dir runs/final
 eso execute --run-dir runs/final
 eso verify --run-dir runs/final
-eso deliver --run-dir runs/final --out runs/manifest.json
+eso deliver --run-dir runs/final --reviews runs/reviews.json --out runs/manifest.json
 ```
+
+`reviews.json` 关联本轮完整几何与逐项图面审阅，格式见[辅助工具](workflow-assistance.md)。
+核心检查通过后继续完成图面复核，缺少审阅或仍有图面问题时 deliver 输出 incomplete 并返回退出码 3。
 
 stage 调用上游 materialize/apply，仅在原始空白测试页放置本轮器件、绑定 canonical ID，并逐一核实物理引脚和显式保存。
 它不是完整原理图，不报告电路连接完成。超时后保留状态、锁与新回读，不直接重复放置。

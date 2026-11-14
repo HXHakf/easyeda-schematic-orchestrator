@@ -15,6 +15,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: python -m pip install .
       - run: python -m unittest discover -s tests -v
+      - run: python -m unittest discover -s extras/schematic-verified-layout/tests -v
       - run: python scripts/demo_workflow.py --out runs/ci-demo
   install:
     runs-on: ${{ matrix.os }}

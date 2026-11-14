@@ -60,18 +60,23 @@ def evidence_index(run_dir, reviews=None, attempt=None):
     layers = {'core': core_state, 'geometry': 'not_checked', 'visual': 'not_checked'}
     files = {}
     if reviews is not None:
+        if not isinstance(reviews, dict) or not isinstance(reviews.get('layers'), dict):
+            raise Refused('reviews and layers must be objects')
         if (reviews.get('attempt') != report.get('attempt')
                 or reviews.get('contract_sha256') != digest(load(root / 'contract.json'))
                 or not report.get('snapshot_sha256')
                 or reviews.get('snapshot_sha256') != report['snapshot_sha256']):
             raise Refused('supplementary reviews belong to another attempt, contract or snapshot')
         for layer, entry in reviews['layers'].items():
-            if layer not in ('geometry', 'visual') or not entry.get('files'):
+            if (layer not in ('geometry', 'visual') or not isinstance(entry, dict)
+                    or not isinstance(entry.get('files'), dict) or not entry['files']):
                 raise Refused('unknown or empty review layer')
             for name, item in entry['files'].items():
+                if not isinstance(item, dict) or not isinstance(item.get('path'), str) or not isinstance(item.get('sha256'), str):
+                    raise Refused('review files require path and sha256')
                 if file_digest(item['path']) != item['sha256']:
                     raise Refused('review evidence changed: ' + name)
-            _check_review_layer(layer, entry, report, root)
+            _check_review_layer(layer, entry, report, root, current=not historical)
             raw = load(entry['report'])
             if not any(Path(v['path']).resolve() == Path(entry['report']).resolve() for v in entry['files'].values()):
                 raise Refused('review report must be included in its hashed file inventory')
@@ -83,7 +88,7 @@ def evidence_index(run_dir, reviews=None, attempt=None):
             'review_scope': 'host binds supplementary reports to the observed attempt; original core report retained'}
 
 
-def _check_review_layer(layer, entry, report, root):
+def _check_review_layer(layer, entry, report, root, *, current=True):
     from .adapter import result
     files = entry['files']
     required = {'snapshot', 'report', 'svg', 'preview'} if layer == 'visual' else {
@@ -93,6 +98,8 @@ def _check_review_layer(layer, entry, report, root):
     if files['snapshot']['sha256'] != report['snapshot_sha256']:
         raise Refused('supplementary snapshot differs from current attempt')
     raw = load(entry['report'])
+    if not isinstance(raw, dict):
+        raise Refused('review report must be an object')
     binding = {'attempt': report['attempt'], 'snapshot_sha256': report['snapshot_sha256'],
                'contract_sha256': digest(load(root / 'contract.json'))}
     if raw.get('binding') != binding:
@@ -107,9 +114,15 @@ def _check_review_layer(layer, entry, report, root):
             raise Refused('visual review coverage incomplete')
         if not all(raw['coverage'][key] is True for key in required_coverage):
             raise Refused('visual review has unresolved coverage')
+        if current:
+            from .drawing_checks import check_visual_review
+            try:
+                check_visual_review(raw.get('drawing_review'))
+            except ValueError as error:
+                raise Refused(str(error)) from error
         return
     readability = load(files['readability']['path'])
-    if (raw.get('scope') != 'declared-topology-pin-exit-and-obstacle-geometry'
+    if (not isinstance(readability, dict) or raw.get('scope') != 'declared-topology-pin-exit-and-obstacle-geometry'
             or raw.get('geometryScope') != 'full' or readability.get('scope') != 'offline-readability'
             or readability.get('strict') is not True or readability.get('passed') is not True):
         raise Refused('full geometry and strict readability evidence required')
@@ -118,6 +131,12 @@ def _check_review_layer(layer, entry, report, root):
         raise Refused('review report refers to another target or scene')
     data = result(load(files['snapshot']['path']))
     target, scene = load(files['target']['path']), load(files['scene']['path'])
+    if current:
+        from .drawing_checks import drawing_obstacles
+        from .native_text import validate_junctions
+        validate_junctions(files['svg']['path'], scene.get('junctions', []))
+        if any(drawing_obstacles(scene).values()):
+            raise Refused('current drawing has unjoined crossings or text-frame collisions')
     plan = load(root / 'plan.json')
     actual = {c['designator']:c for c in data['components'] if c.get('componentType') == 'part'}
     expected = {c['id']:c for c in plan['components']}

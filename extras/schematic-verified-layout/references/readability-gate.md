@@ -29,6 +29,8 @@ python <skill>/scripts/readability_audit.py --target target.json --scene scene.j
 | `net-short-in-geometry` | hard | 物理接触把两个异网连成一棵树 | 拆线/改路径，先查共线合并 |
 | `wire-without-net` | hard | 导线两端不接触任何引脚/标签 | 接回或删除 |
 | `foreign-net-crossing` | hard | 异网导线在两者**内部**正交相交（默认 `--max-crossings 0`） | 重排支路或拆块；禁止加标签掩盖 |
+| `same-net-crossing` | hard | 同网导线形成无显式接点的内部 X，计入同一交叉上限 | 优先重排为可直接追踪的支路；真实连接节点按电气意图表达 |
+| `text-frame-overlap` | hard | 任意可见文字 bbox 与同页模块框线相交或相切，包含自由说明 | 将完整文字移到净空区域，或按内容重新安排模块 |
 | `two-terminal-bends` | hard | 两端网络折弯数 >`--max-bends`（默认 2） | 缩短路径、改画法角色、拆块 |
 | `net-not-physically-connected` | hard | 非电源网、无标签、却分散在多个接触树 | 补实体线；确认不是该用标签的出页网 |
 | `out-of-usable` | hard | 内容框越出 `scene.paper.usable` | 缩小间距/换图幅/分页 |
@@ -38,6 +40,9 @@ python <skill>/scripts/readability_audit.py --target target.json --scene scene.j
 | `redundant-overlap` | advisory | 同网共线重叠（可被静默合并） | 合并成一根或错开 |
 
 - 默认模式只有 hard 失败才算 FAIL；`--strict` 时 advisory 也失败（`.enet`/交付前用 strict）。
+- `crossings` 统计同网与异网的无接点内部 X，`sameNetCrossings` 单独列出同网数量，
+  `textFrameCollisions` 列出文字穿框数量。显式连接节点和 T 形接触按连接模型核对。
+  完整 ESO 分发中的 `eso.drawing_checks` 由本审计、候选比较和交付检查共同复用。
 - 豁免只允许写进交付说明的文字理由，**不能改输入数据绕过**。单页超过 3 处间距豁免即判不通过。
 - 报告里的 `coverage.unverified` 必须原样进交付说明，至少包括：渲染阅读路径、无 paper 时的纸张
   适配、模块分组意图、符号内部文字、原生 DRC、save/reload、额定值。
@@ -92,6 +97,11 @@ O1/O2/O3/O5 这些规则**没有检查器**，只能在原生 SVG/PNG 上追路�
 5. **连接状态**：T 形分支有 junction；未连接交叉正交且远离端点/拐角/交汇点。
 6. **文字**：位号/型号/网络名是否压线、是否与符号重叠（几何检查已覆盖部分，这里看可读性后果）。
 7. **纸张适配**：小电路是否摊在大图幅上（G1/HR-11）。
+
+审阅还需逐项记录六类判断，包括阅读顺序、外围归属、重复支路、符号与标签方向、字号、页面留白。
+每项写明实际对象与观察结果；单模块或无重复支路时说明对应情况。
+发现的问题先进入 open_findings，修订后以新导图复核并关闭。
+当前交付使用的结构见[分层验收索引](../../../references/workflow-assistance.md#补充验收索引)。
 
 ### 审阅记录格式
 

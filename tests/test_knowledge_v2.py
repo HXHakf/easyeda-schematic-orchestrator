@@ -277,10 +277,9 @@ class KnowledgeV2Tests(unittest.TestCase):
         adapter.actual = bind_plan(p, b, TARGET)
         flow.execute()
         self.assertEqual(flow.verify()["state"], "verified")
-        self.assertEqual(
-            delivery_manifest(flow.root, self.root / "delivery.json")["state"],
-            "verified",
-        )
+        manifest = delivery_manifest(flow.root, self.root / "delivery.json")
+        self.assertEqual(manifest["core_state"], "verified")
+        self.assertEqual(manifest["state"], "incomplete")
         from eso.materials import MaterialStore
 
         MaterialStore().withdraw(

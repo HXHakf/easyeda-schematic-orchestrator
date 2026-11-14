@@ -91,5 +91,10 @@ python <skill>/scripts/snapshot_semantic_diff.py --before before.json --after af
 关键接口缺失、测量不完整、路径预算耗尽且无合法候选时，保留可复现失败，报告明确未完成项；不把部分方案推进为完整绘制成功。
 报告分别标记：电气目标检查、几何与文字覆盖、可读性与图面审阅、EDA 持久化、硬件/仿真，并说明哪些数字是量的、哪些是算的。新安装技能或脚本通过测试，不代表未来复杂电路已验证。
 
+图面复审还检查同网无接点十字交叉与全部可见文字跨框，包括自由说明文字。
+使用完整 ESO 分发中的检查器，布局选择和最终交付复用同一组检查。
+逐项记录阅读顺序、外围归属、重复支路、符号与标签方向、字号和页面留白，给出对象与判断依据并关闭遗留问题。
+格式和交付入口见[工作流辅助工具](../../references/workflow-assistance.md)，具体反例见[可读性复盘](../../references/live-recovery.md#图面可读性复盘)。
+
 摆件与走线的正面规则、角色画法表、间距与修复顺序读 [drawing-grammar.md](references/drawing-grammar.md)；可读性门 A 规则表与门 B 图面审阅协议读 [readability-gate.md](references/readability-gate.md)；事件账本、归因分层与「先校准检查器」读 [self-iteration.md](references/self-iteration.md)。
 操作命令、文字处理和模板扩展按需读 [workflow.md](references/workflow.md)；数据适配与检查边界读 [audit-data.md](references/audit-data.md)；CLI 陷阱、图框/图签/网表细则与卡死恢复读 [eda-cli-pitfalls.md](references/eda-cli-pitfalls.md)。

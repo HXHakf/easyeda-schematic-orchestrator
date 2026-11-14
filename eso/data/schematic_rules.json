@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "primary_source_id": "jlc-schematic-guidance",
   "rules": [
     {
@@ -232,7 +232,9 @@
       "verification": {
         "machine": [
           "upstream bridge-check",
-          "readability_audit crossings"
+          "readability_audit crossings",
+          "eso.drawing_checks.drawing_obstacles same-net crossings",
+          "eso.native_text.validate_junctions"
         ],
         "review": [
           "渲染上的交汇表达是否清楚"
@@ -306,7 +308,8 @@
         "machine": [
           "eso.workflow.validate_plan",
           "eso.native_text.validate",
-          "upstream layout-lint"
+          "upstream layout-lint",
+          "eso.drawing_checks.drawing_obstacles text-frame overlaps"
         ],
         "review": [
           "所有可见文字及打印比例"
@@ -335,7 +338,9 @@
       "verification": {
         "machine": [
           "eso.workflow.Workflow.verify",
-          "eso.cli.delivery_eligibility"
+          "eso.cli.delivery_eligibility",
+          "eso.evidence.evidence_index",
+          "eso.cli.delivery_manifest --reviews"
         ],
         "review": [
           "原生导出图的阅读顺序与未覆盖项"

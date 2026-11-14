@@ -27,8 +27,10 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import circuit_audit as ca  # noqa: E402  (same directory, shared contact model)
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from eso.drawing_checks import drawing_obstacles
 
-VERSION = '1.1.1'
+VERSION = '1.2.0'
 EPS = ca.EPS
 OBJECT_CAP = 40
 POWER_PATTERNS = (
@@ -69,28 +71,6 @@ def resolve_nets(segments, pins, labels, junctions, states):
         nets = root_nets[full.root(i)]
         seg_net[i] = next(iter(nets)) if len(nets) == 1 else None
     return full, phys, seg_net, root_nets
-
-
-def find_crossings(segments, seg_net):
-    """Strict interior X between resolved segments of different nets (legal, unreadable)."""
-    horizontal = [i for i, (_, _, a, b) in enumerate(segments) if orientation(a, b) == 'h']
-    vertical = [i for i, (_, _, a, b) in enumerate(segments) if orientation(a, b) == 'v']
-    found = []
-    for h in horizontal:
-        _, hpage, ha, hb = segments[h]
-        x0, x1 = min(ha[0], hb[0]), max(ha[0], hb[0])
-        for v in vertical:
-            _, vpage, va, vb = segments[v]
-            if vpage != hpage:
-                continue
-            x, y = va[0], ha[1]
-            y0, y1 = min(va[1], vb[1]), max(va[1], vb[1])
-            if not (x0 + EPS < x < x1 - EPS and y0 + EPS < y < y1 - EPS):
-                continue  # endpoints/T contacts are connectivity, not crossings
-            if seg_net[h] is None or seg_net[v] is None or seg_net[h] == seg_net[v]:
-                continue
-            found.append((h, v, (x, y), hpage))
-    return found
 
 
 def split_pairs(pairs, split_points):
@@ -384,11 +364,20 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
         if any(label['net'] not in nets for label in labels):
             raise ValueError('marker refers to unknown net')
 
-        # 2. Foreign-net crossings: legal geometry, unreadable drawing.
-        crossings = find_crossings(segments, seg_net)
+        # 2. Unjoined crossings and all visible text against module frame edges.
+        obstacles = drawing_obstacles(scene)
+        wire_nets = {segment[0]: seg_net[i] for i, segment in enumerate(segments)}
+        crossings = obstacles['crossings']
         if len(crossings) > max_crossings:
-            add(findings, 'foreign-net-crossing', 'hard',
-                [f'{segments[h][0]}x{segments[v][0]}@{x:g},{y:g}' for h, v, (x, y), _ in crossings])
+            for same_net, rule in ((False, 'foreign-net-crossing'), (True, 'same-net-crossing')):
+                objects = [f'{item["wires"][0]}x{item["wires"][1]}@{item["at"][0]:g},{item["at"][1]:g}'
+                           for item in crossings
+                           if (wire_nets[item['wires'][0]] == wire_nets[item['wires'][1]]) == same_net]
+                if objects:
+                    add(findings, rule, 'hard', objects)
+        if obstacles['text_frame_collisions']:
+            add(findings, 'text-frame-overlap', 'hard',
+                [f'{item["text"]}/{item["module"]}:{item["bbox"]}' for item in obstacles['text_frame_collisions']])
 
         # 3. Two-terminal nets must be traceable with few bends.
         pins_by_net = defaultdict(list)
@@ -480,7 +469,9 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
             'wires': len(wires), 'segments': len(segments), 'nets': len(target['nets']),
             'twoTerminalNets': sum(1 for net_pins in pins_by_net.values()
                                    if len(net_pins) == 2 and len({p['page'] for p in net_pins}) == 1),
-            'crossings': len(crossings), 'crossingsByPage': dict(Counter(item[3] for item in crossings)),
+            'crossings': len(crossings), 'crossingsByPage': dict(Counter(item['page'] for item in crossings)),
+            'sameNetCrossings': sum(wire_nets[item['wires'][0]] == wire_nets[item['wires'][1]] for item in crossings),
+            'textFrameCollisions': len(obstacles['text_frame_collisions']),
             'bendsHistogram': dict(sorted(bend_histogram.items())),
             'maxBends': max(bend_histogram, default=None),
             'unresolvedBends': unresolved_bends,

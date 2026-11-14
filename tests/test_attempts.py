@@ -119,6 +119,7 @@ class AttemptTests(unittest.TestCase):
     def test_index_accepts_bound_visual_report_and_rejects_replaced_file(self):
         from eso.evidence import evidence_index
         from eso.core import digest, dump
+        from test_drawing_review import visual_checks
         with tempfile.TemporaryDirectory() as directory:
             a = fixtures.FakeAdapter()
             w, ir = fixtures.OrchestrationTests().prepare(directory,a)
@@ -135,7 +136,8 @@ class AttemptTests(unittest.TestCase):
             visual=root/'visual.json'
             dump(visual,{'passed':True,'scope':'host-visual-review','binding':binding,'reviewer':'synthetic tester',
                  'files':{k:file_digest(v) for k,v in paths.items()},
-                 'coverage':{k:True for k in ['primary_paths','module_ownership','junctions','external_text','internal_text','paper']}})
+                 'coverage':{k:True for k in ['primary_paths','module_ownership','junctions','external_text','internal_text','paper']},
+                 'drawing_review': {'checks': visual_checks(), 'open_findings': []}})
             paths['report']=visual
             reviews=dict(binding,layers={'visual':{'report':str(visual),'files':{k:{'path':str(v),'sha256':file_digest(v)} for k,v in paths.items()}}})
             index=evidence_index(w.root,reviews)
