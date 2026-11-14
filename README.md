@@ -151,7 +151,7 @@ NPN/NMOS 自动变体支持的条件和边界见[知识库使用指南](referenc
 
 ### 已有验证记录
 
-- 软件验证包含 215 项主测试、74 项附加审计、三套离线演示与独立打包检查。主测试为软件回归，真实上游离线集成为可选配置。[验证记录](docs/VALIDATION.md)
+- 软件验证包含 215 项主测试、75 项附加审计、三套离线演示与独立打包检查。主测试为软件回归，真实上游离线集成为可选配置。[验证记录](docs/VALIDATION.md)
 - CI 覆盖 Python 3.10 / 3.13 单元测试，以及 Linux、macOS、Windows 的独立安装、重复安装和安装后回归。[GitHub Actions](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml)
 - NPN/NMOS、MCU 双支路及受控缺件恢复样例已完成限定 EDA 现场验收，包含真实器件、保存重开、连接回读与图面复核，过程中的宿主修订保留在报告中。[开关样例](docs/plans/npn-nmos-eda-acceptance.md) · [组合样例](docs/plans/mcu-switch-eda-acceptance.md) · [恢复样例](docs/plans/recovery-live-acceptance.md)
 

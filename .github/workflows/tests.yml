@@ -15,6 +15,11 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: python -m pip install .
       - run: python -m unittest discover -s tests -v
+      - name: Select preinstalled Chrome for SVG audits
+        run: |
+          command -v google-chrome
+          google-chrome --version
+          echo "ESO_BROWSER=$(command -v google-chrome)" >> "$GITHUB_ENV"
       - run: python -m unittest discover -s extras/schematic-verified-layout/tests -v
       - run: python scripts/demo_workflow.py --out runs/ci-demo
   install:
