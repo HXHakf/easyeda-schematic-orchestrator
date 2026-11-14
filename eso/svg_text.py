@@ -160,8 +160,9 @@ def measure(svg_path, transform, browser=None):
         dom = process.stdout.decode("utf-8", errors="replace")
         found = re.search(r'<pre id="measurement-result">(.*?)</pre>', dom, re.S)
         if process.returncode != 0 or not found or not found.group(1):
+            diagnostics = process.stderr.decode('utf-8', errors='replace')[-2000:]
             raise ValueError(
-                "renderer did not produce measurements; preserve renderer diagnostics"
+                f"renderer did not produce measurements (browser={browser}, exit={process.returncode}): {diagnostics}"
             )
         result = json.loads(html.unescape(found.group(1)))
         if "error" in result:

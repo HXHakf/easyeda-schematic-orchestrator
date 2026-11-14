@@ -2,6 +2,8 @@ import importlib.util
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
@@ -39,6 +41,15 @@ class SvgTests(unittest.TestCase):
             self.assertGreater(rect[2], 130)
             self.assertLess(rect[1], -45)
             self.assertLess(rect[3], -20)
+
+    def test_browser_failure_reports_executable_exit_code_and_stderr(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / 'test.svg'
+            source.write_text('<svg xmlns="http://www.w3.org/2000/svg"><text id="t">TEST</text></svg>')
+            failed = SimpleNamespace(returncode=7, stdout=b'', stderr=b'No usable sandbox')
+            with patch('eso.svg_text.subprocess.run', return_value=failed):
+                with self.assertRaisesRegex(ValueError, 'browser=/synthetic/chromium.*exit=7.*No usable sandbox'):
+                    measure.measure(source, [1, 0, 0, -1, 0, 0], browser='/synthetic/chromium')
 
 
 if __name__ == '__main__':
