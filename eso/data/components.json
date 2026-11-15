@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "review_date": "2026-11-15",
   "purpose": "常用元件基础知识。按类别复用连接、选型和错误检查，具体型号依据项目官方手册。",
   "shared_rule_ids": [
@@ -248,6 +248,216 @@
       "review_scope": "已读压电／电磁机理与外部驱动、自带振荡电路的区分。具体型号仍按其手册。",
       "original_document_included": false,
       "retrieved_via": "official_web_reader"
+    },
+    {
+      "id": "jlc-component-mcu",
+      "title": "单片机是什么",
+      "url": "https://wiki.lckfb.com/zh-hans/fdb/basic/mcu-introduction.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "8.8 最小系统",
+        "8.9 调试接口",
+        "10.4 电气边界",
+        "11.2 常见选型维度"
+      ],
+      "review_scope": "已读所列章节，整理通用连接和选型检查。示例型号的参数与接法在项目中按官方手册重新核验。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-memory",
+      "title": "认识存储芯片",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/memory-chip.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "1 RAM",
+        "2 ROM"
+      ],
+      "review_scope": "已读 RAM、EEPROM 与 Flash 分类。该文简化 ROM／Flash 的分类描述，卡片分别保留存储属性和具体接口核验要求。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-dac",
+      "title": "DAC 输出",
+      "url": "https://wiki.lckfb.com/zh-hans/tqx-mspm0g3519/ccs-beginner/dac.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "10.1 DAC 基本概念",
+        "10.2 MSPM0G3519 DAC 资源",
+        "10.3 SysConfig 配置 DAC"
+      ],
+      "review_scope": "已读转换、参考源及缓冲相关章节。文中的端点换算与无纹波描述仅作审查线索，传递函数和噪声须以所选器件原厂规格核验，卡片未采纳为通用保证。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-reference",
+      "title": "电压基准源电路",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/practical-circuit/voltage-reference-circuit.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "电压基准源电路"
+      ],
+      "review_scope": "已读 TL431 并联基准接法。参考输入电流修正项与 TI SLVA445 的节点关系存在差异，卡片记录条件化推导并保留原始差异。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-transceiver",
+      "title": "天空星筑基学习板接口电路",
+      "url": "https://wiki.lckfb.com/zh-hans/fdb/fdb.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "3.3.5 CAN-RS485"
+      ],
+      "review_scope": "已读 CAN／RS485 接口、终端与隔离供电说明。隔离额定、瞬态能力及故障结果需按完整器件资料和测试核验。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-usb-entry",
+      "title": "FT232 USB 转串口工具",
+      "url": "https://wiki.lckfb.com/zh-hans/usb2ttl/ft232/",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "1.1 参数介绍",
+        "2.2 原理图说明"
+      ],
+      "review_scope": "已读入口 PPTC 与 USB 转串口应用说明。卡片另核对原厂 PPTC 温度与保持／动作电流说明，不采纳理想断开推断。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-thermistor",
+      "title": "热敏电阻传感器",
+      "url": "https://wiki.lckfb.com/zh-hans/coloreasyduino/module/sensor/heat-sensitive-sensor.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "硬件连接",
+        "使用方法"
+      ],
+      "review_scope": "已读温度分压和模块接口说明。示例供电、输出极性和 B 值不推广到所有模块，非线性与自热由 TDK 通用技术资料补充。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "ti-tl431-reference",
+      "title": "TL431 / TL432 SLVS543S",
+      "url": "https://www.ti.com/lit/ds/symlink/tl431.pdf",
+      "ecosystem": "manufacturer",
+      "role": "auxiliary",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "9.2.2 Shunt Regulator/Reference, pp.26–27",
+        "5 Pin Configuration and Functions"
+      ],
+      "review_scope": "已读应用与稳定性章节。9.2.2.2.1 的 IREF 修正项与 SLVA445 节点电流关系有差异，保留两份来源并条件化推导。",
+      "original_document_included": false,
+      "retrieved_via": "official_pdf"
+    },
+    {
+      "id": "ti-slva445",
+      "title": "Setting the Shunt Voltage on an Adjustable Shunt Regulator",
+      "url": "https://www.ti.com/lit/pdf/slva445",
+      "ecosystem": "manufacturer",
+      "role": "auxiliary",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "General Design Example, p.2",
+        "Practical Example, p.3"
+      ],
+      "review_scope": "已读所列章节，整理通用连接和选型检查。示例型号的参数与接法在项目中按官方手册重新核验。",
+      "original_document_included": false,
+      "retrieved_via": "official_pdf"
+    },
+    {
+      "id": "tdk-ntc-technical",
+      "title": "NTC Thermistors — General Technical Information",
+      "url": "https://www.tdk-electronics.tdk.com/download/531116/19643b7ea798d7c4670141a88cd993f9/%20pdf-general-technical-information.pdf",
+      "ecosystem": "manufacturer",
+      "role": "auxiliary",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "3.1 Unloaded NTC thermistors, pp.3–4",
+        "3.2 Loaded NTC thermistors, pp.7–12"
+      ],
+      "review_scope": "已读所列章节，整理通用连接和选型检查。示例型号的参数与接法在项目中按官方手册重新核验。",
+      "original_document_included": false,
+      "retrieved_via": "official_pdf"
+    },
+    {
+      "id": "littelfuse-pptc",
+      "title": "PolySwitch PPTC Resettable Fuses",
+      "url": "https://www.littelfuse.com/products/fuses-overcurrent-protection/polyswitch-resettable-pptc-devices",
+      "ecosystem": "manufacturer",
+      "role": "auxiliary",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "How do resettable fuses work?",
+        "Ambient temperature and hold/trip current"
+      ],
+      "review_scope": "已核对原厂索引正文中的温度、保持与动作电流说明。具体额定与动作曲线按项目型号手册确认。",
+      "original_document_included": false,
+      "retrieved_via": "search_index"
+    },
+    {
+      "id": "littelfuse-fuseology",
+      "title": "Fuseology Design Guide",
+      "url": "https://www.littelfuse.com/assetdocs/fuseology-selection-guide?assetguid=d812dff2-1c47-4dc3-bce7-07a4001ddc32",
+      "ecosystem": "manufacturer",
+      "role": "auxiliary",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "Fuse Selection Checklist — Maximum Fault Current; Pulses",
+        "Time-Current Curve"
+      ],
+      "review_scope": "已读所列章节，补充器件分类、工作边界与选型方法。具体型号按项目手册核验。",
+      "original_document_included": false,
+      "retrieved_via": "official_pdf"
+    },
+    {
+      "id": "tdk-ptc-technical",
+      "title": "PTC Thermistors — General Technical Information",
+      "url": "https://www.tdk-electronics.tdk.com/download/539056/d78540dfe0589d2bd90cabef477c90b9/pdf-general-technical-information.pdf",
+      "ecosystem": "manufacturer",
+      "role": "auxiliary",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "2 Definition",
+        "3 Structure and function",
+        "5 Characteristics"
+      ],
+      "review_scope": "已读所列章节，补充器件分类、工作边界与选型方法。具体型号按项目手册核验。",
+      "original_document_included": false,
+      "retrieved_via": "official_pdf"
     }
   ],
   "components": [
@@ -512,7 +722,7 @@
     {
       "id": "component.bjt",
       "title": "三极管",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "status": "reference-only",
       "aliases": [
         "BJT",
@@ -532,7 +742,8 @@
       "connection_guidance": [
         "按 B／C／E 语义与极性分析电流方向，物理脚序按所选封装核对。",
         "区分放大区和饱和开关，基极驱动与默认状态由实际控制源／汇能力确定。",
-        "普通放大与开关用法中，NPN 基极相对发射极正向偏置，PNP 极性相反，驱动按实际电流方向分析。"
+        "普通放大与开关用法中，NPN 基极相对发射极正向偏置，PNP 极性相反，驱动按实际电流方向分析。",
+        "NPN 低侧开关使用对应应用卡。PNP 高侧驱动按发射极电位核对关断上拉、基极驱动及控制端灌电流。"
       ],
       "selection_checks": [
         "hFE 和 VCE(sat) 连同测试电流、温度与工作区读取。",
@@ -556,14 +767,12 @@
       "related_topics": [
         "npn-low-side-switch"
       ],
-      "rule_ids": [
-        "npn-drive"
-      ]
+      "rule_ids": []
     },
     {
       "id": "component.mosfet",
       "title": "MOS 管",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "status": "reference-only",
       "aliases": [
         "MOS",
@@ -587,7 +796,8 @@
       ],
       "connection_guidance": [
         "按 G／D／S 及体二极管方向核对，高侧驱动按实际 VGS 分析。",
-        "栅极串联与偏置网络按驱动、默认状态及开关需求配置。"
+        "栅极串联与偏置网络按驱动、默认状态及开关需求配置。",
+        "增强型 NMOS 低侧开关使用对应应用卡。PMOS 与耗尽型器件分别核对 VGS 极性、默认导通状态和驱动偏置。"
       ],
       "selection_checks": [
         "RDS(on) 的保证栅压覆盖实际驱动，核对温度条件。",
@@ -613,9 +823,7 @@
         "reverse-polarity-protection",
         "i2c-open-drain-level-shift"
       ],
-      "rule_ids": [
-        "mos-drive"
-      ]
+      "rule_ids": []
     },
     {
       "id": "component.op-amp",
@@ -1073,6 +1281,436 @@
         {
           "source_id": "murata-sound-components",
           "section": "Types of Sound Components; What Is a Piezoelectric Sounder?; What Is a Piezoelectric Buzzer?"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.mcu",
+      "title": "微控制器",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "MCU",
+        "单片机",
+        "微控制器芯片",
+        "主控芯片"
+      ],
+      "subtypes": [
+        "8 位 MCU",
+        "32 位 MCU",
+        "内置或外置程序存储器"
+      ],
+      "uses": [
+        "系统控制与外设调度",
+        "采集、通信与执行控制"
+      ],
+      "connection_guidance": [
+        "按所选封装逐项列出数字／模拟电源、参考、备份、内部稳压器电容与地脚，连接要求由原厂应用图确定。",
+        "按启动模式和复位时序处理配置脚，保留适用的下载调试接口。内部时钟可满足需求时按手册确认启用方式。",
+        "分配 GPIO 前核对封装、复用矩阵和已占用资源，记录上电／复位期间的默认状态。"
+      ],
+      "selection_checks": [
+        "核对电源范围、IO 电平、单脚和端口总电流、掉电注入限制。",
+        "核对外设数量、时钟误差、启动时序、调试电平与应用所需性能。"
+      ],
+      "common_mistakes": [
+        "把某 STM32 的 BOOT、VCAP、晶振或去耦数值套用于所有 MCU。",
+        "把耐受电压、绝对最大额定或空载输出电平作为正常驱动保证。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-mcu",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-mcu",
+          "section": "8.8 最小系统；8.9 调试接口；10.4 电气边界"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.memory",
+      "title": "存储器",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "存储芯片",
+        "EEPROM",
+        "Flash",
+        "SRAM",
+        "DRAM",
+        "闪存",
+        "存储器芯片"
+      ],
+      "subtypes": [
+        "EEPROM",
+        "NOR Flash",
+        "NAND Flash",
+        "SRAM",
+        "DRAM／DDR",
+        "eMMC／UFS"
+      ],
+      "uses": [
+        "程序与配置保存",
+        "运行数据缓冲与扩展存储"
+      ],
+      "connection_guidance": [
+        "先区分易失性与非易失性、总线类型及控制器兼容性，再按原厂应用图连接电源、数据、地址和控制脚。",
+        "串行器件核对片选、地址、写保护、HOLD／RESET 的有效状态与复用，开漏总线引用对应上拉规则。",
+        "高速存储器的独立供电、参考、端接、初始化和布线约束随具体型号记录。"
+      ],
+      "selection_checks": [
+        "核对容量单位、供电与 IO 域、时序、上电状态及写入期间的供电要求。",
+        "非易失存储器核对擦写粒度、寿命和保持条件，RAM 核对刷新与备份要求。"
+      ],
+      "common_mistakes": [
+        "把 ROM、EEPROM、Flash 与 RAM 的读写和掉电属性混用。",
+        "将示例总线或同封装脚序套用于所有存储器，遗漏多路 IO 模式下的控制脚变化。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-memory",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-memory",
+          "section": "1 RAM；2 ROM"
+        }
+      ],
+      "related_topics": [
+        "i2c-open-drain-level-shift"
+      ],
+      "rule_ids": []
+    },
+    {
+      "id": "component.adc",
+      "title": "模数转换器",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "ADC",
+        "模数转换",
+        "模数转换芯片",
+        "A/D"
+      ],
+      "subtypes": [
+        "SAR ADC",
+        "Σ-Δ ADC",
+        "单端／差分 ADC",
+        "片内／独立 ADC"
+      ],
+      "uses": [
+        "电压与传感器采集",
+        "测量信号数字化"
+      ],
+      "connection_guidance": [
+        "分别核对模拟电源、数字电源、参考源和模拟输入的允许范围，按手册处理所有地与去耦。",
+        "从信号源经保护、滤波及驱动到采样端逐级审图，差分输入同时核对差模和共模边界。",
+        "按采样时间、输入模型和源阻抗检查建立误差，所需外部放大器与 RC 采用对应应用图。"
+      ],
+      "selection_checks": [
+        "核对参考误差、分辨率、有效位数、噪声、增益／偏置与线性度。",
+        "核对采样率、信号带宽、抗混叠需求、输入负载及数字接口电平和速率。"
+      ],
+      "common_mistakes": [
+        "把 N 位分辨率视作 N 位测量精度。",
+        "只检查输入电压，忽略源阻抗、采集时间、共模和参考驱动能力。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-adc-divider",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-adc-divider",
+          "section": "ADC 输入采样模型与分压电阻选择"
+        }
+      ],
+      "related_topics": [
+        "adc-voltage-divider"
+      ],
+      "rule_ids": []
+    },
+    {
+      "id": "component.dac",
+      "title": "数模转换器",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "DAC",
+        "数模转换",
+        "数模转换芯片",
+        "D/A"
+      ],
+      "subtypes": [
+        "电压输出 DAC",
+        "电流输出 DAC",
+        "片内／独立 DAC"
+      ],
+      "uses": [
+        "可编程模拟电压与电流",
+        "波形与控制设定"
+      ],
+      "connection_guidance": [
+        "按所选器件连接电源、参考、数字接口、复位和输出端，核对电压输出与电流输出的外围差异。",
+        "检查输出缓冲、I/V 转换和滤波是否满足负载，输出摆幅及容性负载稳定性按手册核验。",
+        "明确上电码、复位码、使能和掉电输出状态，按实际传递函数解释数字编码。"
+      ],
+      "selection_checks": [
+        "核对参考源、增益、编码、零码／满量程误差、线性度与噪声。",
+        "核对建立时间、更新率、输出驱动、供电余量及毛刺能量。"
+      ],
+      "common_mistakes": [
+        "把教程中的满量程换算分母直接用于全部 DAC。所选手册应明确 2^N、2^N−1、增益及编码条件。",
+        "从 DAC 类型推断输出没有噪声、纹波或毛刺，忽略负载与建立时间。",
+        "将 PWM+RC 的纹波和动态特性视为与独立 DAC 相同。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-dac",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-dac",
+          "section": "10.1 DAC 基本概念；10.2 DAC 资源；10.3 输出缓冲"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.voltage-reference",
+      "title": "电压基准源",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "电压基准",
+        "基准芯片",
+        "VREF",
+        "voltage reference",
+        "并联基准",
+        "串联基准"
+      ],
+      "subtypes": [
+        "串联基准",
+        "并联基准",
+        "固定／可调基准"
+      ],
+      "uses": [
+        "ADC／DAC 参考",
+        "比较阈值与精密偏置"
+      ],
+      "connection_guidance": [
+        "先区分串联和并联结构，核对 IN／OUT／GND 或 K／A／REF 的语义与物理脚序。",
+        "并联结构检查输入限流支路、负载与反馈支路，整个供电和负载范围内满足最小调节电流。",
+        "按所选型号的稳定性条件选输入／输出电容，检查参考端动态负载、启动和回流。"
+      ],
+      "selection_checks": [
+        "核对初始精度、温漂、噪声、线性与负载调整率及长期漂移。",
+        "核对输入余量、灌／拉电流、最小调节电流、温度和功耗。"
+      ],
+      "common_mistakes": [
+        "把普通分压、稳压管与精密基准直接按相同误差预算互换。",
+        "嘉立创教程及 TI SLVS543S §9.2.2.2.1 写有负 IREF 项，而 TI SLVA445 p.2–3 的节点关系要求按流入 REF 的电流相加。须核对电流方向、接法与所选器件文档，使用有审阅记录的推导，禁止直接抄取冲突公式。",
+        "把目录中的 TL431 示例范围作为任意厂家、等级和封装的保证。"
+      ],
+      "calculations": [
+        {
+          "expression": "V_KA = V_REF * (1 + R_top / R_bottom) + I_REF * R_top",
+          "conditions": "条件化推导。仅限阳极为参考地、R_top 接 K→REF、R_bottom 接 REF→A、I_REF 定义为流入 REF 且器件处于调节状态。由 (V_KA−V_REF)/R_top = V_REF/R_bottom + I_REF 得到，节点关系按 TI SLVA445 p.2–3 审阅。动态阻抗、温漂、调节电流和稳定性另行核验。"
+        }
+      ],
+      "primary_source_id": "jlc-component-reference",
+      "auxiliary_source_ids": [
+        "ti-tl431-reference",
+        "ti-slva445"
+      ],
+      "evidence": [
+        {
+          "source_id": "jlc-component-reference",
+          "section": "电压基准源电路；TL431 并联基准连接"
+        },
+        {
+          "source_id": "ti-tl431-reference",
+          "section": "9.2.2，pp.26–27；原始修正项差异与稳定性"
+        },
+        {
+          "source_id": "ti-slva445",
+          "section": "pp.2–3，反馈支路电流和电阻关系"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.interface-transceiver",
+      "title": "接口收发器",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "收发器",
+        "接口芯片",
+        "RS485",
+        "RS-485",
+        "CAN",
+        "RS232",
+        "RS-232",
+        "USB转串口",
+        "USB-UART"
+      ],
+      "subtypes": [
+        "RS-485 收发器",
+        "CAN 收发器",
+        "RS-232 收发器",
+        "USB-UART 桥接"
+      ],
+      "uses": [
+        "逻辑与外部物理接口转换",
+        "有线通信接口"
+      ],
+      "connection_guidance": [
+        "按接口类型区分控制器逻辑侧与总线物理侧，核对电平、信号方向和电源域。",
+        "按收发器手册处理 DE／RE、待机和使能默认状态，核对总线共模、地参考和故障条件。",
+        "终端和偏置按总线位置与整体拓扑分配。隔离方案同时核对隔离数据、电源及两侧参考地。",
+        "RS-232 的电荷泵、USB 的时钟／供电／差分接口按对应官方应用图配置。"
+      ],
+      "selection_checks": [
+        "核对速率、总线长度与负载、逻辑兼容、共模、掉电和失效保护。",
+        "保护器件的电压窗口、电容及回流与接口要求一起核对，隔离性能按完整链路额定和测试判断。"
+      ],
+      "common_mistakes": [
+        "把 UART 逻辑脚直接接到 RS-232 或 RS-485 总线。",
+        "每个节点都增加终端或重复偏置，改变整条总线负载。",
+        "从隔离符号或单个 TVS 推断系统一定承受任意误接与瞬态。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-transceiver",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-transceiver",
+          "section": "3.3.5 CAN-RS485"
+        },
+        {
+          "source_id": "jlc-component-usb-entry",
+          "section": "2.2 原理图说明；USB 转串口应用"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.fuse",
+      "title": "过流保护器件",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "保险丝",
+        "熔断器",
+        "自恢复保险丝",
+        "PPTC",
+        "resettable fuse"
+      ],
+      "subtypes": [
+        "一次性熔断器",
+        "聚合物 PPTC"
+      ],
+      "uses": [
+        "供电入口与支路过流保护"
+      ],
+      "connection_guidance": [
+        "按被保护支路和可能的故障电流路径串联保护器件，结合电源限流、导线及后级承受能力选型。",
+        "区分一次性熔断与 PPTC 热致高阻状态，按实际安装和环境评估动作与恢复。"
+      ],
+      "selection_checks": [
+        "核对工作电压、预期故障电流、分断能力与正常启动浪涌。",
+        "熔断器核对时间—电流曲线及 I²t，PPTC 核对温度降额后的保持／动作电流、动作时间、残余电流和阻值。"
+      ],
+      "common_mistakes": [
+        "只按正常工作电流选额定值，忽略浪涌、温度和保护配合。",
+        "把 PPTC 动作状态当作完全断开或保证立刻恢复。",
+        "把低压 PPTC 用于超过其电压和最大故障电流的支路。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-usb-entry",
+      "auxiliary_source_ids": [
+        "littelfuse-pptc",
+        "littelfuse-fuseology"
+      ],
+      "evidence": [
+        {
+          "source_id": "jlc-component-usb-entry",
+          "section": "2.2 原理图说明；USB 入口自恢复保险丝"
+        },
+        {
+          "source_id": "littelfuse-pptc",
+          "section": "PPTC 温度与保持／动作电流说明"
+        },
+        {
+          "source_id": "littelfuse-fuseology",
+          "section": "Fuse Selection Checklist — Maximum Fault Current; Pulses；Time-Current Curve"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.thermistor",
+      "title": "热敏电阻",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "NTC",
+        "PTC",
+        "热敏",
+        "thermistor",
+        "温度检测电阻"
+      ],
+      "subtypes": [
+        "NTC 温度检测",
+        "NTC 浪涌限制",
+        "陶瓷 PTC 温度检测／保护"
+      ],
+      "uses": [
+        "温度相关电阻测量",
+        "启动浪涌限制与温度保护"
+      ],
+      "connection_guidance": [
+        "测温用热敏电阻按分压位置确认输出随温度的方向，模块 AO／DO 的电平和极性按实际电路核对。",
+        "浪涌限制用 NTC 串入设计通路，分别评估冷态启动、热态重启、能量和恢复时间。PPTC 过流器件查询保险丝卡。"
+      ],
+      "selection_checks": [
+        "测温核对 R/T 表、标称阻值、B 值及其温区、容差、自热与热时间常数。",
+        "限流／保护用途核对稳态电流、允许能量、最高温度和安装散热条件。"
+      ],
+      "common_mistakes": [
+        "把 B 值近似推广到整个温度范围或所有 NTC。",
+        "照抄模块示例的供电与输出，忽略 MCU 输入允许范围。",
+        "将测温型、浪涌抑制型与 PPTC 按阻值直接互换。"
+      ],
+      "calculations": [
+        {
+          "expression": "R(T) ≈ R(T0) * exp(B * (1/T − 1/T0))",
+          "conditions": "仅用于所选 NTC 的 B 值近似适用温区，T 与 T0 使用 K，自热可忽略。精度要求由原厂 R/T 表或经核验模型与容差分析确认。"
+        }
+      ],
+      "primary_source_id": "jlc-component-thermistor",
+      "auxiliary_source_ids": [
+        "tdk-ntc-technical",
+        "tdk-ptc-technical"
+      ],
+      "evidence": [
+        {
+          "source_id": "jlc-component-thermistor",
+          "section": "硬件连接；使用方法"
+        },
+        {
+          "source_id": "tdk-ntc-technical",
+          "section": "§3.1.1–3.1.2，pp.3–4；§3.2，自热与动态热参数"
+        },
+        {
+          "source_id": "tdk-ptc-technical",
+          "section": "2 Definition；3 Structure and function；5 Characteristics"
         }
       ],
       "related_topics": [],

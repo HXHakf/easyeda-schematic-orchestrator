@@ -7,6 +7,8 @@ from .core import Refused, load
 from .knowledge import catalog as circuit_catalog, normalized, search as circuit_search
 
 CATALOG = Path(__file__).parent / 'data' / 'components.json'
+JLC_DOMAINS = ('lceda.cn', 'lceda.com', 'easyeda.com', 'jlc.com', 'jlcpcb.com',
+               'szlcsc.com', 'lcsc.com', 'lckfb.com', 'oshwhub.com')
 
 
 def text(value):
@@ -24,10 +26,18 @@ def source_index(data, circuits):
     for source in [*circuits['sources'], *data['sources']]:
         if (not isinstance(source, dict) or not all(text(source.get(key)) for key in ('id', 'title', 'url'))):
             raise Refused('component source requires an ID, title and URL')
-        parsed = urlsplit(source['url'])
-        url = urlunsplit((parsed.scheme.lower(), parsed.netloc.lower(), parsed.path.rstrip('/'), parsed.query, ''))
-        if parsed.scheme not in ('http', 'https') or not parsed.netloc:
+        try:
+            parsed = urlsplit(source['url'])
+            port = parsed.port
+        except ValueError as error:
+            raise Refused('invalid component source URL') from error
+        if (parsed.scheme not in ('http', 'https') or not parsed.hostname
+                or parsed.username is not None or parsed.password is not None):
             raise Refused('component source requires a web URL')
+        authority = parsed.netloc.lower()
+        if port == {'http': 80, 'https': 443}[parsed.scheme]:
+            authority = authority.rsplit(':', 1)[0]
+        url = urlunsplit((parsed.scheme, authority, parsed.path.rstrip('/'), parsed.query, ''))
         if source['id'] in sources or url in urls:
             raise Refused('duplicate source ID/URL across component and circuit knowledge')
         if source.get('role') not in ('core', 'auxiliary') or (source.get('ecosystem') != 'jlc' and source['role'] != 'auxiliary'):
@@ -37,9 +47,19 @@ def source_index(data, circuits):
     return sources
 
 
+def jlc_primary(source):
+    if not source or source.get('ecosystem') != 'jlc' or source.get('role') != 'core':
+        return False
+    parsed = urlsplit(source['url'])
+    host = parsed.hostname or ''
+    if any(host == domain or host.endswith('.' + domain) for domain in JLC_DOMAINS):
+        return True
+    return host == 'github.com' and parsed.path.strip('/').split('/')[0].casefold() == 'easyeda'
+
+
 def check_component_catalog(data, circuits=None):
     circuits = circuit_catalog() if circuits is None else circuits
-    if (not isinstance(data, dict) or data.get('schema_version') != 1
+    if (not isinstance(data, dict) or type(data.get('schema_version')) is not int or data['schema_version'] != 1
             or not text(data.get('version')) or not isinstance(data.get('components'), list) or not data['components']):
         raise Refused('invalid component catalog')
     sources = source_index(data, circuits)
@@ -66,15 +86,17 @@ def check_component_catalog(data, circuits=None):
             if not key or key in aliases and aliases[key] != card['id']:
                 raise Refused('duplicate or empty component alias: ' + name)
             aliases[key] = card['id']
-        primary = sources.get(card.get('primary_source_id'))
-        if not primary or primary.get('ecosystem') != 'jlc' or primary.get('role') != 'core':
+        if not text(card.get('primary_source_id')):
+            raise Refused('component primary source requires a text ID')
+        primary = sources.get(card['primary_source_id'])
+        if not jlc_primary(primary):
             raise Refused('component primary source must be JLC core')
         if (not set(card['auxiliary_source_ids']) <= sources.keys()
                 or not set(card['related_topics']) <= topics or not set(card['rule_ids']) <= circuits['rules'].keys()):
             raise Refused('component card has dangling source, circuit or rule references')
         evidence = card.get('evidence')
         if (not isinstance(evidence, list) or not evidence
-                or any(not isinstance(entry, dict) or entry.get('source_id') not in sources
+                or any(not isinstance(entry, dict) or not text(entry.get('source_id')) or entry['source_id'] not in sources
                        or not text(entry.get('section')) for entry in evidence)
                 or card['primary_source_id'] not in {entry['source_id'] for entry in evidence}):
             raise Refused('component card requires located primary evidence')
@@ -114,11 +136,14 @@ def search(query, parameters=None, *, kind='all'):
                if kind != 'component' else [])
     if kind != 'circuit':
         records.extend({**row, 'missing_parameters': []} for row in entries(circuit_catalog()))
-    exact, partial = [], []
+    exact, concepts, partial = [], [], []
     for row in records:
         names = [normalized(name) for name in [row['id'], row['title'], *row['aliases']]]
+        details = [normalized(value) for value in [*row.get('subtypes', []), *row.get('uses', [])]]
         if q in names:
             exact.append(row)
-        elif any(q in name for name in names):
+        elif q in details:
+            concepts.append(row)
+        elif any(q in name for name in names + details):
             partial.append(row)
-    return {'matches': exact or partial}
+    return {'matches': exact or concepts or partial}

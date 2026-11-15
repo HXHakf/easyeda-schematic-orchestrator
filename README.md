@@ -2,7 +2,7 @@
 
 面向嘉立创 EDA 专业版的 AI 原理图绘制工作流。将需求、常用元件知识、官方应用电路、设计确认、真实器件绘图和回读验收串成可追溯的流程。
 
-**当前版本 0.6.0** · Python ≥3.10 · 本机 Skill + CLI · MIT
+**当前版本 0.6.1** · Python ≥3.10 · 本机 Skill + CLI · MIT
 
 宿主 AI 负责理解需求、查阅资料和设计审阅，Python 执行确定性校验，
 [easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent) 提供 CLI、daemon 与 EDA Agent Connector 绘图能力。
@@ -115,26 +115,29 @@ Typical Application / Application Circuit / Reference Schematic 所在图页，
 知识库以常用元件类别组织基础知识，再关联应用电路。采用本地结构化卡片与原始资料引用，
 每类记录子类型、用途、常见接法、选型检查、公式条件与错误用法。嘉立创作为主来源，原厂资料补充核验。
 
-| 类别 | 首批覆盖 |
+| 类别 | 当前覆盖 |
 |---|---|
-| 无源器件 | 电阻、电容、电感、磁珠 |
+| 无源与保护 | 电阻、电容、电感、磁珠、热敏电阻、过流保护器件 |
 | 分立半导体 | 二极管、三极管、MOS 管 |
-| 模拟与电源 | 运放、比较器、稳压与电源转换芯片 |
-| 数字与时钟 | 数字逻辑芯片、晶体与振荡器 |
-| 接口与控制 | 连接器、按键、光耦、继电器、蜂鸣器 |
+| 模拟与电源 | 运放、比较器、稳压与电源转换芯片、电压基准、ADC、DAC |
+| 数字与时钟 | MCU、存储器、数字逻辑芯片、晶体与振荡器 |
+| 接口与控制 | 接口收发器、连接器、按键、光耦、继电器、蜂鸣器 |
 
-共 17 类基础卡。NPN、PNP 归入同一三极管条目，NMOS、PMOS 归入同一 MOS 条目。
+共 25 类基础卡。NPN、PNP 归入同一三极管条目，NMOS、PMOS 归入同一 MOS 条目。
 应用卡引用元件规则与来源，按功能和拓扑去重。通用检索可在选型前进行，具体型号和工作条件在项目中核验。
 
 ```bash
 eso kb-check
 eso kb-search 三极管
 eso kb-search 运放 --kind component
+eso kb-search 共模电感 --kind component
+eso kb-search RS485 --kind component
 eso kb-search '三极管低侧驱动' --kind circuit
 ```
 
 基础卡提供宿主设计参考，具体项目以所选模块官方应用电路为基线，按手册和真实器件库核对参数及物理脚。
-用途、结构与来源见[元件知识库指南](references/component-knowledge.md)。
+可按名称、别名、子类型和用途检索，58 个唯一来源跨基础卡和应用卡复用。
+用途、结构、资料差异与补缺记录见[元件知识库指南](references/component-knowledge.md)。
 
 应用层已有低侧开关、防反接、ADC 分压、LED 指示和 I²C 电平转换等六个唯一主题。
 其中 NPN/NMOS 静态电阻负载变体支持已编码的参数检查与计划生成，其余主题提供审阅参考。
@@ -163,7 +166,7 @@ eso kb-search '三极管低侧驱动' --kind circuit
 
 ### 已有验证记录
 
-- 软件验证包含 222 项主测试、75 项附加审计、三套离线演示与独立打包检查。主测试为软件回归，真实上游离线集成为可选配置。[验证记录](docs/VALIDATION.md)
+- 软件验证包含 225 项主测试、75 项附加审计、三套离线演示与独立打包检查。主测试为软件回归，真实上游离线集成为可选配置。[验证记录](docs/VALIDATION.md)
 - CI 覆盖 Python 3.10 / 3.13 单元测试，以及 Linux、macOS、Windows 的独立安装、重复安装和安装后回归。[GitHub Actions](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml)
 - NPN/NMOS、MCU 双支路及受控缺件恢复样例已完成限定 EDA 现场验收，包含真实器件、保存重开、连接回读与图面复核，过程中的宿主修订保留在报告中。[开关样例](docs/plans/npn-nmos-eda-acceptance.md) · [组合样例](docs/plans/mcu-switch-eda-acceptance.md) · [恢复样例](docs/plans/recovery-live-acceptance.md)
 

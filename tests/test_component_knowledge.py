@@ -11,6 +11,54 @@ from unittest.mock import patch
 
 
 class ComponentKnowledgeTests(unittest.TestCase):
+    def test_declared_subtypes_and_uses_are_searchable(self):
+        from eso.component_knowledge import search
+        expected = {'铝电解': 'capacitor', '共模电感': 'inductor', 'Buck-Boost': 'regulator',
+                    'MEMS': 'clock', '开集电极': 'comparator'}
+        for query, cid in expected.items():
+            with self.subTest(query=query):
+                self.assertIn('component.' + cid, [r['id'] for r in search(query, kind='component')['matches']])
+        from eso.component_knowledge import catalog
+        for card in catalog()['components']:
+            for subtype in card['subtypes']:
+                with self.subTest(subtype=subtype):
+                    self.assertIn(card['id'], [r['id'] for r in search(subtype, kind='component')['matches']])
+        stored = search('储能', kind='component')['matches']
+        self.assertTrue({'component.capacitor', 'component.inductor'} <= {r['id'] for r in stored})
+        self.assertEqual(len(stored), len({r['id'] for r in stored}))
+
+    def test_polarity_specific_rules_stay_in_their_application_topics(self):
+        from eso.component_knowledge import search
+        for query in ('PNP', 'PMOS'):
+            with self.subTest(query=query):
+                row = search(query, kind='component')['matches'][0]
+                self.assertFalse({'npn-drive', 'mos-drive'} & set(row['rule_ids']))
+        npn = search('npn-low-side-switch', kind='circuit')['matches'][0]
+        self.assertIn('npn-drive', npn['rule_ids'])
+
+    def test_malformed_source_metadata_is_a_controlled_refusal(self):
+        from eso.component_knowledge import catalog, check_component_catalog
+        from eso.core import Refused
+        for mode in ('primary-list', 'evidence-list', 'schema-bool', 'broken-url', 'invalid-port', 'false-jlc-host', 'userinfo-host'):
+            data = copy.deepcopy(catalog())
+            with self.subTest(mode=mode):
+                if mode == 'primary-list':
+                    data['components'][0]['primary_source_id'] = []
+                elif mode == 'evidence-list':
+                    data['components'][0]['evidence'][0]['source_id'] = []
+                elif mode == 'schema-bool':
+                    data['schema_version'] = True
+                elif mode == 'broken-url':
+                    data['sources'][0]['url'] = 'https://[broken'
+                elif mode == 'invalid-port':
+                    data['sources'][0]['url'] = 'https://wiki.lceda.cn:bad/component'
+                elif mode == 'false-jlc-host':
+                    data['sources'][0]['url'] = 'https://wiki.lceda.cn.example.invalid/component'
+                else:
+                    data['sources'][0]['url'] = 'https://wiki.lceda.cn@other.invalid/component'
+                with self.assertRaises(Refused):
+                    check_component_catalog(data)
+
     def cli(self, *args, env=None):
         return subprocess.run([sys.executable, '-m', 'eso.cli', *args],
                               capture_output=True, text=True, encoding='utf-8', env=env)
@@ -20,7 +68,10 @@ class ComponentKnowledgeTests(unittest.TestCase):
                  '二极管': 'diode', '三极管': 'bjt', 'MOS': 'mosfet', '运放': 'op-amp',
                  '比较器': 'comparator', '稳压芯片': 'regulator', '逻辑门': 'logic',
                  '晶振': 'clock', '连接器': 'connector', '按键': 'switch',
-                 '光耦': 'optocoupler', '继电器': 'relay', '蜂鸣器': 'buzzer'}
+                 '光耦': 'optocoupler', '继电器': 'relay', '蜂鸣器': 'buzzer',
+                 '单片机': 'mcu', 'EEPROM': 'memory', 'ADC': 'adc', 'DAC': 'dac',
+                 '电压基准': 'voltage-reference', 'RS485': 'interface-transceiver',
+                 '保险丝': 'fuse', 'NTC': 'thermistor'}
         with tempfile.TemporaryDirectory() as directory:
             cache = Path(directory) / 'uncreated-material-cache'
             env = dict(os.environ, ESO_MATERIAL_STORE=str(cache))
@@ -50,14 +101,14 @@ class ComponentKnowledgeTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         data = json.loads(result.stdout)
         self.assertEqual(data['topic_count'], 6)
-        self.assertEqual(data.get('component_count'), 17)
+        self.assertEqual(data.get('component_count'), 25)
         self.assertEqual(data['executable_topics'], ['npn-low-side-switch', 'nmos-low-side-switch'])
 
     def test_duplicate_sources_aliases_and_dangling_references_are_rejected(self):
         from eso.component_knowledge import catalog, check_component_catalog
         from eso.core import Refused
         original = catalog()
-        for mode in ('id', 'alias', 'source-url', 'existing-source', 'primary', 'circuit', 'rule', 'capability', 'formula'):
+        for mode in ('id', 'alias', 'source-url', 'default-port', 'existing-source', 'primary', 'circuit', 'rule', 'capability', 'formula'):
             data = copy.deepcopy(original)
             with self.subTest(mode=mode):
                 if mode == 'id':
@@ -66,6 +117,10 @@ class ComponentKnowledgeTests(unittest.TestCase):
                     data['components'][0]['aliases'].append('ＮＰＮ')
                 elif mode == 'source-url':
                     source = dict(data['sources'][0], id='duplicate', url=data['sources'][0]['url'] + '#section')
+                    data['sources'].append(source)
+                elif mode == 'default-port':
+                    source = dict(data['sources'][0], id='duplicate',
+                                  url=data['sources'][0]['url'].replace('wiki.lceda.cn/', 'wiki.lceda.cn:443/'))
                     data['sources'].append(source)
                 elif mode == 'existing-source':
                     from eso.knowledge import catalog as circuits
