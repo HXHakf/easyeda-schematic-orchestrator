@@ -29,10 +29,12 @@ def doctor(binary="easyeda", *, live=False, target=None, run_dir=None, window=No
 
     def local():
         from .knowledge import catalog, check_catalog
+        from .component_knowledge import catalog as components, check_component_catalog
         from .core import validate
 
         validate({"schema_version": 1}, "requirements")
-        return check_catalog(catalog())
+        data = catalog()
+        return {**check_catalog(data), **check_component_catalog(components(data), data)}
 
     probe("local_data", local)
 

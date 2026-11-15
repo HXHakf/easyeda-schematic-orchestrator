@@ -1,14 +1,14 @@
 # EasyEDA Schematic Orchestrator
 
-面向嘉立创 EDA 专业版的 AI 原理图绘制工作流。将需求、官方应用电路、通用知识库、设计确认、真实器件绘图和回读验收串成可追溯的流程。
+面向嘉立创 EDA 专业版的 AI 原理图绘制工作流。将需求、常用元件知识、官方应用电路、设计确认、真实器件绘图和回读验收串成可追溯的流程。
 
-**当前版本 0.5.2** · Python ≥3.10 · 本机 Skill + CLI · MIT
+**当前版本 0.6.0** · Python ≥3.10 · 本机 Skill + CLI · MIT
 
 宿主 AI 负责理解需求、查阅资料和设计审阅，Python 执行确定性校验，
 [easyeda-agent](https://github.com/zhoushoujianwork/easyeda-agent) 提供 CLI、daemon 与 EDA Agent Connector 绘图能力。
 直接使用宿主模型，安装后即可运行离线流程。现场绘图还需配套的上游工具与 Connector。
 
-[快速安装](#快速安装) · [开始设计](#开始设计) · [知识库](#常用电路知识库) · [检查与验收](#检查与验收) · [文档导航](#文档导航)
+[快速安装](#快速安装) · [开始设计](#开始设计) · [知识库](#常用元件知识库) · [检查与验收](#检查与验收) · [文档导航](#文档导航)
 
 ## 适合做什么
 
@@ -110,23 +110,35 @@ Typical Application / Application Circuit / Reference Schematic 所在图页，
 同网无接点交叉、文字穿框、缺失审阅或未关闭问题会阻断交付，具体复盘见[图面可读性](references/live-recovery.md#图面可读性复盘)。
 命令与证据要求见[工作流](docs/WORKFLOW.md)、[测量衔接](references/measurement-bridge.md)和[现场恢复](references/live-recovery.md)。
 
-## 常用电路知识库
+## 常用元件知识库
 
-采用本地结构化知识卡与原始资料引用。六个主题均已登记嘉立创主来源，
-按稳定主题 ID、别名和变体去重，资料来源集中登记，保存原创摘要与引用定位。
+知识库以常用元件类别组织基础知识，再关联应用电路。采用本地结构化卡片与原始资料引用，
+每类记录子类型、用途、常见接法、选型检查、公式条件与错误用法。嘉立创作为主来源，原厂资料补充核验。
 
-| 主题 | 当前支持 |
+| 类别 | 首批覆盖 |
 |---|---|
-| NPN 低侧开关 | 静态电阻负载 `resistive-dc` 的参数校验与计划生成 |
-| NMOS 低侧开关 | 静态电阻负载 `resistive-dc` 的参数校验与计划生成 |
-| 电源防反接 | 知识卡、候选拓扑和审阅要点 |
-| ADC 分压采样 | 知识卡、计算方法和检查要点 |
-| GPIO LED 指示 | 知识卡、限流计算和错误反例 |
-| I²C 开漏电平转换 | 知识卡、上拉规则和双 MOS 连接参考 |
+| 无源器件 | 电阻、电容、电感、磁珠 |
+| 分立半导体 | 二极管、三极管、MOS 管 |
+| 模拟与电源 | 运放、比较器、稳压与电源转换芯片 |
+| 数字与时钟 | 数字逻辑芯片、晶体与振荡器 |
+| 接口与控制 | 连接器、按键、光耦、继电器、蜂鸣器 |
 
-知识卡包含适用条件、必要输入、连接关系、计算依据、物理脚核验要求、错误反例与来源。
-NPN/NMOS 自动变体支持的条件和边界见[知识库使用指南](references/knowledge-base.md)。
-项目资料可通过本机私有缓存复用，版本固定、条件覆盖、撤回和有限 MCU 组合见[资料复用与组合](references/knowledge-v2.md)。
+共 17 类基础卡。NPN、PNP 归入同一三极管条目，NMOS、PMOS 归入同一 MOS 条目。
+应用卡引用元件规则与来源，按功能和拓扑去重。通用检索可在选型前进行，具体型号和工作条件在项目中核验。
+
+```bash
+eso kb-check
+eso kb-search 三极管
+eso kb-search 运放 --kind component
+eso kb-search '三极管低侧驱动' --kind circuit
+```
+
+基础卡提供宿主设计参考，具体项目以所选模块官方应用电路为基线，按手册和真实器件库核对参数及物理脚。
+用途、结构与来源见[元件知识库指南](references/component-knowledge.md)。
+
+应用层已有低侧开关、防反接、ADC 分压、LED 指示和 I²C 电平转换等六个唯一主题。
+其中 NPN/NMOS 静态电阻负载变体支持已编码的参数检查与计划生成，其余主题提供审阅参考。
+支持条件见[应用电路指南](references/knowledge-base.md)，私有资料复用及有限 MCU 组合见[资料复用与组合](references/knowledge-v2.md)。
 
 内置确定性参考计划另包括 STM32F103C8T6 最小系统及 BMP280 压力／温度传感器。
 其他电路由宿主依据所选模块资料编写 plan，再经过现有校验和执行链。
@@ -151,7 +163,7 @@ NPN/NMOS 自动变体支持的条件和边界见[知识库使用指南](referenc
 
 ### 已有验证记录
 
-- 软件验证包含 215 项主测试、75 项附加审计、三套离线演示与独立打包检查。主测试为软件回归，真实上游离线集成为可选配置。[验证记录](docs/VALIDATION.md)
+- 软件验证包含 222 项主测试、75 项附加审计、三套离线演示与独立打包检查。主测试为软件回归，真实上游离线集成为可选配置。[验证记录](docs/VALIDATION.md)
 - CI 覆盖 Python 3.10 / 3.13 单元测试，以及 Linux、macOS、Windows 的独立安装、重复安装和安装后回归。[GitHub Actions](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml)
 - NPN/NMOS、MCU 双支路及受控缺件恢复样例已完成限定 EDA 现场验收，包含真实器件、保存重开、连接回读与图面复核，过程中的宿主修订保留在报告中。[开关样例](docs/plans/npn-nmos-eda-acceptance.md) · [组合样例](docs/plans/mcu-switch-eda-acceptance.md) · [恢复样例](docs/plans/recovery-live-acceptance.md)
 
@@ -201,7 +213,7 @@ Windows 可使用 `.venv\Scripts\python.exe` 运行相同 Python 命令。
 | 让 AI 安装或更新 | [AI 安装指南](docs/AI-SETUP.md) · [AI 入口](AGENTS.md) |
 | 了解完整使用流程 | [工作流](docs/WORKFLOW.md) · [主控 Skill](SKILL.md) |
 | 核对模块资料和确认设计 | [输入与手册](references/input-and-questions.md) · [设计契约](references/design-contract.md) |
-| 使用知识与规范 | [知识库](references/knowledge-base.md) · [v2 资料与组合](references/knowledge-v2.md) · [设计规范](references/schematic-design-rules.md) |
+| 使用知识与规范 | [元件知识](references/component-knowledge.md) · [应用电路](references/knowledge-base.md) · [v2 资料与组合](references/knowledge-v2.md) · [设计规范](references/schematic-design-rules.md) |
 | 接入绘图工具 | [上游适配](references/upstream-adapter.md) · [测量衔接](references/measurement-bridge.md) · [布局 Skill](extras/schematic-verified-layout/SKILL.md) |
 | 处理失败与核对交付 | [现场恢复](references/live-recovery.md) · [辅助工具](references/workflow-assistance.md) · [验收](references/verification.md) |
 | 查看实现和历史验证 | [架构](docs/ARCHITECTURE.md) · [可靠性](docs/RELIABILITY.md) · [验证记录](docs/VALIDATION.md) · [上游补丁](patches/README.md) |

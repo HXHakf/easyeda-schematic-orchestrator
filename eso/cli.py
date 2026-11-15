@@ -39,8 +39,9 @@ def main(argv=None):
     rules = sub.add_parser("rules", help="offline JLC-centered stage checklist; reuses existing validators")
     rules.add_argument("--stage",choices=("design","layout","verify","all"),default="design")
     rules.add_argument("--query"); rules.add_argument("--check",action="store_true"); rules.add_argument("--out")
-    kbsearch = sub.add_parser("kb-search", help="search local canonical circuit topics and aliases")
+    kbsearch = sub.add_parser("kb-search", help="search common component guidance and circuit topics")
     kbsearch.add_argument("query")
+    kbsearch.add_argument("--kind", choices=('all', 'component', 'circuit'), default='all')
     kbsearch.add_argument("--parameters", help="JSON parameter object for missing-input hints")
     metrics = sub.add_parser("kb-metrics", help="compare measured legacy/knowledge runs for the same case and scope")
     metrics.add_argument("records"); metrics.add_argument("--out")
@@ -135,15 +136,17 @@ def main(argv=None):
             output = check_rules(rule_catalog()) if args.check else checklist(args.stage,args.query)
             if args.out: dump(args.out,output)
         elif args.command == "kb-search":
-            from .knowledge import search
-            output = search(args.query, load(args.parameters) if args.parameters else None)
+            from .component_knowledge import search
+            output = search(args.query, load(args.parameters) if args.parameters else None, kind=args.kind)
         elif args.command == "kb-metrics":
             from .knowledge_metrics import compare_runs
             output = compare_runs(load(args.records))
             if args.out: dump(args.out, output)
         elif args.command == "kb-check":
             from .knowledge import catalog, check_catalog
-            output = check_catalog(catalog())
+            from .component_knowledge import catalog as components, check_component_catalog
+            data = catalog()
+            output = {**check_catalog(data), **check_component_catalog(components(data), data)}
         elif args.command == "kb-bindings":
             from .knowledge_design import make_bindings
             output = make_bindings(load(args.contract)); dump(args.out, output)

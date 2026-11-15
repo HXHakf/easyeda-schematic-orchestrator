@@ -1,2 +1,2 @@
 """EasyEDA Schematic Orchestrator: no drawing engine, no network LLM dependency."""
-__version__ = "0.5.2"
+__version__ = "0.6.0"

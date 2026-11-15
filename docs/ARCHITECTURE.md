@@ -11,6 +11,7 @@ Python 负责已编码的条件、计算、状态、版本和证据一致性，�
 | core.py | Schema、精确确认哈希、原子文件写入 |
 | planner.py | 完整物理脚计划；STM32最小系统/BMP280参考；库身份绑定 |
 | knowledge.py、knowledge_input.py | 稳定主题与别名检索、来源去重、首版资料输入 |
+| component_knowledge.py | 常用元件基础卡、子类型归类、跨目录来源去重与统一检索；复用既有电路检索和共享规则 |
 | knowledge_v2.py、fact_coverage.py、knowledge_rules.py | 资料适用条件、功能边界与开关参数校验 |
 | materials.py、knowledge_design.py、knowledge_composition.py | 私有不可变资料版本与撤回、知识计划与绑定、有限 MCU 模块组合 |
 | schematic_rules.py | 嘉立创核心规范的分阶段检索，引用既有检查器 |
@@ -34,7 +35,8 @@ Python 负责已编码的条件、计算、状态、版本和证据一致性，�
 现场执行通过写前离线探针检测实际快照兼容性，须在兼容构建上另做实际端到端验收。
 新增数据契约与覆盖边界见 [可靠性说明](RELIABILITY.md)。
 
-知识主题和资料来源集中维护在 `eso/data/knowledge.json`，设计规范索引位于
+应用主题和资料来源维护在 `eso/data/knowledge.json`，元件基础卡与新增来源位于 `eso/data/components.json`，
+跨目录来源按 ID 复用并检查唯一性。设计规范索引位于
 `eso/data/schematic_rules.json`。项目文件位置保存在私有运行环境，资料版本按内容哈希固定，
 条件或实际依赖变化时重新校验。具体格式见[知识库](../references/knowledge-base.md)与
 [v2 资料复用](../references/knowledge-v2.md)。

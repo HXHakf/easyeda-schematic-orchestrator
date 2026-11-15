@@ -1,0 +1,1082 @@
+{
+  "schema_version": 1,
+  "version": "1.0.0",
+  "review_date": "2026-11-15",
+  "purpose": "常用元件基础知识。按类别复用连接、选型和错误检查，具体型号依据项目官方手册。",
+  "shared_rule_ids": [
+    "physical-pins",
+    "operating-limits",
+    "source-conflicts"
+  ],
+  "sources": [
+    {
+      "id": "jlc-component-resistor",
+      "title": "电阻选型",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/resistor-selection.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "三、关键参数与计算边界",
+        "五、常见使用场景与计算"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-capacitor",
+      "title": "电容选型",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/capacitor-selection.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "三、关键参数怎么读",
+        "五、常见使用场景与计算"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-inductor",
+      "title": "电感选型",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/inductor-selection.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "三、关键参数怎么读"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-ferrite",
+      "title": "磁珠选型",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/ferrite-bead-selection.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "三、关键参数怎么读"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-diode",
+      "title": "二极管分类",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/diode.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "通用二极管",
+        "稳压二极管",
+        "发光二极管",
+        "瞬态抑制二极管"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-opamp",
+      "title": "运放选型",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/op-amp-selection.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "三、关键参数怎么读",
+        "5. 运放与比较器如何区分"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-logic",
+      "title": "数字逻辑芯片",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/digital-logic-chip.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "数字逻辑芯片",
+        "74HC系列常用型号及功能表"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-regulator",
+      "title": "电源芯片选型",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/power-management-selection.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "三、按拓扑选择电源芯片",
+        "四、基础计算与边界检查",
+        "五、芯片关键参数"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-clock",
+      "title": "晶振选型",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/crystal-oscillator-selection.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "三、晶振器件分类",
+        "四、关键参数怎么读"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-connector",
+      "title": "接线端子选型",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/electronic-selection/terminal-block-selection.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "插拔式接线端子",
+        "螺钉式接线端子",
+        "弹簧式接线端子"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-switch",
+      "title": "按键消抖电路",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/practical-circuit/key-debounce.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "按键消抖电路"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_html"
+    },
+    {
+      "id": "jlc-component-optocoupler",
+      "title": "光耦隔离电路",
+      "url": "https://wiki.lceda.cn/zh-hans/design-production/practical-circuit/optocoupler-iosolation-circuit.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "1 光耦的基本原理",
+        "3 光耦隔离电路"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "exa_indexed_body"
+    },
+    {
+      "id": "jlc-component-relay",
+      "title": "离线语音控制器的继电器电路",
+      "url": "https://wiki.lceda.cn/zh-hans/course-projects/smart-internet/offline-voice-controller.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "4.3 继电器控制电路"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "exa_indexed_body"
+    },
+    {
+      "id": "jlc-component-buzzer",
+      "title": "温湿度报警器的蜂鸣器电路",
+      "url": "https://wiki.lceda.cn/zh-hans/course-projects/mcu32/32-temphumi-alarm/circuit-theory.html",
+      "ecosystem": "jlc",
+      "role": "core",
+      "kind": "component_guidance",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "5 蜂鸣器电路"
+      ],
+      "review_scope": "已读正文或索引缓存，摘录类别与工程检查要点。具体型号数值在项目中核对原厂手册。",
+      "original_document_included": false,
+      "retrieved_via": "exa_indexed_body"
+    },
+    {
+      "id": "murata-sound-components",
+      "title": "Types of Sound Components and Piezoelectric Sound Components",
+      "url": "https://www.murata.com/products/sound/library/basic/soundtype",
+      "ecosystem": "external",
+      "role": "auxiliary",
+      "kind": "manufacturer_guide",
+      "checked_on": "2026-11-15",
+      "locators": [
+        "Types of Sound Components",
+        "What Is a Piezoelectric Sounder?",
+        "What Is a Piezoelectric Buzzer?"
+      ],
+      "review_scope": "已读压电／电磁机理与外部驱动、自带振荡电路的区分。具体型号仍按其手册。",
+      "original_document_included": false,
+      "retrieved_via": "official_web_reader"
+    }
+  ],
+  "components": [
+    {
+      "id": "component.resistor",
+      "title": "电阻",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "R",
+        "resistor",
+        "上拉电阻",
+        "下拉电阻",
+        "限流电阻",
+        "采样电阻",
+        "电位器"
+      ],
+      "subtypes": [
+        "固定电阻",
+        "可变电阻与电位器",
+        "精密电阻",
+        "电流采样电阻"
+      ],
+      "uses": [
+        "上拉与下拉",
+        "限流、分压和偏置",
+        "电流采样与阻抗匹配"
+      ],
+      "connection_guidance": [
+        "先确定串联、分压或对电源／地支路的角色，电位器核对滑动端。",
+        "无极性两脚电阻仍需核对封装、阻值和器件功率，采样用途按需要采用 Kelvin 接法。"
+      ],
+      "selection_checks": [
+        "核对容差、温漂、工作电压、连续功率和脉冲能力。",
+        "检查温度降额、自热与整个分压／采样链的误差。"
+      ],
+      "common_mistakes": [
+        "把 0Ω 当作没有电流及功率限制的理想导线。",
+        "只按阻值和封装替换精密、采样或脉冲电阻。"
+      ],
+      "calculations": [
+        {
+          "expression": "P = I_rms^2 * R",
+          "conditions": "阻值适用且电流波形已知。脉冲和额定电压另行核验。"
+        }
+      ],
+      "primary_source_id": "jlc-component-resistor",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-resistor",
+          "section": "三、关键参数与计算边界"
+        }
+      ],
+      "related_topics": [
+        "adc-voltage-divider",
+        "gpio-led-indicator"
+      ],
+      "rule_ids": []
+    },
+    {
+      "id": "component.capacitor",
+      "title": "电容",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "C",
+        "capacitor",
+        "去耦电容",
+        "滤波电容",
+        "电解电容",
+        "MLCC",
+        "陶瓷电容"
+      ],
+      "subtypes": [
+        "陶瓷",
+        "铝电解",
+        "钽电容",
+        "薄膜"
+      ],
+      "uses": [
+        "去耦与储能",
+        "耦合与滤波",
+        "定时及补偿"
+      ],
+      "connection_guidance": [
+        "去耦跨接对应电源与参考地，极性电容明确正负端。",
+        "反馈、补偿和时钟负载电容按所属芯片应用电路连接。"
+      ],
+      "selection_checks": [
+        "核对有效容量、直流偏压、温度、耐压和极性。",
+        "按用途检查 ESR、纹波电流、漏电、自谐振和寿命。"
+      ],
+      "common_mistakes": [
+        "用标称容量替代实际偏压下的有效容量。",
+        "把同容值电容直接互换，忽略稳压器稳定性所需的 ESR 和容量范围。"
+      ],
+      "calculations": [
+        {
+          "expression": "C_eff >= delta_I * delta_t / delta_V",
+          "conditions": "仅估算电容放电造成的电压变化。ESR、ESL、控制环路和实际负载波形另行评估。"
+        }
+      ],
+      "primary_source_id": "jlc-component-capacitor",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-capacitor",
+          "section": "三、关键参数怎么读"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.inductor",
+      "title": "电感",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "L",
+        "inductor",
+        "功率电感",
+        "射频电感",
+        "扼流圈"
+      ],
+      "subtypes": [
+        "功率储能电感",
+        "信号与射频电感",
+        "耦合／共模电感"
+      ],
+      "uses": [
+        "开关电源储能",
+        "滤波与谐振"
+      ],
+      "connection_guidance": [
+        "区分储能、信号滤波与耦合绕组，耦合器件按手册核对绕组和同名端。",
+        "连接方式及外围由具体电源或滤波拓扑确定。"
+      ],
+      "selection_checks": [
+        "同时核对饱和电流、温升电流和直流偏置下的电感量。",
+        "检查 DCR、频率、磁芯损耗和自谐振。"
+      ],
+      "common_mistakes": [
+        "只比较标称电感量与一个额定电流。",
+        "把共模电感当作相同感值的单路储能电感。"
+      ],
+      "calculations": [
+        {
+          "expression": "v = L * di/dt",
+          "conditions": "适用于该工作点的近似线性电感模型，饱和、损耗与寄生另行评估。"
+        }
+      ],
+      "primary_source_id": "jlc-component-inductor",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-inductor",
+          "section": "三、关键参数怎么读"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.ferrite-bead",
+      "title": "磁珠",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "FB",
+        "ferrite bead",
+        "电源磁珠",
+        "铁氧体磁珠"
+      ],
+      "subtypes": [
+        "单路磁珠",
+        "磁珠阵列"
+      ],
+      "uses": [
+        "高频噪声抑制",
+        "电源支路隔离滤波"
+      ],
+      "connection_guidance": [
+        "按目标噪声路径选择串联位置，结合两侧电容和回流路径审阅。",
+        "先确认直流通路及压降，阵列器件核对各通道。"
+      ],
+      "selection_checks": [
+        "核对目标频段的复阻抗和直流偏置曲线。",
+        "检查 DCR、温升电流以及与电容组合的谐振与阻尼。"
+      ],
+      "common_mistakes": [
+        "将 100MHz 的标称阻抗套用到全部频率。",
+        "把磁珠当作开关电源的储能电感。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-ferrite",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-ferrite",
+          "section": "三、关键参数怎么读"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.diode",
+      "title": "二极管",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "D",
+        "diode",
+        "肖特基",
+        "稳压管",
+        "齐纳管",
+        "LED",
+        "发光二极管",
+        "TVS"
+      ],
+      "subtypes": [
+        "整流与快恢复",
+        "肖特基",
+        "稳压",
+        "LED",
+        "单向／双向 TVS"
+      ],
+      "uses": [
+        "整流与反接保护",
+        "续流与钳位",
+        "指示与参考"
+      ],
+      "connection_guidance": [
+        "先区分整流、反向稳压、发光与浪涌钳位用途，按符号与手册核对极性。",
+        "LED 限流引用指示电路卡，TVS 按被保护接口选择参考点。"
+      ],
+      "selection_checks": [
+        "核对正向电流、反向电压、漏电、恢复特性和热条件。",
+        "TVS 分别核对 VRWM、VBR、钳位电压、脉冲条件与接口电容。"
+      ],
+      "common_mistakes": [
+        "把某示例的正向压降或漏电量当成整类器件的保证值。",
+        "把 TVS 标称工作电压当成其钳位电压。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-diode",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-diode",
+          "section": "各类二极管的特性"
+        }
+      ],
+      "related_topics": [
+        "reverse-polarity-protection",
+        "gpio-led-indicator"
+      ],
+      "rule_ids": []
+    },
+    {
+      "id": "component.bjt",
+      "title": "三极管",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "BJT",
+        "NPN",
+        "PNP",
+        "双极型晶体管"
+      ],
+      "subtypes": [
+        "NPN",
+        "PNP",
+        "单管与复合管"
+      ],
+      "uses": [
+        "开关驱动",
+        "小信号放大与偏置"
+      ],
+      "connection_guidance": [
+        "按 B／C／E 语义与极性分析电流方向，物理脚序按所选封装核对。",
+        "区分放大区和饱和开关，基极驱动与默认状态由实际控制源／汇能力确定。",
+        "普通放大与开关用法中，NPN 基极相对发射极正向偏置，PNP 极性相反，驱动按实际电流方向分析。"
+      ],
+      "selection_checks": [
+        "hFE 和 VCE(sat) 连同测试电流、温度与工作区读取。",
+        "核对电压、电流、SOA、热条件和关断需求。"
+      ],
+      "common_mistakes": [
+        "按通用封装猜 B／C／E 编号。",
+        "用典型放大倍数直接证明开关饱和。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-bjt-selection",
+      "auxiliary_source_ids": [
+        "nexperia-bjt-handbook"
+      ],
+      "evidence": [
+        {
+          "source_id": "jlc-bjt-selection",
+          "section": "三、关键参数怎么读"
+        }
+      ],
+      "related_topics": [
+        "npn-low-side-switch"
+      ],
+      "rule_ids": [
+        "npn-drive"
+      ]
+    },
+    {
+      "id": "component.mosfet",
+      "title": "MOS 管",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "MOS",
+        "MOSFET",
+        "NMOS",
+        "PMOS",
+        "N沟道MOS",
+        "P沟道MOS",
+        "场效应MOS管"
+      ],
+      "subtypes": [
+        "N 沟道",
+        "P 沟道",
+        "增强型与耗尽型",
+        "单管与双管"
+      ],
+      "uses": [
+        "负载开关",
+        "电源变换与保护",
+        "信号电平转换"
+      ],
+      "connection_guidance": [
+        "按 G／D／S 及体二极管方向核对，高侧驱动按实际 VGS 分析。",
+        "栅极串联与偏置网络按驱动、默认状态及开关需求配置。"
+      ],
+      "selection_checks": [
+        "RDS(on) 的保证栅压覆盖实际驱动，核对温度条件。",
+        "核对 VDS、VGS、栅电荷、SOA、功耗和散热。"
+      ],
+      "common_mistakes": [
+        "用 VGS(th) 判断已经充分导通。",
+        "把高侧栅极对地电压直接当成 VGS。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-mos-selection",
+      "auxiliary_source_ids": [
+        "nexperia-an11158"
+      ],
+      "evidence": [
+        {
+          "source_id": "jlc-mos-selection",
+          "section": "三、关键参数怎么读"
+        }
+      ],
+      "related_topics": [
+        "nmos-low-side-switch",
+        "reverse-polarity-protection",
+        "i2c-open-drain-level-shift"
+      ],
+      "rule_ids": [
+        "mos-drive"
+      ]
+    },
+    {
+      "id": "component.op-amp",
+      "title": "运算放大器",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "运放",
+        "op amp",
+        "operational amplifier"
+      ],
+      "subtypes": [
+        "通用",
+        "低失调／低噪声",
+        "高速",
+        "轨到轨输入／输出"
+      ],
+      "uses": [
+        "信号放大",
+        "缓冲、滤波与采样前端"
+      ],
+      "connection_guidance": [
+        "分清供电脚与同相／反相输入，按官方应用电路建立反馈。",
+        "外围靠对应功能引脚，供电旁路与负载条件一起审阅。"
+      ],
+      "selection_checks": [
+        "分别检查输入共模、输出摆幅、失调、偏置及驱动能力。",
+        "闭环增益、GBW、压摆率、建立时间和稳定性共同核验。"
+      ],
+      "common_mistakes": [
+        "把轨到轨当成任意负载下都能到电源轨。",
+        "把开环饱和的运放直接当作通用高速比较器。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-opamp",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-opamp",
+          "section": "三、关键参数怎么读"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.comparator",
+      "title": "比较器",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "comparator",
+        "电压比较器",
+        "阈值检测器"
+      ],
+      "subtypes": [
+        "开漏／开集电极输出",
+        "推挽输出"
+      ],
+      "uses": [
+        "阈值检测",
+        "过零与状态判断"
+      ],
+      "connection_guidance": [
+        "按输出结构决定上拉或直接逻辑连接，核对两侧电平。",
+        "按输入噪声、边沿及默认状态配置迟滞和滤波。"
+      ],
+      "selection_checks": [
+        "核对输入共模及差分范围、传播延时、过驱动和输出电流。",
+        "按手册计算门限与迟滞，核对上电和掉电条件。"
+      ],
+      "common_mistakes": [
+        "开漏输出漏接上拉。",
+        "用运放 GBW 代替比较器传播延时。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-opamp",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-opamp",
+          "section": "5. 运放与比较器如何区分"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.regulator",
+      "title": "稳压与电源转换芯片",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "稳压芯片",
+        "LDO",
+        "DC-DC",
+        "DCDC",
+        "Buck",
+        "Boost",
+        "电源芯片"
+      ],
+      "subtypes": [
+        "LDO",
+        "Buck",
+        "Boost",
+        "Buck-Boost"
+      ],
+      "uses": [
+        "电压转换",
+        "稳压与电源树组织"
+      ],
+      "connection_guidance": [
+        "以所选芯片的典型应用电路组织输入、输出、反馈、使能和外围。",
+        "开关节点、电感、二极管与补偿网络按实际拓扑逐一核对。"
+      ],
+      "selection_checks": [
+        "核对输入范围、压差、负载范围、启动、限流和热条件。",
+        "核对电容有效值、ESR、反馈范围、频率和稳定性要求。"
+      ],
+      "common_mistakes": [
+        "直接照抄另一型号的反馈与补偿参数。",
+        "把典型效率或封装标称功率当作全工况保证。"
+      ],
+      "calculations": [
+        {
+          "expression": "P_loss_approx = (V_in - V_out) * I_out",
+          "conditions": "仅为 LDO 导通损耗初估，另计静态电流、热阻、温度和实际输入输出范围。"
+        }
+      ],
+      "primary_source_id": "jlc-component-regulator",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-regulator",
+          "section": "三、按拓扑选择电源芯片；五、芯片关键参数"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.logic",
+      "title": "数字逻辑芯片",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "逻辑门",
+        "逻辑芯片",
+        "logic buffer",
+        "缓冲器",
+        "施密特触发器",
+        "74HC",
+        "74LVC"
+      ],
+      "subtypes": [
+        "门电路",
+        "缓冲与收发器",
+        "锁存／触发器",
+        "计数与移位"
+      ],
+      "uses": [
+        "逻辑组合与状态控制",
+        "总线缓冲与接口适配"
+      ],
+      "connection_guidance": [
+        "按真值表与时序连接输入、输出、使能、复位和时钟。",
+        "未使用输入设置明确状态，三态或开漏输出按接口方式组织。"
+      ],
+      "selection_checks": [
+        "按具体系列核对供电、VIH／VIL、VOH／VOL、电流与时序。",
+        "核对上电默认、输入钳位和掉电接口条件。"
+      ],
+      "common_mistakes": [
+        "把不同逻辑系列的相同功能型号直接互换。",
+        "让 CMOS 输入悬空，或使多个推挽输出相互驱动。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-logic",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-logic",
+          "section": "数字逻辑芯片；74HC系列常用型号及功能表"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.clock",
+      "title": "晶体与振荡器",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "晶振",
+        "晶体",
+        "clock",
+        "crystal",
+        "oscillator",
+        "无源晶振",
+        "有源晶振"
+      ],
+      "subtypes": [
+        "晶体谐振器",
+        "有源振荡器",
+        "RTC 晶体",
+        "TCXO／MEMS 振荡器"
+      ],
+      "uses": [
+        "系统时钟与频率基准"
+      ],
+      "connection_guidance": [
+        "区分晶体的起振回路与振荡器的供电／时钟输出，核对额外焊盘和控制脚。",
+        "外接电容、驱动与反馈元件按主控和时钟器件的官方建议配置。"
+      ],
+      "selection_checks": [
+        "核对频率、容差、温漂、负载电容、ESR 和驱动等级。",
+        "有源器件另查供电、输出电平、负载和使能。"
+      ],
+      "common_mistakes": [
+        "把静态电容 C0 当成整个回路的寄生电容。",
+        "用固定电容值搭配任意晶体和主控。"
+      ],
+      "calculations": [
+        {
+          "expression": "C_L_effective = C1*C2/(C1+C2) + C_stray",
+          "conditions": "适用对应的两电容负载模型，寄生值来自实际电路评估，最终起振及驱动需验证。"
+        }
+      ],
+      "primary_source_id": "jlc-component-clock",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-clock",
+          "section": "三、晶振器件分类；四、关键参数怎么读"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.connector",
+      "title": "连接器与接线端子",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "连接器",
+        "接线端子",
+        "connector",
+        "terminal block",
+        "排针",
+        "排母"
+      ],
+      "subtypes": [
+        "板间／线板连接",
+        "插拔／螺钉／弹簧端子"
+      ],
+      "uses": [
+        "外部供电",
+        "信号与调试接口"
+      ],
+      "connection_guidance": [
+        "逐脚建立器件库、配对连接器和线束信号表，核对观察方向。",
+        "供电、参考地及信号清楚标注，机械定位和防反插要求记录在设计中。"
+      ],
+      "selection_checks": [
+        "按具体端子和线材核对额定电压、电流、接触电阻与温升。",
+        "核对间距、安装方向、配对件、线径与接线方式。"
+      ],
+      "common_mistakes": [
+        "按间距或外观推断所有型号的额定电流。",
+        "把 PCB 观察方向直接套到线束对接面的脚序。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-connector",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-connector",
+          "section": "插拔式接线端子；螺钉式接线端子"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.switch",
+      "title": "按键与机械开关",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "按键",
+        "机械开关",
+        "按钮",
+        "button",
+        "mechanical switch",
+        "轻触开关"
+      ],
+      "subtypes": [
+        "常开／常闭",
+        "瞬时／保持",
+        "多刀多掷"
+      ],
+      "uses": [
+        "用户输入与状态选择",
+        "控制信号切换"
+      ],
+      "connection_guidance": [
+        "核对封装内部导通组及触点状态，再确定上拉或下拉与参考点。",
+        "消抖和输入滤波结合芯片输入特性及软件处理安排。"
+      ],
+      "selection_checks": [
+        "核对触点额定值、输入漏电、逻辑门限和接触抖动。",
+        "RC 参数检查阈值、恢复时间及上下电状态。"
+      ],
+      "common_mistakes": [
+        "把四脚轻触按键的同组引脚误当成独立触点。",
+        "给任意输入套用固定消抖电容而不核对门限和边沿。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-switch",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-switch",
+          "section": "按键消抖电路"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.optocoupler",
+      "title": "光耦",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "光耦",
+        "光电耦合器",
+        "optocoupler",
+        "optoisolator"
+      ],
+      "subtypes": [
+        "光敏三极管输出",
+        "逻辑／高速光耦"
+      ],
+      "uses": [
+        "信号隔离与电平传输"
+      ],
+      "connection_guidance": [
+        "输入 LED 限流和输出侧接口分别分析，按实际需求区分两侧供电与参考地。",
+        "按输出类型选择上拉、负载及后级电平。"
+      ],
+      "selection_checks": [
+        "CTR 连同 IF、VCE、温度、分档及老化条件核验。",
+        "核对输出饱和、延时、隔离额定值与实际板级绝缘要求。"
+      ],
+      "common_mistakes": [
+        "把线性区的典型 CTR 测试点直接当成输出饱和保证。",
+        "要求电气隔离时又把两侧参考地直接相连。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-optocoupler",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-optocoupler",
+          "section": "1 光耦的基本原理；3 光耦隔离电路"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.relay",
+      "title": "继电器",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "继电器",
+        "relay",
+        "电磁继电器"
+      ],
+      "subtypes": [
+        "直流／交流线圈",
+        "常开／常闭／转换触点"
+      ],
+      "uses": [
+        "负载通断与控制隔离"
+      ],
+      "connection_guidance": [
+        "线圈与 COM／NO／NC 触点分开核对，按所选型号建立物理脚映射。",
+        "直流线圈驱动评估续流或其他关断钳位，触点侧按实际负载设计。"
+      ],
+      "selection_checks": [
+        "核对吸合／释放条件、线圈电流与驱动预算。",
+        "分别核对触点对交流、直流和浪涌负载的能力及隔离要求。"
+      ],
+      "common_mistakes": [
+        "把直流线圈的续流接法直接套用到交流线圈。",
+        "把触点额定电流当作线圈电流或任意负载的通断保证。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-relay",
+      "auxiliary_source_ids": [],
+      "evidence": [
+        {
+          "source_id": "jlc-component-relay",
+          "section": "4.3 继电器控制电路"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    },
+    {
+      "id": "component.buzzer",
+      "title": "蜂鸣器",
+      "version": "1.0.0",
+      "status": "reference-only",
+      "aliases": [
+        "蜂鸣器",
+        "buzzer",
+        "有源蜂鸣器",
+        "无源蜂鸣器"
+      ],
+      "subtypes": [
+        "有源／无源",
+        "电磁／压电"
+      ],
+      "uses": [
+        "声音提示与报警"
+      ],
+      "connection_guidance": [
+        "先确认激励方式和负载机理，再确定直流控制或交流／PWM 驱动。",
+        "电磁感性负载评估关断保护，压电器件按其驱动说明连接。"
+      ],
+      "selection_checks": [
+        "核对额定激励、电流、频率、声压与 GPIO／驱动器能力。",
+        "核对默认状态和封装极性，按负载类型检查保护器件。"
+      ],
+      "common_mistakes": [
+        "把所有无源蜂鸣器都当作同一种感性负载。",
+        "按外观判断有源／无源，并直接由 GPIO 提供未核验的负载电流。"
+      ],
+      "calculations": [],
+      "primary_source_id": "jlc-component-buzzer",
+      "auxiliary_source_ids": [
+        "murata-sound-components"
+      ],
+      "evidence": [
+        {
+          "source_id": "jlc-component-buzzer",
+          "section": "5 蜂鸣器电路"
+        },
+        {
+          "source_id": "murata-sound-components",
+          "section": "Types of Sound Components; What Is a Piezoelectric Sounder?; What Is a Piezoelectric Buzzer?"
+        }
+      ],
+      "related_topics": [],
+      "rule_ids": []
+    }
+  ]
+}

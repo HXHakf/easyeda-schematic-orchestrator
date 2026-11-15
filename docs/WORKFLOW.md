@@ -1,6 +1,7 @@
 # 原理图工作流
 
-通用知识库先准备连接、计算、适用条件和来源。用户提出具体项目后，再选型、整理模块手册并确定工况，
+通用知识库先按元件类别准备连接、选型检查、计算条件和来源，再关联具体应用电路。
+元件与子类型检索见[基础知识指南](../references/component-knowledge.md)。用户提出具体项目后，再选型、整理模块手册并确定工况，
 进入下述设计流程。维护和发布标准见[范围记录](plans/knowledge-reuse-implementation.md)。
 
 绘图前读取安装态 schematic-verified-layout，并按 [现场经验与恢复约束](../references/live-recovery.md)

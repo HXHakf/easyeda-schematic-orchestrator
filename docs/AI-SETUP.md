@@ -9,6 +9,7 @@
 通用工作流的安装与发布检查覆盖知识库、设计规范、软件和代表性 EDA 执行流程。
 具体项目开始后，再依据需求确定型号与工况。用户只提供型号时，宿主按
 [官方手册与应用电路](../references/input-and-questions.md#官方手册与应用电路)获取手册并审阅参考电路。
+安装后可先按[常用元件类别](../references/component-knowledge.md)查阅 17 类基础卡，再关联具体应用电路。
 
 ## 1. 安装前只读检查
 
@@ -125,8 +126,8 @@ stage 在首次放置前拒绝此组合。配套 v1.17.0 已完成限定现场�
 compose/dry-run 探针。遇到不兼容时保留原始快照与 `live-incomplete` 状态，按实际能力处理。
 
 完整入口、参数、测量与重放约束见 [README](../README.md)、[工作流](WORKFLOW.md) 和
-[测量衔接](../references/measurement-bridge.md)。内置确定性计划限 STM32F103C8T6 最小系统与 BMP280 参考；
-LDO/其他电路由宿主 AI 依据原厂证据编写 plan，不宣称任意电路自动设计。
+[测量衔接](../references/measurement-bridge.md)。内置 MCU／传感器参考包含 STM32F103C8T6 最小系统与 BMP280，
+知识库另支持受限 NPN/NMOS 开关计划。通用元件卡提供宿主审阅资料，LDO 等其他电路由宿主依据原厂证据编写 plan。
 
 ## 6. 向用户报告安装结果
 

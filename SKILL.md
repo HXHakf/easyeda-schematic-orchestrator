@@ -2,7 +2,7 @@
 name: easyeda-schematic-orchestrator
 description: "当用户说“我要画原理图”“帮我设计电路”“画一个 STM32 最小系统”，或在原理图任务中要求补全外围、修改连接时使用。默认面向嘉立创 EDA 专业版，先整理需求、追问缺参并确认 Design Contract，再复用 easyeda-agent 绘图、回读与验收。用户无需指定 Skill 名；纯原理讲解、仅 PCB 操作或普通软件工作流开发不自动触发。首版写入仅限专用测试工程。"
 metadata:
-  version: "0.5.2"
+  version: "0.6.0"
 ---
 
 # EasyEDA Schematic Orchestrator / Designer
@@ -33,6 +33,11 @@ metadata:
 
 通用知识库维护用途、适用范围、逻辑连接、计算方法、常见错误和来源引用。维护或检索知识时，
 按已有主题与别名复用知识卡。kb-search 的 missing_parameters 列出项目应用时需要确定的输入。
+先按元件类别检索基础卡，例如 `eso kb-search 运放 --kind component`。
+首批 17 类覆盖阻容感、磁珠、二极管、三极管、MOS、运放、比较器、电源及逻辑芯片、时钟、连接器、
+按键、光耦、继电器和蜂鸣器。NPN／PNP 等子类型共用基础卡，具体应用由 related_topics 关联。
+基础卡为宿主提供连接与选型审阅，项目事实和物理引脚由所选型号官方手册核验。
+结构与检索见[常用元件知识库](references/component-knowledge.md)，应用电路检索使用 `--kind circuit`。
 用户提出具体项目后，以用户所选模块的官方数据手册和应用电路图为设计基线，按需求调整并记录理由。
 用户提供型号后，宿主负责查找、下载和核验尚未提供的手册，查看应用电路图及相关说明，
 再计算参数并绑定真实物理脚。资料获取和电路图审阅方法见[官方手册与应用电路](references/input-and-questions.md#官方手册与应用电路)。
