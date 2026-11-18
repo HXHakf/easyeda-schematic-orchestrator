@@ -152,12 +152,14 @@ def _check_review_layer(layer, entry, report, root, *, current=True, independent
             except ValueError as error:
                 raise Refused(str(error)) from error
             if independent:
-                from .visual_review import check_invocation
+                from .visual_review import check_attempt_images, check_invocation
+                check_attempt_images(report, files)
                 record = raw.get('independent_review')
                 if not isinstance(record, dict) or record.get('invocation') != files.get('invocation'):
                     raise Refused('current visual review requires an independent invocation in the evidence files')
                 subject = {'binding': binding, 'files': {key: files[key]['sha256'] for key in ('snapshot', 'svg', 'preview')}}
-                reviewer = check_invocation(record, subject, author_context)
+                outcome = {key: raw[key] for key in ('passed', 'coverage', 'drawing_review')}
+                reviewer = check_invocation(record, subject, author_context, outcome=outcome)
                 if raw['reviewer'] != reviewer['id']:
                     raise Refused('visual reviewer differs from independent reviewer record')
         return

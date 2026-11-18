@@ -215,7 +215,8 @@ def main(argv=None):
             manifest = load(args.manifest)
             output = compare_layouts(manifest['candidates'], manifest['max_candidates'],
                                      visual_comparison=manifest.get('visual_comparison'),
-                                     author_context_id=manifest.get('author_context_id'))
+                                     author_context_id=manifest.get('author_context_id'),
+                                     contract=manifest.get('contract'), plan=manifest.get('plan'))
             dump(args.out, output)
         elif args.command in ('iteration-record', 'iteration-status'):
             from .iteration import iteration_status, record_iteration

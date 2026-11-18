@@ -1,4 +1,5 @@
 """Drawing defects must fail through candidate and final-delivery entry points."""
+import base64
 import contextlib
 import copy
 import io
@@ -41,7 +42,8 @@ def bound_visual(workflow, report, root, svg_source='<svg/>'):
     return raw, reviews, visual
 
 
-def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, modern=False, new_policy=False):
+def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, modern=False, new_policy=False,
+                native_export_error=None):
     """A synthetic two-terminal drawing with real audit reports and a simulated EDA adapter."""
     import sys
     from eso.core import confirm
@@ -109,11 +111,28 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, mod
             {'primitiveId': 'frame', 'TopLeftX': -10, 'TopLeftY': 20, 'Width': 70, 'Height': 40, 'Rotation': 0}]
     snapshot['result']['pagePrimitives']['attributes'] = [
         {'primitiveId': cid + '-text', 'ParentPrimitiveId': cid, 'Key': 'Designator'} for cid in ('a', 'b')]
+    fill = {'transparent': 'rgba(255, 0, 0, 0)', 'alpha': '#CC000000',
+            'paint-server': 'url(#paint)', 'current-color': 'currentColor'}.get(junction, '#CC0000')
+    dot = (f'<g class="shapeBox"><circle id="observed-dot" cx="25" cy="0" r="2.5" fill="{fill}"/></g>'
+           if junction and junction != 'invented' else '')
+    native_svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg"><text id="title" x="0" y="-15">Terminal connection</text>'
+        '<text id="a-text" x="0" y="-7">J1</text><text id="b-text" x="42" y="-7">J2</text>' + dot + '</svg>')
+    # Synthetic one-pixel PNG with a complete container.
+    native_png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAX+XDSwAAAABJRU5ErkJggg==')
     class Adapter(fixtures.FakeAdapter):
         applied = False
         def snapshot(self, target):
             return snapshot if self.applied else fixtures.blank()
         def run(self, args, **kwargs):
+            if args[:2] == ['sch', 'export-image']:
+                image_format = args[args.index('--format') + 1]
+                if image_format == native_export_error:
+                    raise Refused('synthetic image export failure')
+                image = native_svg.encode('utf-8') if image_format == 'svg' else native_png
+                Path(args[args.index('--out') + 1]).write_bytes(image)
+                return {'ok': True, 'context': snapshot['context'],
+                        'result': {'scope': 'page', 'format': image_format, 'bytes': len(image)}}
             value = super().run(args, **kwargs)
             if args[:2] == ['sch', 'apply'] and '--dry-run' not in args:
                 self.applied = True
@@ -132,13 +151,14 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, mod
                      root / 'source.json', root / 'before.json')
     workflow.execute()
     report = workflow.verify()
-    fill = {'transparent': 'rgba(255, 0, 0, 0)', 'alpha': '#CC000000',
-            'paint-server': 'url(#paint)', 'current-color': 'currentColor'}.get(junction, '#CC0000')
-    dot = (f'<g class="shapeBox"><circle id="observed-dot" cx="25" cy="0" r="2.5" fill="{fill}"/></g>'
-           if junction and junction != 'invented' else '')
-    raw, reviews, visual_path = bound_visual(workflow, report, root,
-        '<svg xmlns="http://www.w3.org/2000/svg"><text id="title" x="0" y="-15">Terminal connection</text>'
-        '<text id="a-text" x="0" y="-7">J1</text><text id="b-text" x="42" y="-7">J2</text>' + dot + '</svg>')
+    raw, reviews, visual_path = bound_visual(workflow, report, root, native_svg)
+    if new_policy:
+        preview = root / 'preview.png'
+        preview.write_bytes(native_png)
+        visuals = reviews['layers']['visual']['files']
+        visuals['preview']['sha256'] = raw['files']['preview'] = file_digest(preview)
+        dump(visual_path, raw)
+        visuals['report']['sha256'] = file_digest(visual_path)
     target = {'schemaVersion': 1, 'components': [{'id': cid, 'ref': ref, 'pins': ['1']} for cid, ref in [('a', 'J1'), ('b', 'J2')]],
               'nets': [{'id': 'signal', 'name': 'SIGNAL', 'scope': 'global', 'pins': [['a', '1'], ['b', '1']]}],
               'nc': [], 'modules': [{'id': 'm', 'members': ['a', 'b'], 'core': ['a'], 'direct': [[['a', '1'], ['b', '1']]]}]}

@@ -530,6 +530,10 @@ class Workflow:
                 parsed, passed = {}, False
             evidence[key] = {"passed": raw["exit_code"] == 0 and passed, "result": parsed,
                              "exit_code": raw["exit_code"]}
+        native_export = None
+        if load(self.root / 'contract.json').get('design_evidence', {}).get('policy_version') == 1:
+            from .visual_review import capture_attempt_images
+            native_export = capture_attempt_images(self.adapter, target, initial_snapshot, history)
         final_snapshot = self.adapter.snapshot(target)
         record('final-snapshot.json', final_snapshot)
         if snapshot_fingerprint(initial_snapshot) != snapshot_fingerprint(final_snapshot):
@@ -541,6 +545,8 @@ class Workflow:
                   "level": "live-verified" if passed else "live-incomplete", "checks": evidence,
                   "unverified": ["hardware operation", "firmware", "PCB", "full UI ERC warning list", "visual export review"],
                   "checked_at": now(), "snapshot_sha256": file_digest(history / "final-snapshot.json")}
+        if native_export is not None:
+            report["native_export"] = native_export
         return report
 
 

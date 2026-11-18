@@ -83,14 +83,24 @@ def text_restore_preview(reference, current):
             'baseline_fingerprint': snapshot_fingerprint(current), 'moves': moves}
 
 
-def compare_layouts(candidates, budget, *, visual_comparison=None, author_context_id=None):
+def compare_layouts(candidates, budget, *, visual_comparison=None, author_context_id=None, contract=None, plan=None):
     if type(budget) is not int or budget < 1 or len(candidates) > budget or not candidates:
         raise Refused('candidate count must fit a positive explicit budget')
-    from .visual_review import comparison_subject, review_comparison
+    from .visual_review import check_candidate, comparison_subject, review_comparison
 
-    rows, ids, targets = [], set(), set()
+    if (contract is None) != (plan is None):
+        raise Refused('candidate comparison basis requires both contract and plan')
+    if contract is not None:
+        contract = contract if isinstance(contract, dict) else load(contract)
+        plan = plan if isinstance(plan, dict) else load(plan)
+        if plan.get('contract_sha256') != digest(contract):
+            raise Refused('candidate comparison plan belongs to another contract')
+    rows, ids, targets, intentions = [], set(), set(), set()
     target_data = [load(candidate['target']) for candidate in candidates]
-    modern = visual_comparison is not None or any('drawing_groups' in target or 'primary_paths' in target for target in target_data)
+    modern = (visual_comparison is not None
+              or (contract or {}).get('requirements', {}).get('design_review', {}).get('policy_version') == 1
+              or any({'drawing_groups', 'primary_paths'} & set(data) for data in [plan or {}, *target_data])
+              or any({'source', 'run_dir', 'preview'} & set(candidate) for candidate in candidates))
     if modern and visual_comparison is None:
         raise Refused('modern layout selection requires independent preview comparison')
     for candidate, target in zip(candidates, target_data):
@@ -99,9 +109,14 @@ def compare_layouts(candidates, budget, *, visual_comparison=None, author_contex
             raise Refused('candidate IDs must be nonempty and unique')
         ids.add(cid)
         scene = load(candidate['scene'])
+        if modern:
+            intent, author = check_candidate(candidate, target, scene, basis_contract=contract, basis_plan=plan)
+            intentions.add(intent)
+            if author is not None and author != author_context_id:
+                raise Refused('candidate comparison author differs from the reviewed design author')
         hashes = {file_digest(candidate['target']), file_digest(candidate['scene'])}
-        targets.add(digest({k: v for k, v in target.items() if k != 'drawing_groups'})
-                    if modern else file_digest(candidate['target']))
+        if not modern:
+            targets.add(file_digest(candidate['target']))
         reports = [load(candidate[key]) for key in ('geometry_report', 'readability_report')]
         if (reports[0].get('scope') != 'declared-topology-pin-exit-and-obstacle-geometry'
                 or reports[0].get('geometryScope') != 'full'
@@ -130,7 +145,7 @@ def compare_layouts(candidates, budget, *, visual_comparison=None, author_contex
             raise Refused('invalid candidate geometry metrics')
         rows.append({'id': cid, 'passed': passed, 'drawing_findings': obstacles, 'score': [bends,length,area],
                      'inputs': {key: file_digest(candidate[key]) for key in ('target','scene','geometry_report','readability_report')}})
-    if len(targets) != 1:
+    if len(intentions if modern else targets) != 1:
         raise Refused('layout candidates must share the same target intent')
     visual = {}
     if modern:
@@ -145,7 +160,8 @@ def compare_layouts(candidates, budget, *, visual_comparison=None, author_contex
     return {'state': 'candidate-comparison', 'selected': valid[0]['id'] if valid else None, **visual,
             'execution_ready': False, 'stop_reason': 'declared candidate set evaluated' if valid else 'no passing candidate',
             'budget': budget, 'candidates': rows,
-            'next_step': 'compile the selected complete source/page using prepare and independently verify actual readback'}
+            'next_step': ('execute the selected prepared run and independently verify actual readback' if modern else
+                          'compile the selected complete source/page using prepare and independently verify actual readback')}
 
 
 def apply_text_restore(adapter, run_dir, preview_path, output_dir):
