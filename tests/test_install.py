@@ -39,6 +39,13 @@ class InstallTests(unittest.TestCase):
             for command in commands:
                 result = subprocess.run(command, env=env, capture_output=True)
                 self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", errors="replace"))
+            assessment = json.loads((root / "demo/new-design-assessment.json").read_text(encoding="utf-8"))
+            self.assertEqual(assessment["review_mode"], "new")
+            self.assertFalse(assessment["ready"])
+            self.assertTrue(assessment["semantic_review_required"])
+            status = json.loads((root / "demo/status.json").read_text(encoding="utf-8"))
+            self.assertFalse(status["approval_created"])
+            self.assertEqual(status["EDA_calls"], 0)
             self.assertIn("设计", (root / "contract.md").read_text(encoding="utf-8"))
             self.assertTrue(json.loads(result.stdout.decode("utf-8"))["ready"])
 
@@ -113,6 +120,9 @@ class InstallTests(unittest.TestCase):
             for name in ("SKILL.md", "references/drawing-grammar.md",
                          "scripts/circuit_audit.py", "scripts/readability_audit.py"):
                 self.assertTrue((layout / name).is_file(), name)
+            for name in ("eso/iteration.py", "eso/visual_review.py", "schemas/plan.json",
+                         "agents/openai.yaml", "references/workflow-assistance.md"):
+                self.assertEqual((skill / name).read_bytes(), (ROOT / name).read_bytes())
             # Exercise the copied compatibility API without relying on checkout imports.
             probe = ("import importlib.util,sys; "
                      "s=importlib.util.spec_from_file_location('renderer',sys.argv[1]); "
