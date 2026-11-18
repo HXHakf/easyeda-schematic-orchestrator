@@ -6,7 +6,6 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -66,6 +65,7 @@ def now():
 
 
 def validate(data, schema):
+    from jsonschema import Draft202012Validator
     base = ROOT / "schemas"
     if not base.exists():
         base = Path(sys.prefix) / "share/eso/schemas"

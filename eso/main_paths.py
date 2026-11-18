@@ -72,17 +72,19 @@ def direct_groups(plan):
     return result
 
 
-def audit_projection(plan, nets):
+def audit_projection(plan, nets, *, check_scope=True):
     """Map plan net names to actual audit identities by the complete physical inventory."""
     validate_primary_paths(plan)
+    from .planner import net_definitions
+    definitions = net_definitions(plan)
     mapped = {}
     for name in {p['net'] for c in plan['components'] for p in c['pins'] if p['net'] is not None}:
         wanted = {(c['id'], p['number']) for c in plan['components'] for p in c['pins'] if p['net'] == name}
         matches = [n for n in nets if n['name'] == name and {tuple(p) for p in n['pins']} == wanted]
         if len(matches) != 1:
             raise Refused('supplementary target net identity differs: ' + name)
-        if 'nets' in plan:
-            definition = next(n for n in plan['nets'] if n['name'] == name)
+        if check_scope:
+            definition = definitions[name]
             scope = 'global' if definition['scope'] == 'global' else 'page'
             if matches[0]['scope'] != scope:
                 raise Refused('supplementary target net scope differs: ' + name)
@@ -101,7 +103,9 @@ def audit_projection(plan, nets):
 
 def check_audit_target(plan, target, *, modern=None):
     """Reconcile supplementary permissions against the protected plan."""
-    expected = audit_projection(plan, target['nets'])
+    if modern is None:
+        modern = 'primary_paths' in plan or 'drawing_groups' in plan
+    expected = audit_projection(plan, target['nets'], check_scope=modern)
     def modules(rows, include_direct):
         result = {}
         for row in rows:
@@ -171,6 +175,8 @@ def audit_tools():
     import sys
     from pathlib import Path
     scripts = Path(__file__).resolve().parents[1] / 'extras/schematic-verified-layout/scripts'
+    if not (scripts / 'circuit_audit.py').is_file():
+        scripts = Path(sys.prefix) / 'share/eso/auditors'
     modules = []
     for name in ('circuit_audit', 'readability_audit'):
         spec = importlib.util.spec_from_file_location(name, scripts / (name + '.py'))
@@ -214,3 +220,96 @@ def check_source_paths(plan, source):
     issues = audit.physical_path_findings(target, pins, segments, physical)
     if issues:
         raise Refused('source primary path audit failed: ' + str(issues))
+
+
+def check_scene_page(scene, snapshot, target):
+    """A current single-document observation cannot authorize invented scene sheets."""
+    context = snapshot.get('context', {})
+    if context.get('projectUuid') != target['project_uuid'] or context.get('documentUuid') != target['document_uuid']:
+        raise Refused('supplementary snapshot document differs from protected target')
+    pages = set()
+    for field in ('pins', 'wires', 'junctions', 'labels', 'bodies', 'texts', 'moduleFrames'):
+        for item in scene.get(field, []):
+            page = item.get('page')
+            if not isinstance(page, str) or not page:
+                raise Refused('current scene objects require their observed page: ' + field)
+            pages.add(page)
+    if len(pages) != 1:
+        raise Refused('current scene geometry must share the single observed document page')
+
+
+def check_compiled_paths(plan, computed, queue, document_id, *, modern=False):
+    """Audit complete compiled geometry, including the protected marker payload leads."""
+    if not modern and 'primary_paths' not in plan and 'drawing_groups' not in plan:
+        return
+    from collections import Counter
+    layout = computed.get('layout')
+    if not isinstance(layout, dict):
+        raise Refused('compiled primary paths require complete layout geometry')
+    groups = project_drawing_groups(plan)
+    titles = {g['id']: g['name'] for g in groups}
+    if (len(layout.get('frames', [])) != len(titles) or
+            {f['id']: f['title'] for f in layout['frames']} != titles):
+        raise Refused('compiled drawing group titles differ from protected plan')
+    guards = [s.get('expectSchematic') for s in queue['steps'] if s.get('id') == 'verify-all-pins-nets-nc']
+    if len(guards) != 1:
+        raise Refused('compiled primary paths require one final protected drawing')
+    guard = guards[0]
+    drawing = guard.get('drawing', {})
+    if drawing.get('wires') != layout.get('wires') or drawing.get('flags') != layout.get('flags'):
+        raise Refused('compiled layout differs from final protected drawing')
+    frames = [s for s in queue['steps'] if s.get('id') == 'apply-module-frames']
+    if len(frames) != 1:
+        raise Refused('compiled drawing group frame protection missing')
+    import json
+    payload = json.loads(frames[0]['flags']['data'])
+    if payload.get('documentId') != document_id or payload.get('frames') != layout['frames']:
+        raise Refused('protected frame titles differ from compiled layout')
+    pins = []
+    planned = {c['ref']: c for c in plan['components']}
+    for part in layout['placements']:
+        component = planned.get(part['designator'])
+        if component is None:
+            raise Refused('compiled geometry has unknown component')
+        for pin in part['pins']:
+            observed = guard.get('parts', {}).get(part['designator'], {}).get('pins', {}).get(pin['number'], {})
+            if [observed.get('x'), observed.get('y')] != [pin['x'], pin['y']]:
+                raise Refused('compiled pin differs from protected physical pin')
+            pins.append({'pin': [component['id'], pin['number']], 'page': document_id, 'at': [pin['x'], pin['y']]})
+    wanted = {(c['id'], p['number']) for c in plan['components'] for p in c['pins']}
+    if len(pins) != len(wanted) or {tuple(p['pin']) for p in pins} != wanted:
+        raise Refused('compiled physical pin inventory incomplete')
+    # connect_pin implements endpointFor(...): four cardinal offsets, snapped to
+    # the 5-raw grid. Reject values requiring snapping instead of guessing it.
+    directions = {'left': (-1, 0), 'right': (1, 0), 'up': (0, 1), 'down': (0, -1)}
+    wires = [{'id': 'compiled-' + str(i), 'page': document_id, 'points': w['points']} for i, w in enumerate(layout['wires'])]
+    markers = [s['payload'] for s in queue['steps'] if s.get('action') == 'schematic.power.connect_pin']
+    def signature(marker):
+        return tuple(marker.get(k) for k in ('net', 'kind', 'pinX', 'pinY', 'direction', 'offset'))
+    if Counter(map(signature, markers)) != Counter(map(signature, layout['flags'])):
+        raise Refused('compiled markers differ from protected connect_pin actions')
+    import math
+    for marker in markers:
+        values = [marker.get(k) for k in ('pinX', 'pinY', 'offset')]
+        if (marker.get('direction') not in directions or
+                any(type(v) not in (int, float) or not math.isfinite(v) or abs(v / 5 - round(v / 5)) > 1e-7 for v in values)
+                or values[2] <= 0):
+            raise Refused('compiled marker lead requires exact positive cardinal grid geometry')
+        x, y, offset = values
+        dx, dy = directions[marker['direction']]
+        wires.append({'id': 'marker-' + str(len(wires)), 'page': document_id,
+                      'points': [[x, y], [x + offset * dx, y + offset * dy]]})
+    from .planner import net_definitions
+    definitions = net_definitions(plan)
+    nets = [{'id': name, 'name': name, 'scope': 'global' if n['scope'] == 'global' else 'page',
+             'pins': [[c['id'], p['number']] for c in plan['components'] for p in c['pins'] if p['net'] == name]}
+            for name, n in definitions.items()]
+    target = {'schemaVersion': 1, 'components': [{'id': c['id'], 'ref': c['ref'], 'pins': [p['number'] for p in c['pins']]} for c in plan['components']],
+              'nets': nets, 'nc': [[c['id'], p['number']] for c in plan['components'] for p in c['pins'] if p['net'] is None],
+              **audit_projection(plan, nets)}
+    audit, _ = audit_tools()
+    segments = audit.scene_segments({'wires': wires})
+    physical = audit.contact_graph(segments, pins, [], [], with_labels=False)
+    issues = audit.physical_path_findings(target, pins, segments, physical)
+    if issues:
+        raise Refused('compiled physical path audit failed: ' + str(issues))

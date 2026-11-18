@@ -126,6 +126,12 @@ def check_source(plan, source, target):
                         for m in ir.get("modules", [])}
     if expected_modules != observed_modules:
         raise Refused("composition module ownership differs from reviewed plan")
+    if 'primary_paths' in plan or 'drawing_groups' in plan:
+        names = {m['id']: m['name'] for m in project_drawing_groups(plan)}
+        if {m['id']: m.get('name') for m in ir.get('modules', [])} != names:
+            raise Refused('canonical drawing group names differ from protected plan')
+        if source.get('modules') is not None and {m['id']: m.get('title') for m in source['modules']} != names:
+            raise Refused('authored drawing group titles differ from protected plan')
     from .main_paths import check_source_paths
     check_source_paths(plan, source)
     return ir
@@ -268,6 +274,9 @@ class Workflow:
             command += ['--layout-page', page_copy]
         self.adapter.run(command, json_output=False)
         validate_queue(load(queue), target)
+        from .main_paths import check_compiled_paths
+        check_compiled_paths(plan, load(out), load(queue), target['document_uuid'],
+                             modern=contract.get('design_evidence', {}).get('policy_version') == 1)
         self.adapter.run(["sch", "apply", queue, "--dry-run"], json_output=False)
         artifacts = {name: file_digest(self.root / name) for name in
                      ("contract.json", "approval.json", "plan.json", "expected.json", "composition.json", "before.json", "apply.json", "upstream-plan.json")}
@@ -329,6 +338,10 @@ class Workflow:
         if bundle["target"] != contract.get("target"):
             raise Refused("bundle target changed")
         validate_queue(load(self.root / "apply.json"), bundle["target"])
+        from .main_paths import check_compiled_paths
+        check_compiled_paths(load(self.root / 'plan.json'), load(self.root / 'upstream-plan.json'),
+                             load(self.root / 'apply.json'), bundle['target']['document_uuid'],
+                             modern=contract.get('design_evidence', {}).get('policy_version') == 1)
 
     def verify(self):
         from .locking import target_lock

@@ -210,6 +210,47 @@ class SafetyTests(unittest.TestCase):
             self.assertEqual(run.call_args.kwargs["env"]["EASYEDA_NO_AUTOSTART"], "1")
 
 
+def compiled_fixture(args):
+    """Synthetic compiler proof for modern tests, without an upstream process."""
+    import json
+    root = Path(args[args.index('--out') + 1]).parent
+    plan = load(root / 'plan.json')
+    source = load(args[args.index('--from') + 1])
+    placements, wires = [], []
+    if source.get('modules'):
+        for module in source['modules']:
+            placements.extend(module['placements'])
+            wires.extend(module['wires'])
+    else:
+        for mi, module in enumerate(plan['modules']):
+            rows = {}
+            for ci, component in enumerate(c for c in plan['components'] if c['module'] == module['id']):
+                pins = []
+                for pi, pin in enumerate(component['pins']):
+                    key = pin['net'] if pin['net'] is not None else ('nc', component['id'], pi)
+                    if key not in rows:
+                        rows[key] = []
+                    at = [ci * 20, mi * 1000 + list(rows).index(key) * 20]
+                    rows[key].append(at)
+                    pins.append({'number': pin['number'], 'x': at[0], 'y': at[1]})
+                placements.append({'designator': component['ref'], 'pins': pins})
+            for points in rows.values():
+                if len(points) > 1 and points[0] != points[-1]:
+                    wires.append({'points': [points[0], points[-1]]})
+    from eso.main_paths import project_drawing_groups
+    frames = [{'id': g['id'], 'title': g['name']} for g in project_drawing_groups(plan)]
+    layout = {'placements': placements, 'wires': wires, 'flags': [], 'frames': frames}
+    parts = {part['designator']: {'pins': {p['number']: {'x': p['x'], 'y': p['y']} for p in part['pins']}} for part in placements}
+    q = queue()
+    q['meta'] = {'project': source['connectivity']['projectId'], 'doc': source['connectivity']['documentId']}
+    q['steps'] += [
+        {'id': 'apply-module-frames', 'run': 'sch frame apply', 'flags': {'data': json.dumps({'documentId': q['meta']['doc'], 'frames': frames})}},
+        {'id': 'verify-all-pins-nets-nc', 'action': 'schematic.components.list',
+         'expectSchematic': {'parts': parts, 'drawing': {'wires': wires, 'flags': []}}}]
+    dump(args[args.index('--playbook') + 1], q)
+    dump(args[args.index('--out') + 1], {'layout': layout})
+
+
 class FakeAdapter:
     def __init__(self, fail=False, saved=True, actual=None): self.calls=[]; self.fail=fail; self.saved=saved; self.actual=actual
     def guard(self, target): self.calls.append("guard")
@@ -219,6 +260,9 @@ class FakeAdapter:
         if args[:2] == ["sch", "compose"]:
             dump(args[args.index("--playbook")+1], queue())
             dump(args[args.index("--out")+1], {"synthetic": True})
+            plan_path = Path(args[args.index("--out")+1]).parent / "plan.json"
+            if plan_path.exists() and ("primary_paths" in load(plan_path) or "drawing_groups" in load(plan_path)):
+                compiled_fixture(args)
         elif args[:2] == ["sch", "apply"] and "--dry-run" not in args and self.fail:
             raise Refused("synthetic timeout; may have landed")
         elif args[:2] == ["sch", "save"]: return {"ok":True,"result":{"saved":self.saved}}

@@ -162,6 +162,83 @@ class InstallTests(unittest.TestCase):
                         "source": "installed", "args": ["a b", "--json"]
                     })
 
+    @unittest.skipUnless(os.environ.get('EASYEDA_BIN') and __import__('shutil').which('uv'), 'requires cached wheel builder and offline CLI')
+    def test_real_wheel_isolated_primary_candidate_and_modern_delivery(self):
+        import shutil
+        from eso.core import dump, load
+        from test_main_path_fixes import prepared_inputs
+        from test_drawing_review import drawing_run
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'source'
+            source.mkdir()
+            for name in ('eso', 'schemas', 'extras'):
+                shutil.copytree(ROOT / name, source / name, ignore=shutil.ignore_patterns('__pycache__'))
+            for name in ('pyproject.toml', 'README.md', 'LICENSE'):
+                shutil.copy2(ROOT / name, source / name)
+            wheels = root / 'wheels'
+            built = subprocess.run(['uv', 'build', '--offline', '--wheel', '--out-dir', str(wheels), str(source)],
+                                   capture_output=True, text=True)
+            self.assertEqual(built.returncode, 0, built.stderr)
+            runtime = root / 'runtime'
+            shutil.copytree(sys.prefix, runtime, symlinks=True)
+            python = runtime / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+            wheel = next(wheels.glob('*.whl'))
+            installed = subprocess.run([str(python), '-m', 'pip', 'install', '--no-index', '--no-deps',
+                                        '--force-reinstall', str(wheel)], capture_output=True, text=True, cwd=root)
+            self.assertEqual(installed.returncode, 0, installed.stderr)
+            for name in ('circuit_audit.py', 'readability_audit.py'):
+                self.assertTrue((runtime / 'share/eso/auditors' / name).is_file())
+            script = root / 'offline_cli.py'
+            script.write_text('''import json,sys
+from pathlib import Path
+from unittest.mock import patch
+import eso
+from eso.adapter import EasyEDA
+from eso.cli import main
+from eso.core import load
+assert Path(eso.__file__).is_relative_to(Path(sys.prefix))
+from eso.main_paths import audit_tools
+assert all(Path(m.__file__).is_relative_to(Path(sys.prefix)/'share/eso/auditors') for m in audit_tools())
+base=Path(sys.argv[1])
+calls=[]
+class Offline(EasyEDA):
+    def guard(self,target): pass
+    def snapshot(self,target): return load(base/'before.json')
+    def run(self,args,**kw):
+        calls.append(list(map(str,args)))
+        assert args[:2]==['sch','compose'] or (args[:2]==['sch','apply'] and '--dry-run' in args)
+        return super().run(args,**kw)
+try:
+    with patch('eso.cli.EasyEDA',Offline): code=main(sys.argv[2:])
+finally:
+    (base/'offline-calls.json').write_text(json.dumps(calls))
+raise SystemExit(code)
+''')
+            for defect in (None, 'marker-branch', 'local-open'):
+                candidate = root / ('candidate-' + str(defect))
+                candidate.mkdir()
+                prepared_inputs(candidate, defect)
+                args = ['--easyeda', os.environ['EASYEDA_BIN'], 'prepare',
+                        '--contract', str(candidate/'contract.json'), '--approval', str(candidate/'approval.json'),
+                        '--plan', str(candidate/'plan.json'), '--composition', str(candidate/'source.json'),
+                        '--before', str(candidate/'before.json'), '--run-dir', str(candidate/'run')]
+                result = subprocess.run([str(python), '-I', str(script), str(candidate), *args],
+                                        capture_output=True, text=True, cwd=root)
+                self.assertEqual(result.returncode, 0 if defect is None else 2, result.stderr + result.stdout)
+                self.assertEqual((candidate/'run/bundle.json').exists(), defect is None)
+                calls = load(candidate/'offline-calls.json')
+                if defect is not None:
+                    self.assertFalse(any(call[:2] == ['sch','apply'] for call in calls), calls)
+            delivery = root/'delivery'
+            delivery.mkdir()
+            workflow, reviews = drawing_run(delivery, modern=True)
+            result = subprocess.run([str(python), '-I', '-m', 'eso.cli', 'deliver', '--run-dir', str(workflow.root),
+                                     '--reviews', str(reviews), '--out', str(delivery/'installed-manifest.json')],
+                                    capture_output=True, text=True, cwd=root)
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            self.assertEqual(load(delivery/'installed-manifest.json')['state'], 'verified')
+
     @unittest.skipIf(installer.os.name == "nt", "POSIX quoting check")
     def test_launcher_quotes_runtime_paths_and_preserves_arguments(self):
         with tempfile.TemporaryDirectory(prefix="eso space ' ") as directory:

@@ -109,3 +109,16 @@ prepare 将所选页复制到运行包并纳入摘要。原文件后续变化不
 新 scene 每个组只有一个 `drawingGroupId` 外框，需提供真实矩形 `primitiveId` 与标题 `titleTextId`。
 交付核对原生矩形数量、位置、实际标题内容、全量文字测量和受保护 plan，
 并重跑当前主路径及可读性检查。改变分组后旧框和旧图面证据需要重建。
+
+
+编译后资格还核对最终受保护 drawing 的引脚、线段、框与实际队列。
+`schematic.power.connect_pin` 的 marker/terminal 引线按已核实的四方向正交偏移契约纳入物理图，
+仅接受精确的五单位格网坐标与正偏移，涉及未知或需要推测的几何即拒绝。
+所有审阅过的本地 attach 都须同树，`connectionMode=net-labels` 不能替代。
+`prepare` 在 dry-run 与 prepared 状态之前执行，`execute` 再次核对固定输入。
+源模块的 title、canonical 模块 name 与编译后真实 frame.title 均与当前 plan 对账，
+因此显式 layout-page 覆盖也经过相同标题检查。
+
+wheel 在 `share/eso/auditors` 保存同一份附加审计脚本，运行时优先使用源码位置，
+安装态从当前解释器 `sys.prefix` 定位。最终单页 scene 的引脚、线、节点、标签、器件、
+文字和框必须使用同一页面别名，并核对原始快照的工程与文档身份。

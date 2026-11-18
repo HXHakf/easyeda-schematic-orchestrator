@@ -103,7 +103,7 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, mod
     adapter = Adapter(actual=ir)
     source = {'connectivity': ir}
     if modern:
-        source['modules'] = [{'id': 'joined', 'placements': [
+        source['modules'] = [{'id': 'joined', 'title': 'Terminal connection', 'placements': [
             {'designator': c['ref'], 'pins': [{'number': '1', 'x': x, 'y': 0}]}
             for c, x in zip(plan['components'], [10, 40])],
             'wires': [{'points': [[10, 0], [40, 0]]}]}]
@@ -138,6 +138,7 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, mod
              'textInventory': ['title', 'a-text', 'b-text'],
              'moduleFrames': [{'moduleId': 'm', 'page': 'p', 'bbox': [-10, -20, 60, 20], 'titleTextId': 'title'}]}
     if modern:
+        target['nets'][0]['scope'] = 'page'
         from eso.main_paths import audit_projection
         target.update(audit_projection(plan, target['nets']))
         scene['labels'] = [{'id': 'marker', 'net': 'signal', 'page': 'p', 'at': [25, 0]}]
@@ -176,10 +177,10 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, mod
 
 class DrawingReviewTests(unittest.TestCase):
     def test_modern_delivery_rechecks_native_groups_and_target_permissions(self):
-        for defect in (None, 'direct', 'core', 'group', 'native-frame', 'native-title'):
+        for defect in (None, 'direct', 'core', 'group', 'native-frame', 'native-title', 'page', 'scope'):
             with self.subTest(defect=defect), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
-                workflow, path = drawing_run(root, modern=True)
+                workflow, path = drawing_run(root, modern=True, text_bbox=[20, -2, 30, 2] if defect == 'page' else None)
                 reviews = load(path)
                 layer = reviews['layers']['geometry']
                 if defect:
@@ -190,6 +191,8 @@ class DrawingReviewTests(unittest.TestCase):
                     if defect == 'group': target['drawing_groups'][0]['title'] = 'fake'
                     if defect == 'native-frame': scene['moduleFrames'][0]['bbox'][0] = -15
                     if defect == 'native-title': scene['moduleFrames'][0]['titleTextId'] = 'a-text'
+                    if defect == 'page': next(t for t in scene['texts'] if t['id'] == 'title')['page'] = 'invented'
+                    if defect == 'scope': target['nets'][0]['scope'] = 'global'
                     dump(root / 'target.json', target)
                     dump(root / 'scene.json', scene)
                     for name in ('target', 'scene'):

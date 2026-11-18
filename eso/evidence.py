@@ -132,6 +132,9 @@ def _check_review_layer(layer, entry, report, root, *, current=True):
     data = result(load(files['snapshot']['path']))
     target, scene = load(files['target']['path']), load(files['scene']['path'])
     if current:
+        from .main_paths import check_scene_page
+        check_scene_page(scene, load(files['snapshot']['path']), load(root / 'contract.json')['target'])
+    if current:
         from .drawing_checks import drawing_obstacles
         from .native_text import validate_junctions
         validate_junctions(files['svg']['path'], scene.get('junctions', []))

@@ -23,6 +23,7 @@ packages = ["eso"]
 
 [tool.setuptools.data-files]
 "share/eso/schemas" = ["schemas/*.json"]
+"share/eso/auditors" = ["extras/schematic-verified-layout/scripts/circuit_audit.py", "extras/schematic-verified-layout/scripts/readability_audit.py"]
 
 [tool.setuptools.package-data]
 eso = ["data/*.json"]

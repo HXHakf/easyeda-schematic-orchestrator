@@ -118,3 +118,10 @@
 净空规则作用于实际组框。ESO 交付还核对原生矩形清单及未旋转矩形的
 `TopLeftX/TopLeftY/Width/Height/Rotation`，按 y-UP 还原边界，标题核对原生 `Content`。
 字段缺失或不支持的旋转会拒绝。旧无扩展输入沿用 moduleId 与既有规则。
+
+
+ESO 当前交付依据一个已验证的单页原始快照。scene 所有几何类别的 `page` 必须为同一个非空别名，
+包括 pins/wires/junctions/labels/bodies/texts/moduleFrames。
+独立附加审计保留多页模型，只有分别取得对应页面观测后才能用多页数据。
+现代 plan 未显式列出 nets 时，也按 bind_plan 相同的有效默认 scope 核验 target，
+默认全局电源轨与本地信号无法相互改写。历史无扩展输入保留既有解释。
