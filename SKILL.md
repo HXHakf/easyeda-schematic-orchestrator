@@ -2,7 +2,7 @@
 name: easyeda-schematic-orchestrator
 description: "从一句功能需求设计嘉立创 EDA 专业版原理图，也可补全、修改和整理原理图。完成选型、方案确认、连接、清晰紧凑布局及独立图面验收。范围仅限原理图，复用 easyeda-agent，交付后结束流程。原生写入限专用测试工程。"
 metadata:
-  version: "0.6.2"
+  version: "0.7.0"
 ---
 
 # EasyEDA Schematic Orchestrator / Designer
