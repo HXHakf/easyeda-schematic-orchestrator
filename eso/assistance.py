@@ -83,18 +83,25 @@ def text_restore_preview(reference, current):
             'baseline_fingerprint': snapshot_fingerprint(current), 'moves': moves}
 
 
-def compare_layouts(candidates, budget):
+def compare_layouts(candidates, budget, *, visual_comparison=None, author_context_id=None):
     if type(budget) is not int or budget < 1 or len(candidates) > budget or not candidates:
         raise Refused('candidate count must fit a positive explicit budget')
+    from .visual_review import comparison_subject, review_comparison
+
     rows, ids, targets = [], set(), set()
-    for candidate in candidates:
+    target_data = [load(candidate['target']) for candidate in candidates]
+    modern = visual_comparison is not None or any('drawing_groups' in target or 'primary_paths' in target for target in target_data)
+    if modern and visual_comparison is None:
+        raise Refused('modern layout selection requires independent preview comparison')
+    for candidate, target in zip(candidates, target_data):
         cid = candidate['id']
         if not isinstance(cid, str) or not cid or cid in ids:
             raise Refused('candidate IDs must be nonempty and unique')
         ids.add(cid)
         scene = load(candidate['scene'])
         hashes = {file_digest(candidate['target']), file_digest(candidate['scene'])}
-        targets.add(file_digest(candidate['target']))
+        targets.add(digest({k: v for k, v in target.items() if k != 'drawing_groups'})
+                    if modern else file_digest(candidate['target']))
         reports = [load(candidate[key]) for key in ('geometry_report', 'readability_report')]
         if (reports[0].get('scope') != 'declared-topology-pin-exit-and-obstacle-geometry'
                 or reports[0].get('geometryScope') != 'full'
@@ -111,14 +118,31 @@ def compare_layouts(candidates, budget):
         length = sum(abs(a[0]-b[0]) + abs(a[1]-b[1]) for w in scene['wires'] for a,b in zip(w['points'],w['points'][1:]))
         boxes = [f['bbox'] for f in scene.get('moduleFrames', [])]
         area = sum((b[2]-b[0])*(b[3]-b[1]) for b in boxes)
+        if modern and passed:
+            from .main_paths import audit_tools
+            circuit, readability = audit_tools()
+            geometry_now = circuit.audit_scene(target, scene)
+            readability_now = readability.audit_readability(target, scene, strict=True)
+            passed = geometry_now['passed'] and readability_now['passed']
+            if passed:
+                area = readability_now['metrics']['contentAreaRaw2']
         if any(type(v) not in (float, int) or not math.isfinite(v) or v < 0 for v in (bends,length,area)):
             raise Refused('invalid candidate geometry metrics')
         rows.append({'id': cid, 'passed': passed, 'drawing_findings': obstacles, 'score': [bends,length,area],
                      'inputs': {key: file_digest(candidate[key]) for key in ('target','scene','geometry_report','readability_report')}})
     if len(targets) != 1:
         raise Refused('layout candidates must share the same target intent')
-    valid = sorted((r for r in rows if r['passed']), key=lambda r: (r['score'],r['id']))
-    return {'state': 'candidate-comparison', 'selected': valid[0]['id'] if valid else None,
+    visual = {}
+    if modern:
+        subject = comparison_subject(candidates, author_context_id)
+        ranks = review_comparison(load(visual_comparison), subject, {r['id'] for r in rows if r['passed']})
+        for row in rows:
+            row['passed'] = row['passed'] and row['id'] in ranks
+            row['clarity_rank'] = ranks.get(row['id'])
+            row['inputs'].update(subject['candidates'][row['id']])
+        visual = {'comparison_subject_sha256': digest(subject), 'comparison_review_sha256': file_digest(visual_comparison)}
+    valid = sorted((r for r in rows if r['passed']), key=lambda r: (r.get('clarity_rank', 0), r['score'], r['id']))
+    return {'state': 'candidate-comparison', 'selected': valid[0]['id'] if valid else None, **visual,
             'execution_ready': False, 'stop_reason': 'declared candidate set evaluated' if valid else 'no passing candidate',
             'budget': budget, 'candidates': rows,
             'next_step': 'compile the selected complete source/page using prepare and independently verify actual readback'}

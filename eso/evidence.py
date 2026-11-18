@@ -48,7 +48,7 @@ def evidence_index(run_dir, reviews=None, attempt=None):
         root = root / 'verification-history' / attempt
         from .knowledge import check_contract_knowledge
         try:
-            check_contract_knowledge(load(root / 'contract.json'))
+            check_contract_knowledge(load(root / 'contract.json'), evidence_root=root)
         except (OSError, ValueError) as error:
             basis_issues.append(str(error))
         passed, issues = False, ['historical evidence; current target has not been read back']
@@ -57,6 +57,20 @@ def evidence_index(run_dir, reviews=None, attempt=None):
         report = load(root / 'verification.json')
         passed, issues = delivery_eligibility(root, report)
         core_state = 'verified' if passed else 'incomplete'
+    electrical = 'unverified'
+    author_context = None
+    contract = load(root / 'contract.json')
+    if 'design_evidence' in contract:
+        from .core import check_confirmation
+        from .design_review import validate_design_evidence
+        try:
+            check_confirmation(contract, load(root / 'approval.json'), evidence_root=root)
+            evidence = validate_design_evidence(contract, load(root / 'plan.json'), search_paths=(root,))
+            author_context = evidence['design']['author_context_id']
+            electrical = 'independently-reviewed'
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            basis_issues.append('electrical design evidence unavailable: ' + str(error))
+            passed = False
     layers = {'core': core_state, 'geometry': 'not_checked', 'visual': 'not_checked'}
     files = {}
     if reviews is not None:
@@ -76,19 +90,36 @@ def evidence_index(run_dir, reviews=None, attempt=None):
                     raise Refused('review files require path and sha256')
                 if file_digest(item['path']) != item['sha256']:
                     raise Refused('review evidence changed: ' + name)
-            _check_review_layer(layer, entry, report, root, current=not historical)
+            _check_review_layer(layer, entry, report, root, current=not historical,
+                                independent='design_evidence' in contract, author_context=author_context)
             raw = load(entry['report'])
             if not any(Path(v['path']).resolve() == Path(entry['report']).resolve() for v in entry['files'].values()):
                 raise Refused('review report must be included in its hashed file inventory')
             layers[layer] = 'host-reviewed' if raw.get('passed') is True else 'incomplete'
             files[layer] = entry['files']
+        if (not historical and 'design_evidence' in contract and {'geometry', 'visual'}.issubset(files)
+                and files['geometry']['svg']['sha256'] != files['visual']['svg']['sha256']):
+            raise Refused('geometry and independent visual review require the same native SVG')
     return {'state': 'evidence-index', 'fresh_readback': False, 'historical': historical, 'attempt': report.get('attempt'), 'layers': layers,
             'eda_evidence_complete': passed and all(v == 'host-reviewed' for k,v in layers.items() if k != 'core'),
-            'files': files, 'issues': issues, 'current_basis_issues': basis_issues, 'electrical': 'unverified',
+            'files': files, 'issues': issues, 'current_basis_issues': basis_issues, 'electrical': electrical,
+            'hardware_validation': 'unverified',
             'review_scope': 'host binds supplementary reports to the observed attempt; original core report retained'}
 
 
-def _check_review_layer(layer, entry, report, root, *, current=True):
+def design_qualification(run_dir, reviews):
+    """Evaluate current design quality independently of any optimization round."""
+    try:
+        index = evidence_index(run_dir, reviews)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        return {'qualified': False, 'issues': ['drawing evidence unavailable: ' + str(error)], 'evidence': None}
+    issues = index['issues'] + index['current_basis_issues']
+    if not index['eda_evidence_complete'] and not issues:
+        issues.append('drawing evidence is incomplete')
+    return {'qualified': index['eda_evidence_complete'], 'issues': issues, 'evidence': index}
+
+
+def _check_review_layer(layer, entry, report, root, *, current=True, independent=False, author_context=None):
     from .adapter import result
     files = entry['files']
     required = {'snapshot', 'report', 'svg', 'preview'} if layer == 'visual' else {
@@ -120,6 +151,15 @@ def _check_review_layer(layer, entry, report, root, *, current=True):
                 check_visual_review(raw.get('drawing_review'))
             except ValueError as error:
                 raise Refused(str(error)) from error
+            if independent:
+                from .visual_review import check_invocation
+                record = raw.get('independent_review')
+                if not isinstance(record, dict) or record.get('invocation') != files.get('invocation'):
+                    raise Refused('current visual review requires an independent invocation in the evidence files')
+                subject = {'binding': binding, 'files': {key: files[key]['sha256'] for key in ('snapshot', 'svg', 'preview')}}
+                reviewer = check_invocation(record, subject, author_context)
+                if raw['reviewer'] != reviewer['id']:
+                    raise Refused('visual reviewer differs from independent reviewer record')
         return
     readability = load(files['readability']['path'])
     if (not isinstance(readability, dict) or raw.get('scope') != 'declared-topology-pin-exit-and-obstacle-geometry'

@@ -41,7 +41,7 @@ def bound_visual(workflow, report, root, svg_source='<svg/>'):
     return raw, reviews, visual
 
 
-def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, modern=False):
+def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, modern=False, new_policy=False):
     """A synthetic two-terminal drawing with real audit reports and a simulated EDA adapter."""
     import sys
     from eso.core import confirm
@@ -68,6 +68,24 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, mod
         for component, mid in zip(plan['components'], ['left', 'right']):
             component['module'] = mid
         plan['drawing_groups'] = [{'id': 'joined', 'title': 'Terminal connection', 'modules': ['left', 'right']}]
+    if new_policy:
+        from eso.design_review import electrical_intent
+        from test_design_review import DesignReviewTests
+        host = DesignReviewTests()
+        host.root = root
+        requirements, design = host.fixture()
+        plan['nets'] = [{'name': 'SIGNAL', 'scope': 'local', 'role': 'signal'}]
+        design['electrical_intent'] = electrical_intent(plan)
+        design['assembly']['passive_component_ids'] = []
+        rows = [{'role': 'terminal', 'model': 'synthetic-terminal', 'package': 'SYNTHETIC',
+                 'component_ids': ['a', 'b'], 'source_ids': ['source']}]
+        design['selections'] = [dict(row, pinout_section='1', application_section='2',
+                                     required_capabilities=[], capabilities=[]) for row in rows]
+        design['bom'] = [dict(row, quantity=2, quote=None) for row in rows]
+        design['required_parts'] = rows
+        host.publish(requirements, design)
+        contract = contract_from(requirements, fixtures.TARGET)
+        plan['contract_sha256'] = digest(contract)
     bindings = {ref: {'libraryUuid': '1' * 32, 'deviceUuid': '2' * 32,
                      'verified_model': 'synthetic-terminal', 'evidence': 'synthetic only'} for ref in ('J1', 'J2')}
     ir = bind_plan(plan, bindings, fixtures.TARGET)

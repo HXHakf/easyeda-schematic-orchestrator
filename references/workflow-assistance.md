@@ -88,6 +88,14 @@ eso layout-compare runs/candidates.json --out runs/layout-comparison.json
 无通过候选时 selected=null。候选选择保留 execution_ready=false，
 宿主将对应完整 composition/page 交给 prepare --layout-page 编译、dry-run，最后回读现场验收。
 
+新流程的每个候选还需提供 source 路径及 preview 对象。preview 包含 path、source_sha256、
+scene_sha256、render_method 和 pixels_per_raw。按同一比例制作实际预览，保留真实生成方式。
+候选与已确认的端点和逻辑电气意图一致后，重新运行几何及可读性检查。
+manifest 另需 author_context_id 和 visual_comparison。后者使用 scope=independent-layout-comparison，
+以比较对象的规范摘要绑定审阅调用，evaluations 按候选 ID 记录 accepted、assessment。
+通过机器和图面验收的评估还需记录 clarity_rank（从 1 起，越小越清晰，同等级允许并列）
+及完整 drawing_review。首先按读图质量排序，同等级继续用实测的折弯、线长与图面包络面积排序。
+
 ## 补充验收索引
 
 ```sh
@@ -144,6 +152,13 @@ eda_evidence_complete=true。电气保持独立状态。报告选择、审阅结
 drawing_review.open_findings 为列表。发现的问题写明对象、位置与处理状态，修正后用新导图复核，
 已关闭问题保留在独立审阅历史中。当前 open_findings 为空、六项均通过且对象和判断完整时才可完成图面审阅。
 宿主根据实际图面填写内容，Python 核对记录完整性及几何规则。
+
+带 design_evidence 的当前契约还要求 visual 文件清单中的 invocation。原始报告的 independent_review
+记录 reviewer（id、context_id、independent=true）、subject_sha256 与同一 invocation（path、sha256）。
+subject 由该轮 binding 与 snapshot、svg、preview 的实际摘要组成。invocation 原文记录 reviewer_id、
+context_id、author_context_id、subject_sha256，以及实际发出的 request 和收到的 response。
+候选比较使用相同调用格式，subject 由 `comparison_subject` 对全部候选的输入和预览生成。
+作者与审阅者使用不同上下文。当前几何及图面审阅引用同一个原生 SVG。
 
 deliver 需要当前完整的 core、geometry 和 visual。缺少 --reviews、缺层或图面问题未关闭时输出
 state=incomplete，返回退出码 3，并保留 core_state 说明原有机器检查状态。

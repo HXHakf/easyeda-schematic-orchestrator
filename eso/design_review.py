@@ -382,19 +382,42 @@ def design_summary(contract):
     if checked['review_mode'] == 'legacy':
         return []
     design, cost = checked['design'], checked['cost']
-    lines = ['', '## 功能框图', '', design['function']]
-    lines += [f"- {m['id']} {m.get('title', m['id'])}" for m in design['electrical_intent']['modules']]
+    intent = design['electrical_intent']
+    parts = {row['id']: row for row in intent['components']}
+    by_ref = {row['ref']: row for row in parts.values()}
+    lines = ['', '## 功能与主路径', '', design['function'], '']
+    for path in intent['primary_paths']:
+        lines += [f"**{path['title']}**", '']
+        for link in path['links']:
+            a, b = (link[key] for key in ('from', 'to'))
+            first, last = (parts[pin['componentId']] for pin in (a, b))
+            lines.append(f"- {first['ref']}.{a['pinNumber']}（{first['role']}）→ {link['net']} → "
+                         f"{last['ref']}.{b['pinNumber']}（{last['role']}）")
+        lines.append('')
+    lines += [f"- {by_ref[row['core_ref']]['role']}由 {row['core_ref']} 实现。" for row in intent['modules']]
     lines += ['', '## 工况、供电与接口', '', design['operating_conditions']]
-    lines += [f"- {domain} {row['decision']}（{row['reason']}）" for domain, row in design['applicability'].items()]
+    headings = {'power': '供电', 'load': '负载', 'interfaces': '接口', 'assembly': '装配'}
+    lines += [f"- {headings[domain]}。{design['applicability'][domain]['decision']}" for domain in DOMAINS]
     lines += ['', '## 核心与外围选型', '']
     lines += [f"- {s['role']} {s['model']} / {s['package']}" for s in design['selections']]
-    lines += ['', '## 装配', '', str(design['assembly']), '', '## 完整 BOM', '']
+    assembly = design['assembly']
+    lines += ['', '## 装配', '', f"{assembly['method']}，常用无源封装 {assembly['passive_package']}。", '']
+    lines += [f"- {parts[row['component_id']]['ref']} 采用 {row['package']}。{row['reason']}"
+              for row in assembly.get('package_exceptions', [])]
+    lines += ['', '## 完整 BOM', '', '| 料号 | 型号 | 封装 | 每套数量 | 单件报价 |',
+              '| --- | --- | --- | ---: | ---: |']
     for row in design['bom']:
-        lines.append(f"- {row['model']} / {row['package']} × {row['quantity']}，报价 {row.get('quote') or '未知'}")
-    lines += ['', f"采购套数 {cost['build_quantity']}，已知小计 {cost['known_subtotal']}，缺报价 {cost['missing_quotes']}",
-              '', '## 主路径', '', str(design['electrical_intent']['primary_paths']), '', '## 来源与默认假设', '']
-    lines += [f"- {s['id']} {s['url']} {s['section']} SHA256 {s['sha256']}" for s in design['sources']]
-    lines += [str(d) for d in design.get('defaults', [])]
+        quote = row.get('quote')
+        price = f"{quote['unit_price']:g} {quote['currency']}" if quote else '待报价'
+        cells = [row.get('lcsc', '外接' if row.get('external') else '—'), row['model'], row['package'], row['quantity'], price]
+        lines.append('| ' + ' | '.join(str(cell).replace('|', r'\|').replace('\n', ' ') for cell in cells) + ' |')
+    subtotal = '、'.join(f'{amount:g} {currency}' for currency, amount in cost['known_subtotal'].items())
+    lines += ['', f"按 {cost['build_quantity']} 套采购，已知物料小计 {subtotal or '待报价'}。"]
+    if cost['missing_quotes']:
+        lines.append('待报价物料为' + '、'.join(cost['missing_quotes']) + '。')
+    lines += ['', '## 计算与设计依据', '', design['calculations'], '']
+    lines += [f"- {row['field']} 采用 {row['value']}。{row['reason']}" for row in design.get('defaults', [])]
+    lines += [f"- {s['section']}。[{s['id']}]({s['url']})" for s in design['sources']]
     lines += ['', '独立电气审阅已完成，逐项结论及调用记录随设计依据保存。']
     return lines
 

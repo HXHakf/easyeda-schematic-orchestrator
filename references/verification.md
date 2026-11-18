@@ -19,6 +19,8 @@
 0.5.2 起最终交付需要 `deliver --reviews` 关联当前完整的几何与逐项图面审阅。
 六类图面判断均需实际对象和观察说明，未关闭问题阻断交付。
 同网无接点交叉和自由文字穿框由候选选择及当前交付重查，格式见[辅助工具](workflow-assistance.md#补充验收索引)。
+带 design_evidence 的契约还核对已固定的电气审阅及当前独立图面调用，几何与图面使用同一原生 SVG。
+交付索引中的 electrical 描述设计依据审阅，hardware_validation 记录另需通过样板测量的状态。
 
 状态用词：source-only=源码/文档支持；offline-verified=离线规则/编译通过；
 live-incomplete=现场执行或证据未完整；live-verified=具体现场操作的指定检查通过。不得跨范围套用。

@@ -207,7 +207,9 @@ def main(argv=None):
         elif args.command == 'layout-compare':
             from .assistance import compare_layouts
             manifest = load(args.manifest)
-            output = compare_layouts(manifest['candidates'], manifest['max_candidates'])
+            output = compare_layouts(manifest['candidates'], manifest['max_candidates'],
+                                     visual_comparison=manifest.get('visual_comparison'),
+                                     author_context_id=manifest.get('author_context_id'))
             dump(args.out, output)
         elif args.command == 'evidence-index':
             from .evidence import evidence_index
@@ -276,11 +278,12 @@ def delivery_manifest(run_dir, output_path, reviews_path=None):
         issues.append('final delivery requires --reviews with geometry and object-specific visual assessments')
         eligible = False
     else:
-        from .evidence import evidence_index
+        from .evidence import design_qualification
         try:
-            drawing = evidence_index(root, load(reviews_path))
-            if drawing['eda_evidence_complete'] is not True:
-                issues.append('drawing evidence is incomplete')
+            quality = design_qualification(root, load(reviews_path))
+            drawing = quality['evidence']
+            if quality['qualified'] is not True:
+                issues.extend(issue for issue in quality['issues'] if issue not in issues)
                 eligible = False
         except (OSError, ValueError, KeyError, TypeError) as error:
             issues.append('drawing evidence unavailable: ' + str(error))
@@ -302,7 +305,7 @@ def delivery_eligibility(root, report):
     try:
         bundle = load(root / "bundle.json")
         from .knowledge import check_contract_knowledge
-        check_contract_knowledge(load(root / "contract.json"))
+        check_contract_knowledge(load(root / "contract.json"), evidence_root=root)
         if bundle.get("state") != "verified" or report.get("state") != "verified":
             issues.append("latest verification is incomplete or in progress")
         if not report.get("attempt") or report["attempt"] != bundle.get("verification_attempt"):
