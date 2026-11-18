@@ -548,6 +548,7 @@ class PartialMarkerAdapter(SimulatedDrawingAdapter):
     omit_drawing_checkpoint = False
     wrong_created_net = False
     recheckpoint_mutation = False
+    marker_pin_offset = 0
 
     def first_queue(self):
         queue = super().first_queue()
@@ -589,7 +590,8 @@ class PartialMarkerAdapter(SimulatedDrawingAdapter):
                 marker = {'primitiveId': 'captured-marker', 'componentType': 'netport',
                           'net': 'WRONG' if self.wrong_created_net else 'MAIN', 'x': 200, 'y': 120,
                           'bbox': {'minX': 195, 'minY': 115, 'maxX': 205, 'maxY': 125},
-                          'pins': [{'primitiveId': 'marker-pin', 'x': 200, 'y': 120, 'net': None}]}
+                          'pins': [{'primitiveId': 'marker-pin', 'x': 200 + self.marker_pin_offset,
+                                    'y': 120, 'net': None}]}
                 data['components'].append(marker)
                 page['components'].append({k: v for k, v in marker.items() if k not in ('pins', 'bbox')})
                 page['attributes'].extend([
@@ -636,7 +638,7 @@ class DrawingRevisionTests(unittest.TestCase):
 
     def test_partial_marker_requires_unchanged_native_semantics(self):
         from eso.workflow import Workflow
-        for mutation in (None, 'pin net cache', 'net', 'position', 'attribute', 'pin attribute',
+        for mutation in (None, 'pin net cache', 'pin rotation residue', 'wrong anchor', 'net', 'position', 'attribute', 'pin attribute',
                          'missing checkpoint', 'wrong created net', 'attribute recheckpoint'):
             with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
@@ -646,6 +648,7 @@ class DrawingRevisionTests(unittest.TestCase):
                 adapter.omit_drawing_checkpoint = mutation == 'missing checkpoint'
                 adapter.wrong_created_net = mutation == 'wrong created net'
                 adapter.recheckpoint_mutation = mutation == 'attribute recheckpoint'
+                adapter.marker_pin_offset = {'pin rotation residue': 1.14e-13, 'wrong anchor': 0.001}.get(mutation, 0)
                 dump(root / 'source.json', source)
                 dump(root / 'blank.json', blank)
                 parent = Workflow(adapter, root / 'parent')
@@ -668,7 +671,7 @@ class DrawingRevisionTests(unittest.TestCase):
                     next(a for a in adapter.current['result']['pagePrimitives']['attributes'] if a['primitiveId'] == pid)['Value'] = 'MANUAL'
                 dump(root / 'fresh.json', adapter.current)
                 child = Workflow(adapter, root / 'child')
-                if mutation in (None, 'pin net cache'):
+                if mutation in (None, 'pin net cache', 'pin rotation residue'):
                     child.prepare_revision(parent.root, root / 'source.json', root / 'fresh.json')
                     self.assertIn('captured-marker', load(child.root / 'revision-proof.json')['owned_drawing'])
                     self.assertTrue((child.root / 'bundle.json').is_file())

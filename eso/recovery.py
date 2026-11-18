@@ -782,6 +782,8 @@ def _drawing_semantics(inventory):
 
 def _check_marker_intent(inventory, pid, step):
     """A raw checkpoint must also match the action that created the marker."""
+    from .drawing_checks import EPS
+
     payload = step['payload']
     endpoint = _step_segments(step)[0][1]
     marker = inventory['components'].get(pid, {})
@@ -789,10 +791,15 @@ def _check_marker_intent(inventory, pid, step):
     expected_type = {'net_label': 'netlabel'}.get(payload['kind'],
         'netport' if payload['kind'].startswith('net_port') else 'netflag')
     pins = marker.get('pins', [])
+    # The native rotated pin may contain a floating-point residue. The
+    # marker origin itself is exact and the recorded raw pin is preserved.
+    pin_at_endpoint = len(pins) == 1 and all(
+        type(pins[0].get(axis)) in (int, float) and abs(pins[0][axis] - value) <= EPS
+        for axis, value in zip(('x', 'y'), endpoint))
     if (marker.get('componentType') != expected_type or marker.get('net') != payload['net']
             or native.get('net') != payload['net']
             or any((row.get('x'), row.get('y')) != endpoint for row in (marker, native))
-            or len(pins) != 1 or (pins[0].get('x'), pins[0].get('y')) != endpoint):
+            or not pin_at_endpoint):
         raise Refused(f'{pid}: original marker readback differs from its captured action net or position')
 
 
