@@ -13,7 +13,8 @@ from eso.core import Refused, confirm, digest, dump, load
 from eso.main_paths import check_audit_target, check_compiled_paths, check_scene_page
 from eso.planner import bind_plan
 from eso.requirements import contract_from
-from eso.workflow import check_source
+from eso.workflow import check_source, validate_queue
+from eso.recovery import add_ownership_captures, revision_inventory
 from test_main_paths import fixture, topology
 import test_upstream_cli as upstream
 
@@ -60,6 +61,44 @@ def prepared_inputs(root, defect=None):
                        ('source',source),('before',before)]:
         dump(root / (name+'.json'), data)
     return plan, source
+
+
+def matching_snapshot(blank, source, layout, final):
+    """Populate a synthetic native snapshot from actual compiler output."""
+    snapshot = copy.deepcopy(blank)
+    data = snapshot['result']
+    page = data['pagePrimitives']
+    seed = upstream.joint_drawing_fixture()[3]['result']
+    parts = {c['designator']: c for c in seed['components'] if c['componentType'] == 'part'}
+    roles = {c['ref']: c['role'] for c in source['connectivity']['components']}
+    for placement in layout['placements']:
+        row = parts[placement['designator']]
+        row['otherProperty']['EasyEDA Agent Role'] = roles[row['designator']]
+        row.update({key: placement[key] for key in ('x', 'y', 'bbox', 'rotation', 'mirror')})
+        for pin in row['pins']:
+            expected = final['parts'][row['designator']]['pins'][pin['pinNumber']]
+            pin.update({key: expected[key] for key in ('x', 'y', 'net', 'noConnected')})
+        data['components'].append(row)
+    page['components'] = data['components']
+    for field in ('pins', 'attributes'):
+        page[field] = copy.deepcopy(seed['pagePrimitives'][field])
+    wires = [(a, b, wire['net']) for wire in layout['wires'] for a, b in zip(wire['points'], wire['points'][1:])]
+    for index, marker in enumerate(layout['flags']):
+        x, y, length = (marker[k] for k in ('pinX', 'pinY', 'offset'))
+        dx, dy, rotation = {'left': (-length, 0, 180), 'right': (length, 0, 0),
+                            'up': (0, length, 90), 'down': (0, -length, 270)}[marker['direction']]
+        x_end, y_end = x + dx, y + dy
+        wires.append(((x, y), (x_end, y_end), marker['net']))
+        data['components'].append({'componentType': 'netport', 'primitiveId': f'marker-{index}',
+            'net': marker['net'], 'x': x_end, 'y': y_end, 'rotation': rotation,
+            'pins': [{'primitiveId': f'marker-pin-{index}', 'x': x_end, 'y': y_end}]})
+    for index, (a, b, net) in enumerate(wires):
+        pid = f'matched-wire-{index}'
+        data['wires'].append(dict(primitiveId=pid, net=net, x0=a[0], y0=a[1], x1=b[0], y1=b[1]))
+        page['wires'].append(dict(primitiveId=pid, Net=net, Line=[*a, *b], Color='#008000', LineWidth=1, LineType=0))
+    data['count'] = len(data['components'])
+    data['connectivitySummary'].update(netports=len(layout['flags']), wires=len(wires))
+    return snapshot
 
 
 class MainPathFixTests(unittest.TestCase):
@@ -113,6 +152,59 @@ class MainPathFixTests(unittest.TestCase):
                     result=subprocess.run([sys.executable,'-S',*args],capture_output=True,text=True,cwd=root)
                     self.assertEqual(result.returncode,0,result.stderr+result.stdout)
                     self.assertTrue(json.loads(result.stdout)['passed'])
+
+    @unittest.skipUnless(os.environ.get('EASYEDA_BIN'), 'requires actual offline CLI')
+    def test_actual_already_matching_marker_geometry_uses_the_existing_draw_guard(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            plan, source = prepared_inputs(root, 'authorized-marker')
+            target = upstream.TARGET
+            adapter = EasyEDA(os.environ['EASYEDA_BIN'], root / 'receipts')
+            before_path = root / 'before.json'
+            computed_path, queue_path = root / 'computed.json', root / 'queue.json'
+            compose = ['sch', 'compose', '--from', root / 'source.json', '--before', before_path,
+                       '--out', computed_path, '--playbook', queue_path, '--replace']
+            adapter.run(compose, json_output=False)
+            compiled, redraw = load(computed_path), load(queue_path)
+            check_compiled_paths(plan, compiled, redraw, target['document_uuid'])
+            final = next(step['expectSchematic'] for step in redraw['steps'] if step['id'] == 'verify-all-pins-nets-nc')
+            baseline = matching_snapshot(load(before_path), source, compiled['layout'], final)
+            dump(before_path, baseline)
+            removed_write = copy.deepcopy(redraw)
+            writes = [s for s in removed_write['steps'] if s.get('action') == 'schematic.power.connect_pin']
+            self.assertTrue(writes)
+            removed_write['steps'].remove(writes[0])
+            with self.assertRaisesRegex(Refused, 'differ from protected connect_pin actions'):
+                check_compiled_paths(plan, compiled, removed_write, target['document_uuid'])
+
+            adapter.run([*compose, '--preserve-instances'], json_output=False)
+            compiled, queue = load(computed_path), load(queue_path)
+            self.assertTrue(any(step['id'] == 'verify-existing-composition' for step in queue['steps']))
+            self.assertFalse(any(step.get('action') == 'schematic.power.connect_pin' for step in queue['steps']))
+            self.assertGreater(len(compiled['layout']['flags']), 0)
+            self.assertTrue(add_ownership_captures(queue))
+            dump(queue_path, queue)
+            revision = {'before': baseline, 'owned_drawing': revision_inventory(baseline, target)['drawing'],
+                        'expected': source['connectivity']}
+            validate_queue(queue, target, revision=revision)
+            check_compiled_paths(plan, compiled, queue, target['document_uuid'])
+            adapter.run(['sch', 'apply', queue_path, '--dry-run'], json_output=False)
+
+            for defect in ('marker geometry', 'incomplete read', 'network edit', 'frame first'):
+                with self.subTest(defect=defect):
+                    changed = copy.deepcopy(queue)
+                    existing = next(step for step in changed['steps'] if step['id'] == 'verify-existing-composition')
+                    if defect == 'marker geometry':
+                        existing['expectSchematic']['drawing']['flags'][0]['offset'] += 5
+                    elif defect == 'incomplete read':
+                        existing['payload']['includeWires'] = False
+                    elif defect == 'network edit':
+                        changed['steps'].append(writes[0])
+                    else:
+                        changed['steps'].remove(existing)
+                        changed['steps'].append(existing)
+                    with self.assertRaisesRegex(Refused, 'already-matching drawing'):
+                        check_compiled_paths(plan, compiled, changed, target['document_uuid'])
 
     @unittest.skipUnless(os.environ.get('EASYEDA_BIN'),'requires actual offline CLI')
     def test_actual_compiler_marker_leads_and_local_direct(self):

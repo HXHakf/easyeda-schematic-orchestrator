@@ -126,5 +126,7 @@ wheel 在 `share/eso/auditors` 保存同一份附加审计脚本，运行时优�
 
 source 图尚未包含 compiler 生成的 marker/terminal 引线，允许声明内的关系等待完整编译后验证。
 它继续拒绝显式的未授权接触。编译后门仍须在 prepared 和任何 Apply 之前证明所有路径及 attach。
+当上游确认当前图纸与候选等价时，队列先读取并核对当前的器件、图形和归属。实体审计使用该保护步骤中的原有标记引线。
+需要重绘的候选仍逐一核对计算结果与实际 connect_pin 操作。
 旧 `moduleId` 框省略 page 时，使用其余实测对象已确定的唯一页面别名。
 显式冲突、显式空值以及现代 `drawingGroupId` 缺页继续拒绝，保留原始证据字节。

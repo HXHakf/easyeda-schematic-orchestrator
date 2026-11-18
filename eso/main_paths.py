@@ -247,8 +247,44 @@ def check_scene_page(scene, snapshot, target):
             raise Refused('current scene frame must share the single observed document page')
 
 
+def _existing_drawing_markers(queue, guard, document_id):
+    """Accept protected leads already present on the exact matched page."""
+    steps = queue['steps']
+    matches = [i for i, step in enumerate(steps) if step.get('id') == 'verify-existing-composition']
+    if not matches:
+        return None
+    if (len(matches) != 1 or queue.get('requireFullExecution') is not True
+            or queue.get('meta', {}).get('doc') != document_id):
+        raise Refused('already-matching drawing requires a single full-execution page guard')
+    index = matches[0]
+    step = steps[index]
+    observed = step.get('expectSchematic')
+    payload = step.get('payload', {})
+    later = {item.get('id'): item for item in steps[index + 1:]}
+    full_read = ('includeBBox', 'includeConnectivitySummary', 'includeDeviceIdentity', 'includePins', 'includeWires')
+    if (step.get('action') != 'schematic.components.list' or step.get('run')
+            or not isinstance(observed, dict) or observed.get('exactParts') is not True
+            or not isinstance(payload, dict) or any(payload.get(k) is not True for k in full_read)
+            or (observed.get('ownedAttributes') is not None and payload.get('includePagePrimitives') is not True)
+            or any(observed.get(k) != guard.get(k) for k in ('parts', 'drawing', 'ownership'))
+            or not isinstance(observed.get('ownership'), dict)
+            or any(s.get('action') != 'schematic.components.list' or s.get('run') for s in steps[:index])
+            or later.get('apply-module-frames', {}).get('run') != 'sch frame apply'
+            or later.get('verify-all-pins-nets-nc', {}).get('action') != 'schematic.components.list'):
+        raise Refused('already-matching drawing guard differs from the complete protected final drawing')
+    actions = {'schematic.components.list', 'schematic.check', 'schematic.bridgeCheck', 'schematic.save'}
+    commands = {'sch group create', 'sch frame apply', 'sch frame check', 'sch titleblock', 'sch gate'}
+    if (queue.get('defaults', {}).get('continueOnError') or queue.get('defaults', {}).get('retry')
+            or any((s.get('action') not in actions if s.get('action') else s.get('run') not in commands)
+                   or (s.get('action') and s.get('run')) or s.get('continueOnError') or s.get('retry')
+                   or s.get('onFail') not in (None, 'stop') or any(k in s for k in ('args', 'verify'))
+                   for s in steps)):
+        raise Refused('already-matching drawing queue contains a redraw or guard bypass')
+    return observed['drawing']['flags'] or []
+
+
 def check_compiled_paths(plan, computed, queue, document_id, *, modern=False):
-    """Audit complete compiled geometry, including the protected marker payload leads."""
+    """Audit compiled geometry and its protected created or already-present marker leads."""
     if not modern and 'primary_paths' not in plan and 'drawing_groups' not in plan:
         return
     from collections import Counter
@@ -292,11 +328,13 @@ def check_compiled_paths(plan, computed, queue, document_id, *, modern=False):
     # the 5-raw grid. Reject values requiring snapping instead of guessing it.
     directions = {'left': (-1, 0), 'right': (1, 0), 'up': (0, 1), 'down': (0, -1)}
     wires = [{'id': 'compiled-' + str(i), 'page': document_id, 'points': w['points']} for i, w in enumerate(layout['wires'])]
-    markers = [s['payload'] for s in queue['steps'] if s.get('action') == 'schematic.power.connect_pin']
-    def signature(marker):
-        return tuple(marker.get(k) for k in ('net', 'kind', 'pinX', 'pinY', 'direction', 'offset'))
-    if Counter(map(signature, markers)) != Counter(map(signature, layout['flags'])):
-        raise Refused('compiled markers differ from protected connect_pin actions')
+    markers = _existing_drawing_markers(queue, guard, document_id)
+    if markers is None:
+        markers = [s['payload'] for s in queue['steps'] if s.get('action') == 'schematic.power.connect_pin']
+        def signature(marker):
+            return tuple(marker.get(k) for k in ('net', 'kind', 'pinX', 'pinY', 'direction', 'offset'))
+        if Counter(map(signature, markers)) != Counter(map(signature, layout['flags'])):
+            raise Refused('compiled markers differ from protected connect_pin actions')
     import math
     for marker in markers:
         values = [marker.get(k) for k in ('pinX', 'pinY', 'offset')]
