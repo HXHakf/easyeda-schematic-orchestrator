@@ -137,7 +137,7 @@ def check_source(plan, source, target):
     return ir
 
 
-def validate_queue(queue, target):
+def validate_queue(queue, target, *, revision=None):
     """Reject broad escape hatches even if a queue file was substituted."""
     if queue.get("version") != 1 or not queue.get("steps"):
         raise Refused("upstream queue must be a nonempty version-1 playbook")
@@ -162,7 +162,8 @@ def validate_queue(queue, target):
             raise Refused("queue contains retry/continue-on-error")
         if (bool(step.get("action")) + bool(step.get("run"))) != 1:
             raise Refused("each step needs one typed action or command")
-        if step.get("action") and step["action"] not in allowed_actions:
+        revision_delete = revision is not None and step.get("action") == "schematic.primitives.delete"
+        if step.get("action") and step["action"] not in allowed_actions and not revision_delete:
             raise Refused(f"action outside MVP surface: {step['action']}")
         if step.get("run") and step["run"] not in allowed_runs:
             raise Refused(f"command outside MVP surface: {step['run']}")
@@ -176,6 +177,14 @@ def validate_queue(queue, target):
         # No destructive clear/reset, document/project switches, debug JS or PCB.
         if any(k in step for k in ("exec", "shell", "command")):
             raise Refused("arbitrary executable steps are forbidden")
+    if revision is not None:
+        from .recovery import validate_revision_queue
+        try:
+            validate_revision_queue(queue, target, revision)
+        except Refused:
+            raise
+        except (ValueError, TypeError, KeyError, AttributeError) as error:
+            raise Refused("invalid protected revision queue: " + str(error)) from error
     return queue
 
 
@@ -186,12 +195,47 @@ class Workflow:
         self.root.mkdir(parents=True, exist_ok=True)
 
     def prepare(self, contract, approval, plan, composition_path, before_path, placement_run=None, *, layout_page=None):
+        return self._prepare(contract, approval, plan, composition_path, before_path, placement_run,
+                             layout_page=layout_page)
+
+    def prepare_revision(self, parent_run, composition_path, before_path, *, layout_page=None):
+        from .locking import target_lock
+        from .recovery import prove_revision
+        parent = Path(parent_run).resolve()
+        if self.root == parent or self.root in parent.parents or parent in self.root.parents:
+            raise Refused("revision requires a separate run directory")
+        target = load(parent / "contract.json")["target"]
+        with target_lock(target):
+            if any(self.root.iterdir()):
+                raise Refused("revision requires a new, empty run directory")
+            try:
+                before = load(before_path)
+                self.adapter.guard(target)
+                fresh = self.adapter.snapshot(target)
+                dump(self.root / "revision-readback.json", fresh)
+                from .recovery import same_window
+                if not same_window(before, fresh) or snapshot_fingerprint(fresh) != snapshot_fingerprint(before):
+                    raise Refused("revision baseline differs from fresh readback")
+                revision = prove_revision(parent, fresh, target, self.root,
+                                          window=getattr(self.adapter, "window", None))
+                return self._prepare(load(parent / "contract.json"), load(parent / "approval.json"),
+                                     load(parent / "plan.json"), composition_path, before_path,
+                                     layout_page=layout_page, revision=revision, parent=parent)
+            except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+                dump(self.root / "revision-status.json", {"state": "incomplete", "error": str(error)})
+                if isinstance(error, Refused):
+                    raise
+                raise Refused("revision evidence is incomplete: " + str(error)) from error
+
+    def _prepare(self, contract, approval, plan, composition_path, before_path, placement_run=None, *,
+                 layout_page=None, revision=None, parent=None):
         if (self.root / "bundle.json").exists() or (self.root / "execution-started.lock").exists():
             raise Refused("prepare requires a fresh run directory; preserve prior execution and verification records")
-        check_confirmation(contract, approval, evidence_root=placement_run)
-        validate_plan(plan, contract, evidence_root=placement_run)
+        evidence_root = parent if revision is not None else placement_run
+        check_confirmation(contract, approval, evidence_root=evidence_root)
+        validate_plan(plan, contract, evidence_root=evidence_root)
         from .design_review import pin_design_evidence
-        design_artifacts = pin_design_evidence(contract, self.root, search_paths=(placement_run,) if placement_run else ())
+        design_artifacts = pin_design_evidence(contract, self.root, search_paths=(evidence_root,) if evidence_root else ())
         target = contract.get("target")
         if not target:
             raise Refused("execution contract must bind exact live project/document UUIDs")
@@ -203,10 +247,9 @@ class Workflow:
         ctx = before.get("context", {})
         if ctx.get("projectUuid") != target["project_uuid"] or ctx.get("documentUuid") != target["document_uuid"]:
             raise Refused("baseline target mismatch")
-        # MVP never replaces/clears existing components or drawings.
-        # Full design from a clean empty page is the supported execution path.
+        # A nonblank page needs staged placement or pinned revision ownership.
         data = result(before)
-        recovery_artifacts = []
+        recovery_artifacts, staging_ownership = [], {}
         if placement_run:
             from .bridge import observed_parts
             stage_root = Path(placement_run)
@@ -252,35 +295,57 @@ class Workflow:
                 (self.root / ("measurement--" + name)).write_bytes((stage_root / name).read_bytes())
             (self.root / "measurement-evidence.json").write_bytes(measurement_manifest.read_bytes())
             dump(self.root / "staging-proof.json", stage)
+            from .recovery import pin_staged_ownership
+            staging_ownership = pin_staged_ownership(stage_root, self.root, target, stage, parts)
+        elif revision is not None:
+            from .recovery import check_revision_source
+            check_revision_source(revision, before, ir, source, contract, approval, plan)
         elif not is_blank(data):
             raise Refused("MVP compile requires a blank test page; staged/measured designs use upstream workflow explicitly")
         self.adapter.guard(target)
         fresh = self.adapter.snapshot(target)
         if snapshot_fingerprint(fresh) != snapshot_fingerprint(before):
             raise Refused("baseline changed; collect a new snapshot and recompile")
+        if revision is not None:
+            from .recovery import same_window
+            if not same_window(fresh, before):
+                raise Refused("window changed during revision preparation")
         # Copy exact inputs into this run so later edits to originals cannot alter it.
         for name, data in (("contract", contract), ("approval", approval), ("plan", plan), ("expected", ir)):
             dump(self.root / f"{name}.json", data)
         composition_copy, before_copy = self.root / "composition.json", self.root / "before.json"
         composition_copy.write_bytes(Path(composition_path).read_bytes())
         before_copy.write_bytes(Path(before_path).read_bytes())
+        if revision is not None and (load(composition_copy) != source or load(before_copy) != before):
+            raise Refused("revision source or baseline changed while copying")
         out, queue = self.root / "upstream-plan.json", self.root / "apply.json"
         command = ["sch", "compose", "--from", composition_copy, "--before", before_copy,
                    "--out", out, "--playbook", queue, "--replace"]
-        if placement_run: command.append("--preserve-instances")
+        if placement_run or revision is not None:
+            command.append("--preserve-instances")
+        if revision is not None and revision["pin_changes"]:
+            edits = self.root / "revision-connectivity-edits.json"
+            dump(edits, {"schemaVersion": 1, "beforeSha256": file_digest(before_copy),
+                         "sourceSha256": file_digest(composition_copy), "pins": revision["pin_changes"]})
+            command += ["--connectivity-edits", edits]
         if layout_page is not None:
             page_copy = self.root / 'layout-page.json'
             page_copy.write_bytes(Path(layout_page).read_bytes())
             command += ['--layout-page', page_copy]
         self.adapter.run(command, json_output=False)
-        validate_queue(load(queue), target)
+        queue_data = load(queue)
+        from .recovery import add_ownership_captures, revision_validation
+        if add_ownership_captures(queue_data):
+            dump(queue, queue_data)
+        validate_queue(queue_data, target, revision=revision_validation(self.root, before, ir, revision))
         from .main_paths import check_compiled_paths
-        check_compiled_paths(plan, load(out), load(queue), target['document_uuid'],
+        check_compiled_paths(plan, load(out), queue_data, target['document_uuid'],
                              modern=contract.get('design_evidence', {}).get('policy_version') == 1)
         self.adapter.run(["sch", "apply", queue, "--dry-run"], json_output=False)
         artifacts = {name: file_digest(self.root / name) for name in
                      ("contract.json", "approval.json", "plan.json", "expected.json", "composition.json", "before.json", "apply.json", "upstream-plan.json")}
         artifacts.update(design_artifacts)
+        artifacts.update(staging_ownership)
         if layout_page is not None:
             artifacts['layout-page.json'] = file_digest(page_copy)
         if placement_run:
@@ -288,8 +353,16 @@ class Workflow:
                 artifacts[name] = file_digest(self.root / name)
             for name in recovery_artifacts:
                 artifacts[name] = file_digest(self.root / name)
+        if revision is not None:
+            for name in ("revision-proof.json", "revision-readback.json", *revision["evidence"]):
+                artifacts[name] = file_digest(self.root / name)
+            if revision["pin_changes"]:
+                artifacts[edits.name] = file_digest(edits)
         bundle = {"schema_version": 1, "state": "prepared", "target": target, "artifacts": artifacts,
                   "baseline_fingerprint": snapshot_fingerprint(before), "created_at": now()}
+        window = getattr(self.adapter, "window", None)
+        if window is not None:
+            bundle["window"] = window
         dump(self.root / "bundle.json", bundle)
         return bundle
 
@@ -314,8 +387,15 @@ class Workflow:
         os.write(fd, now().encode()); os.close(fd)
         target = bundle["target"]
         try:
+            if bundle.get("window") != getattr(self.adapter, "window", None) and (
+                    "window" in bundle or "revision-proof.json" in bundle["artifacts"]):
+                raise Refused("window differs from prepared target")
             self.adapter.guard(target)
             fresh = self.adapter.snapshot(target)
+            from .recovery import same_window
+            if ("revision-proof.json" in bundle["artifacts"]
+                    and not same_window(load(self.root / "before.json"), fresh)):
+                raise Refused("window changed after revision preparation")
             if snapshot_fingerprint(fresh) != bundle["baseline_fingerprint"]:
                 raise Refused("target changed after preparation")
             self.adapter.run(["sch", "apply", self.root / "apply.json", "--journal", self.root / "apply.journal.jsonl"], target=target, json_output=False, timeout=600)
@@ -337,10 +417,23 @@ class Workflow:
         check_confirmation(contract, load(self.root / "approval.json"), evidence_root=self.root)
         if bundle["target"] != contract.get("target"):
             raise Refused("bundle target changed")
-        validate_queue(load(self.root / "apply.json"), bundle["target"])
+        revision = None
+        if "revision-proof.json" in bundle["artifacts"]:
+            from .recovery import check_revision_source, revision_validation
+            proof = load(self.root / "revision-proof.json")
+            before = load(self.root / "before.json")
+            expected = load(self.root / "expected.json")
+            source = load(self.root / "composition.json")
+            check_revision_source(proof, before, expected, source, contract,
+                                  load(self.root / "approval.json"), load(self.root / "plan.json"))
+            if snapshot_fingerprint(before) != bundle["baseline_fingerprint"]:
+                raise Refused("revision baseline binding changed")
+            revision = revision_validation(self.root, before, expected, proof)
+        queue = load(self.root / "apply.json")
+        validate_queue(queue, bundle["target"], revision=revision)
         from .main_paths import check_compiled_paths
         check_compiled_paths(load(self.root / 'plan.json'), load(self.root / 'upstream-plan.json'),
-                             load(self.root / 'apply.json'), bundle['target']['document_uuid'],
+                             queue, bundle['target']['document_uuid'],
                              modern=contract.get('design_evidence', {}).get('policy_version') == 1)
 
     def verify(self):
@@ -401,6 +494,11 @@ class Workflow:
 
         target, evidence = bundle["target"], {}
         self.adapter.guard(target)
+        if "revision-proof.json" in bundle["artifacts"]:
+            from .recovery import require_revision_completion
+            if bundle.get("window") != getattr(self.adapter, "window", None):
+                raise Refused("window differs from the executed revision")
+            require_revision_completion(self.root, self.adapter.snapshot(target), target)
         saved = self.adapter.run(["sch", "save"], target=target)
         record("save.json", saved)
         if result(saved).get("saved") is not True:
@@ -436,6 +534,8 @@ class Workflow:
         record('final-snapshot.json', final_snapshot)
         if snapshot_fingerprint(initial_snapshot) != snapshot_fingerprint(final_snapshot):
             raise Refused('page changed during verification; collect a new consistent attempt')
+        if "revision-proof.json" in bundle["artifacts"]:
+            require_revision_completion(self.root, final_snapshot, target)
         passed = all(e.get("passed") is True for e in evidence.values())
         report = {"schema_version": 1, "state": "verified" if passed else "incomplete",
                   "level": "live-verified" if passed else "live-incomplete", "checks": evidence,

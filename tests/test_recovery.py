@@ -1,4 +1,4 @@
-"""Interrupted placement recovery with synthetic ownership and no live EDA."""
+"""Placement and drawing recovery with synthetic ownership and no live EDA."""
 import copy
 import json
 import tempfile
@@ -283,3 +283,384 @@ class RecoveryCommandTests(unittest.TestCase):
             with self.assertRaisesRegex(Refused, 'page changed'):
                 recover_stage(adapter, source, root / 'new-stage')
             self.assertFalse(any((call[:2] == ['sch', 'apply'] and '--dry-run' not in call for call in adapter.calls)))
+
+
+def revision_fixture():
+    from test_upstream_cli import TARGET as target, joint_drawing_fixture
+    from eso.requirements import contract_from
+
+    logical, primary, source, wired = joint_drawing_fixture()
+    ir = source['connectivity']
+    for net in ir['nets']:
+        net.update(scope='local', role='signal')
+    edges = {(c['componentId'], c['pinNumber']): c['netId'] for c in ir['connections']}
+    contract = contract_from({'schema_version': 1, 'circuit_type': 'generic',
+                              'function_description': 'Synthetic recovery', 'input_voltage_v': 3.3,
+                              'power_source': 'external-regulated', 'target_project': target['project_name']}, target)
+    owners = {m[key]: m['id'] for m in logical for key in ('core', 'peripheral')}
+    plan = {'schema_version': 1, 'contract_sha256': digest(contract), 'template': 'synthetic-revision',
+            'components': [
+                {'id': c['id'], 'ref': c['ref'], 'query': 'SYNTHETIC', 'role': 'fixture',
+                 'module': owners[c['id']],
+                 'pins': [{'number': p['number'], 'name': p['name'], 'net': edges.get((c['id'], p['number'])),
+                           'nc_reason': 'intentionally not connected' if p['noConnected'] else None}
+                          for p in c['pins']]}
+                for c in ir['components']],
+            'modules': [{'id': m['id'], 'core_ref': next(c['ref'] for c in ir['components'] if c['id'] == m['core']),
+                         'title': m['id']} for m in logical],
+            'drawing_groups': [{'id': ir['modules'][0]['id'], 'title': ir['modules'][0]['name'],
+                                'modules': [m['id'] for m in logical]}],
+            'primary_paths': [primary],
+            'evidence': [{'url': 'synthetic:only', 'section': 'test'}], 'notes': []}
+    wired['context']['windowId'] = 'synthetic-window'
+    return target, contract, plan, source, wired
+
+
+def unwire(snapshot, *, remove_parts=False, count=0):
+    snap = copy.deepcopy(snapshot)
+    data, page = snap['result'], snap['result']['pagePrimitives']
+    page['rectangles'] = []
+    page['texts'] = []
+    page['wires'] = page['wires'][:count]
+    data['wires'] = data['wires'][:count]
+    data['connectivitySummary']['wires'] = count
+    if remove_parts:
+        data['components'] = page['components'] = [c for c in data['components'] if c['componentType'] == 'sheet']
+        page['pins'] = []
+        page['attributes'] = []
+        data['count'] = len(data['components'])
+    else:
+        for part in data['components']:
+            for pin in part.get('pins', []):
+                pin.update(net='', noConnected=False)
+    return snap
+
+
+def compiled_revision(before, after, target, *, edits=None):
+    from eso.recovery import INSTANCE_FIELDS, PHYSICAL_PIN_FIELDS, POSE
+
+    read = dict.fromkeys(('includeBBox', 'includeConnectivitySummary', 'includeDeviceIdentity',
+                         'includePagePrimitives', 'includePins', 'includeWires'), True)
+    page = before['result']['pagePrimitives']
+    drawing_ids = {obj['primitiveId'] for kind in ('wires', 'rectangles', 'texts') for obj in page[kind]}
+    retained = {k: [row for row in rows if row['primitiveId'] not in drawing_ids] for k, rows in page.items()}
+
+    def guard(snapshot, *, clear=False):
+        data = snapshot['result']
+        parts = [row for row in data['components'] if row['componentType'] == 'part']
+        geometry = {}
+        for p in parts:
+            geometry[p['designator']] = {
+                **{k: p[k] for k in ('primitiveId', 'device', 'bbox', *POSE)},
+                'instance': {k: p[k] for k in INSTANCE_FIELDS},
+                'pins': {q['pinNumber']: {**{k: q[k] for k in ('x', 'y', 'noConnected')},
+                                          **({} if clear else {'net': q['net']}),
+                                          'name': q['pinName'],
+                                          'persistent': {k: q[k] for k in PHYSICAL_PIN_FIELDS}}
+                         for q in p['pins']},
+            }
+        owners = sorted([row['primitiveId'] for row in data['components']] +
+                        [pin['primitiveId'] for part in parts for pin in part['pins']])
+        attributes = {row['primitiveId']: {k: v for k, v in row.items() if k not in ('X', 'Y', 'Rotation')}
+                      for row in data['pagePrimitives']['attributes']}
+        return {'exactParts': True, 'parts': geometry,
+                'ownedAttributes': {'owners': owners, 'attributes': attributes}}
+
+    def check(ident, expectation):
+        return {'id': ident, 'action': 'schematic.components.list', 'payload': read.copy(),
+                'expectSchematic': expectation}
+
+    source = guard(before)
+    components = {row['primitiveId']: copy.deepcopy(row) for row in before['result']['components']}
+    for part in components.values():
+        if part['componentType'] == 'part':
+            part['pins'] = {pin['pinNumber']: pin for pin in part['pins']}
+            part.pop('bbox')
+    source['sourceScene'] = {'components': components,
+                             'pagePrimitives': page,
+                             'connectivitySummary': before['result']['connectivitySummary'],
+                             'wires': [json.dumps(row) for row in before['result']['wires']]}
+    if edits:
+        source['sourceConnectivityEdits'] = edits
+    cleared = dict(guard(before, clear=True), pagePrimitives=retained, drawing={'wires': None, 'flags': None})
+    steps = [check('verify-source-before-reset', source)]
+    if drawing_ids:
+        count = len(drawing_ids)
+        steps += [{'id': 'reset-drawing-preserving-instances', 'action': 'schematic.primitives.delete',
+                   'payload': {'primitiveIds': sorted(drawing_ids)},
+                   'assert': {'$.requested': f'=={count}', '$.total': f'=={count}'}}]
+    steps.append(check('verify-preserved-parts-after-clear', cleared))
+    for n, p in enumerate(p for p in after['result']['components'] if p['componentType'] == 'part'):
+        steps.append({'id': 'move-preserved-' + str(n), 'action': 'schematic.component.modify',
+                      'payload': {'primitiveId': p['primitiveId'], 'preserveInstance': True,
+                                  'patch': {k: p[k] for k in POSE}},
+                      'assert': {'$.instancePreserved': '==true'}})
+    steps.append(check('verify-physical-pins-before-wiring', guard(after)))
+    for wire in after['result']['wires']:
+        steps.append({'id': 'wire-' + wire['primitiveId'], 'action': 'schematic.wire.create',
+                      'payload': {'points': [[wire['x0'], wire['y0']], [wire['x1'], wire['y1']]]}})
+    steps.append({'id': 'frame', 'run': 'sch frame apply',
+                  'flags': {'data': json.dumps({'documentId': target['document_uuid'], 'frames': []})}})
+    steps.extend((check('verify-all-pins-nets-nc', guard(after)), {'id': 'save', 'action': 'schematic.save'},
+                  check('verify-saved-instance-preservation', guard(after))))
+    return {'version': 1, 'requireFullExecution': True, 'meta': {'project': target['project_uuid'],
+                                                                'doc': target['document_uuid']},
+            'steps': steps}
+
+
+class SimulatedDrawingAdapter:
+    window = 'synthetic-window'
+
+    def __init__(self, target, before, final, expected, *, timeout=False):
+        self.target = target
+        self.current = before
+        self.final = final
+        self.expected = expected
+        self.timeout = timeout
+        self.rekey_attributes = False
+        self.calls = []
+
+    def guard(self, target):
+        if target != self.target:
+            raise Refused('synthetic target differs')
+
+    def snapshot(self, target):
+        self.guard(target)
+        return copy.deepcopy(self.current)
+
+    def run(self, args, **kwargs):
+        self.calls.append(tuple(map(str, args)))
+        if args[:2] == ['sch', 'compose']:
+            before = load(args[args.index('--before') + 1])
+            if '--preserve-instances' in args:
+                edits = load(args[args.index('--connectivity-edits') + 1]) if '--connectivity-edits' in args else None
+                playbook = compiled_revision(before, self.final, self.target, edits=edits)
+            else:
+                playbook = self.first_queue()
+            dump(args[args.index('--playbook') + 1], playbook)
+            dump(args[args.index('--out') + 1], {})
+        elif args[:2] == ['sch', 'apply'] and '--journal' in args:
+            self.apply(args[2], args[args.index('--journal') + 1])
+        elif args[:2] == ['sch', 'save']:
+            return {'ok': True, 'result': {'saved': True}}
+        elif args[:2] == ['doc', 'reload']:
+            if self.rekey_attributes:
+                for attribute in self.current['result']['pagePrimitives']['attributes']:
+                    attribute['primitiveId'] = 'reloaded-' + attribute['primitiveId']
+            return {'status': 'passed', 'saved': True, 'closed': True, 'reloaded': self.target['document_uuid']}
+        elif args[:2] == ['sch', 'connectivity']:
+            return self.expected
+        elif kwargs.get('check') is False:
+            data = {'ok': True} if args[1] == 'layout-lint' else {'ok': True, 'result': {'passed': True}}
+            return {'exit_code': 0, 'stdout': json.dumps(data), 'stderr': ''}
+        return {'exit_code': 0, 'stdout': 'synthetic', 'stderr': ''}
+
+    def first_queue(self):
+        meta = {'project': self.target['project_uuid'], 'doc': self.target['document_uuid']}
+        steps = []
+        for part in self.final['result']['components']:
+            if part['componentType'] == 'part':
+                ref = part['designator']
+                steps.append({'id': 'place-' + ref, 'action': 'schematic.component.place',
+                              'payload': {'designator': ref}, 'capture': {ref: '$.primitiveId'}})
+        steps.append({'id': 'verify-physical-pins-before-wiring', 'action': 'schematic.components.list', 'payload': {}})
+        for wire in self.final['result']['wires']:
+            steps.append({'id': 'wire-' + wire['primitiveId'], 'action': 'schematic.wire.create',
+                          'payload': {'points': [[wire['x0'], wire['y0']], [wire['x1'], wire['y1']]]}})
+        for part in self.final['result']['components']:
+            for pin in part.get('pins', []):
+                if pin['noConnected']:
+                    steps.append({'id': 'nc-' + pin['primitiveId'], 'action': 'schematic.pin.set_no_connect',
+                                  'payload': {'designator': part['designator'], 'pins': [pin['pinNumber']],
+                                              'noConnected': True}})
+        steps.append({'id': 'frame', 'run': 'sch frame apply', 'flags': {'data': '{}'}})
+        return {'version': 1, 'requireFullExecution': True, 'meta': meta, 'steps': steps}
+
+    def apply(self, queue_path, journal_path):
+        queue = load(queue_path)
+        rows = [{'playbookSha256': file_digest(queue_path), 'project': self.target['project_uuid']}]
+        parts = {part.get('designator'): part for part in self.final['result']['components']}
+        for position, step in enumerate(queue['steps'], 1):
+            action, ident = step.get('action'), step['id']
+            capture = {}
+            if action == 'schematic.component.place':
+                ref = step['payload']['designator']
+                capture[ref] = parts[ref]['primitiveId']
+            elif action == 'schematic.wire.create':
+                capture['eso-wire'] = ident.removeprefix('wire-')
+                if self.timeout:
+                    self.current = unwire(self.final, count=1)
+                    self.current['result']['components'][1]['pins'][0]['net'] = 'IN'
+                    break
+            elif 'eso-placed-readback' in step.get('capture', {}):
+                capture['eso-placed-readback'] = json.dumps(unwire(self.final)['result'])
+            elif 'eso-saved-readback' in step.get('capture', {}):
+                capture['eso-saved-readback'] = json.dumps(self.final['result'])
+            elif step.get('run') == 'sch frame apply':
+                page = self.final['result']['pagePrimitives']
+                capture['eso-frames'] = json.dumps([{'rectangle': {'id': page['rectangles'][0]['primitiveId']},
+                                                     'title': {'id': page['texts'][0]['primitiveId']}}])
+            rows.append({'idx': position, 'id': ident, 'status': 'ok', 'ms': 1, 'captured': capture})
+        Path(journal_path).write_text(''.join(json.dumps(row) + '\n' for row in rows))
+        if self.timeout:
+            raise Refused('CLI timed out: write may have landed')
+        self.current = copy.deepcopy(self.final)
+
+
+class DrawingRevisionTests(unittest.TestCase):
+    def start(self, directory, *, timeout=False):
+        from eso.workflow import Workflow
+        root = Path(directory)
+        target, contract, plan, source, wired = revision_fixture()
+        before = unwire(wired, remove_parts=True)
+        approval = confirm(contract, digest(contract), 'synthetic human')
+        adapter = SimulatedDrawingAdapter(target, before, wired, source['connectivity'], timeout=timeout)
+        source_path, blank_path = root / 'source.json', root / 'blank.json'
+        dump(source_path, source)
+        dump(blank_path, before)
+        parent = Workflow(adapter, root / 'parent')
+        parent.prepare(contract, approval, plan, source_path, blank_path)
+        if timeout:
+            with self.assertRaisesRegex(Refused, 'timed out'):
+                parent.execute()
+        else:
+            parent.execute()
+            self.assertEqual(parent.verify()['state'], 'verified')
+        return target, source_path, adapter, parent
+
+    def test_normal_verified_revision_uses_new_apply_and_verification(self):
+        from eso.workflow import Workflow
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, source, adapter, parent = self.start(root)
+            old_final = copy.deepcopy(adapter.current)
+            after = adapter.final
+            after['result']['components'][1]['x'] += 5
+            after['result']['pagePrimitives']['attributes'][0]['X'] += 5
+            before_path = root / 'fresh.json'
+            dump(before_path, old_final)
+            original_bundle = (parent.root / 'bundle.json').read_bytes()
+            revised = Workflow(adapter, root / 'revised')
+            revised.prepare_revision(parent.root, source, before_path)
+            self.assertEqual(load(revised.root / 'revision-proof.json')['parent_was_verified'], True)
+            self.assertFalse((revised.root / 'verification.json').exists())
+            revised.execute()
+            adapter.rekey_attributes = True
+            report = revised.verify()
+            self.assertEqual(report['state'], 'verified')
+            self.assertNotEqual(report['attempt'], load(parent.root / 'verification.json')['attempt'])
+            self.assertEqual((parent.root / 'bundle.json').read_bytes(), original_bundle)
+            dump(before_path, adapter.current)
+            adapter.final = copy.deepcopy(adapter.current)
+            next_revision = Workflow(adapter, root / 'second')
+            next_revision.prepare_revision(revised.root, source, before_path)
+            self.assertTrue(load(next_revision.root / 'revision-proof.json')['parent_was_verified'])
+            self.assertEqual(adapter.current['result']['components'][1]['primitiveId'],
+                             old_final['result']['components'][1]['primitiveId'])
+            self.assertEqual(adapter.current['result']['pagePrimitives']['attributes'][0]['Value'],
+                             old_final['result']['pagePrimitives']['attributes'][0]['Value'])
+            self.assertNotEqual(adapter.current['result']['pagePrimitives']['attributes'][0]['primitiveId'],
+                                old_final['result']['pagePrimitives']['attributes'][0]['primitiveId'])
+
+    def test_timeout_landed_wire_recovers_to_prepared_without_replaying(self):
+        from eso.workflow import Workflow
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, source, adapter, parent = self.start(root, timeout=True)
+            fresh = root / 'fresh.json'
+            dump(fresh, adapter.current)
+            adapter.timeout = False
+            for name in ('recovery-1', 'recovery-2'):
+                recovered = Workflow(adapter, root / name)
+                recovered.prepare_revision(parent.root, source, fresh)
+                proof = load(recovered.root / 'revision-proof.json')
+                self.assertEqual(proof['owned_drawing'], {'old-wire-0': 'wires'})
+                self.assertEqual(proof['progress']['landed_step'], 'wire-old-wire-0')
+                changes = load(recovered.root / 'revision-connectivity-edits.json')
+                self.assertIn({'net': 'MAIN', 'noConnected': False}, [row['after'] for row in changes['pins']])
+                self.assertEqual(changes['beforeSha256'], file_digest(recovered.root / 'before.json'))
+                self.assertEqual(changes['sourceSha256'], file_digest(recovered.root / 'composition.json'))
+            self.assertEqual(sum(call[:2] == ('sch', 'apply') and '--journal' in call for call in adapter.calls), 1)
+            recovered.execute()
+            self.assertEqual(recovered.verify()['state'], 'verified')
+
+    def test_readback_mutations_and_wrong_window_leave_new_run_incomplete(self):
+        from eso.workflow import Workflow
+        for mutation in ('unknown drawing', 'part attribute', 'pin net', 'window', 'unbound journal'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                _, source, adapter, parent = self.start(root, timeout=True)
+                if mutation == 'unknown drawing':
+                    adapter.current['result']['pagePrimitives']['texts'] = [
+                        {'primitiveId': 'unknown-native-text', 'Content': 'Manual note'}]
+                elif mutation == 'part attribute':
+                    adapter.current['result']['pagePrimitives']['attributes'][0]['Value'] = 'Manual edit'
+                elif mutation == 'pin net':
+                    adapter.current['result']['components'][1]['pins'][0]['net'] = 'WRONG'
+                elif mutation == 'window':
+                    adapter.current['context']['windowId'] = 'different-window'
+                else:
+                    journal = parent.root / 'apply.journal.jsonl'
+                    journal.write_text(journal.read_text().replace('wire', 'other-wire'))
+                    rows = [json.loads(row) for row in journal.read_text().splitlines()]
+                    rows[0]['playbookSha256'] = '0' * 64
+                    journal.write_text(''.join(json.dumps(row) + '\n' for row in rows))
+                before = root / 'fresh.json'
+                dump(before, adapter.current)
+                output = Workflow(adapter, root / 'refused')
+                with self.assertRaises(Refused):
+                    output.prepare_revision(parent.root, source, before)
+                self.assertEqual(load(output.root / 'revision-status.json')['state'], 'incomplete')
+                self.assertFalse((output.root / 'bundle.json').exists())
+
+
+    def test_cli_revision_reads_parent_inputs(self):
+        from io import StringIO
+        from unittest.mock import patch
+        from eso.cli import main
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, source, adapter, parent = self.start(root)
+            before = root / 'fresh.json'
+            dump(before, adapter.current)
+            args = ['prepare', '--revision-of', str(parent.root), '--composition', str(source),
+                    '--before', str(before), '--run-dir', str(root / 'cli-revision')]
+            with patch('eso.cli.EasyEDA', return_value=adapter), patch('sys.stdout', new_callable=StringIO) as out:
+                self.assertEqual(main(args), 0)
+                self.assertEqual(json.loads(out.getvalue())['state'], 'prepared')
+            with patch('sys.stderr', new_callable=StringIO), self.assertRaises(SystemExit):
+                main([*args, '--placement-run', str(parent.root)])
+
+    def test_baseline_change_blocks_execute_and_old_geometry_cannot_verify(self):
+        from eso.workflow import Workflow
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, source, adapter, parent = self.start(root)
+            before = root / 'fresh.json'
+            dump(before, adapter.current)
+            output = Workflow(adapter, root / 'revised')
+            output.prepare_revision(parent.root, source, before)
+            adapter.current['result']['pagePrimitives']['attributes'][0]['Value'] = 'out-of-band'
+            writes = sum('--journal' in call for call in adapter.calls)
+            with self.assertRaisesRegex(Refused, 'target changed after preparation'):
+                output.execute()
+            self.assertEqual(sum('--journal' in call for call in adapter.calls), writes)
+            with self.assertRaises(Refused):
+                output.verify()
+            self.assertEqual(load(output.root / 'verification.json')['state'], 'incomplete')
+
+    def test_source_change_before_compile_stops_candidate(self):
+        from eso.workflow import Workflow
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            _, source, adapter, parent = self.start(root)
+            altered_source = load(source)
+            altered_source['connectivity']['components'][0]['device']['deviceUuid'] = 'f' * 32
+            dump(source, altered_source)
+            before = root / 'fresh.json'
+            dump(before, adapter.current)
+            compiles = sum(call[:2] == ('sch', 'compose') for call in adapter.calls)
+            with self.assertRaisesRegex(Refused, 'changes the parent circuit'):
+                Workflow(adapter, root / 'refused').prepare_revision(parent.root, source, before)
+            self.assertEqual(sum(call[:2] == ('sch', 'compose') for call in adapter.calls), compiles)

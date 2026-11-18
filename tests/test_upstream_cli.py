@@ -6,9 +6,10 @@ import tempfile
 import unittest
 from pathlib import Path
 from eso.adapter import EasyEDA
-from eso.core import Refused, dump, load
+from eso.core import Refused, dump, file_digest, load
 from eso.planner import bind_plan, make_plan
 from eso.requirements import contract_from
+from eso.recovery import add_ownership_captures, revision_inventory
 from eso.workflow import validate_queue
 
 
@@ -145,7 +146,7 @@ def joint_drawing_fixture():
 
 @unittest.skipUnless(os.environ.get("EASYEDA_BIN"), "set EASYEDA_BIN to test actual upstream offline compiler")
 class UpstreamCLITests(unittest.TestCase):
-    def compile_fixture(self, root, source, before, *, preserve_instances=False):
+    def compile_fixture(self, root, source, before, *, preserve_instances=False, restoration=None):
         dump(root / "source.json", source)
         dump(root / "before.json", before)
         adapter = EasyEDA(os.environ["EASYEDA_BIN"], root / "receipts")
@@ -153,15 +154,25 @@ class UpstreamCLITests(unittest.TestCase):
                    "--out", root / "computed.json", "--playbook", root / "queue.json", "--replace"]
         if preserve_instances:
             command.append("--preserve-instances")
+        edits = None
+        if restoration:
+            edits = {"schemaVersion": 1, "beforeSha256": file_digest(root / "before.json"),
+                     "sourceSha256": file_digest(root / "source.json"), "pins": restoration}
+            dump(root / "restoration.json", edits)
+            command += ["--connectivity-edits", root / "restoration.json"]
         adapter.run(command, json_output=False)
         computed, queue = load(root / "computed.json"), load(root / "queue.json")
         self.assertEqual(load(root / "source.json"), source)
         self.assertEqual(load(root / "before.json"), before)
         if preserve_instances:
-            # Task 4 must add a narrowly protected drawing-reset adapter before this
-            # queue can enter Workflow. The real upstream offline compiler supports it.
             with self.assertRaisesRegex(Refused, "action outside MVP surface: schematic.primitives.delete"):
                 validate_queue(queue, TARGET)
+            self.assertTrue(add_ownership_captures(queue))
+            validate_queue(queue, TARGET, revision={
+                "before": before, "owned_drawing": revision_inventory(before, TARGET)["drawing"],
+                "expected": source["connectivity"], "edits": edits,
+            })
+            dump(root / "queue.json", queue)
         else:
             validate_queue(queue, TARGET)
         self.assertEqual(adapter.run(["sch", "apply", root / "queue.json", "--dry-run"],
@@ -287,6 +298,56 @@ class UpstreamCLITests(unittest.TestCase):
                 self.assertEqual(guard["ownedAttributes"]["attributes"], expected_attributes)
             self.assertFalse(any(step.get("run") == "sch clear" or step.get("action") in
                                  ("schematic.page.clear", "schematic.component.place") for step in queue["steps"]))
+
+    def test_owned_reset_refuses_tampered_ids_and_phase_guards(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, _, source, before = joint_drawing_fixture()
+            _, queue = self.compile_fixture(Path(directory), source, before, preserve_instances=True)
+            revision = {"before": before, "owned_drawing": revision_inventory(before, TARGET)["drawing"],
+                        "expected": source["connectivity"]}
+            for defect in ("part ID", "pin ID", "attribute ID", "foreign ID", "duplicate", "short set",
+                           "early reset", "source drift", "residual attribute", "unprotected moves", "final NC"):
+                changed = copy.deepcopy(queue)
+                steps = {step["id"]: step for step in changed["steps"]}
+                reset = steps["reset-drawing-preserving-instances"]
+                ids = reset["payload"]["primitiveIds"]
+                forbidden = {"part ID": "native-R1", "pin ID": "native-R1-pin-1",
+                             "attribute ID": "attribute-R1", "foreign ID": "unknown-native"}
+                if defect in forbidden:
+                    ids[0] = forbidden[defect]
+                elif defect == "duplicate":
+                    ids[0] = ids[1]
+                elif defect == "short set":
+                    ids.pop()
+                elif defect == "early reset":
+                    changed["steps"].remove(reset)
+                    changed["steps"].insert(0, reset)
+                elif defect == "source drift":
+                    steps["verify-source-before-reset"]["expectSchematic"]["sourceScene"]["wires"].pop()
+                elif defect == "residual attribute":
+                    steps["verify-preserved-parts-after-clear"]["expectSchematic"]["pagePrimitives"]["attributes"].pop()
+                elif defect == "unprotected moves":
+                    steps["move-preserved-000"]["payload"]["preserveInstance"] = False
+                else:
+                    steps["verify-saved-instance-preservation"]["expectSchematic"]["parts"]["R1"]["pins"]["2"]["noConnected"] = False
+                with self.subTest(defect=defect), self.assertRaises(Refused):
+                    validate_queue(changed, TARGET, revision=revision)
+
+    def test_recover_partial_native_pin_with_exact_input_hashes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, _, source, before = joint_drawing_fixture()
+            part = next(row for row in before["result"]["components"] if row.get("designator") == "R1")
+            part["pins"][1]["noConnected"] = False
+            restoration = [{"componentId": "peripheral-a", "ref": "R1", "pinNumber": "2", "pinName": "2",
+                            "before": {"net": "", "noConnected": False},
+                            "after": {"net": "", "noConnected": True}}]
+            _, queue = self.compile_fixture(Path(directory), source, before,
+                                            preserve_instances=True, restoration=restoration)
+            steps = {step["id"]: step for step in queue["steps"]}
+            self.assertEqual(steps["verify-source-before-reset"]["expectSchematic"]
+                             ["sourceConnectivityEdits"]["pins"], restoration)
+            self.assertEqual(steps["verify-all-pins-nets-nc"]["expectSchematic"]
+                             ["parts"]["R1"]["pins"]["2"]["noConnected"], True)
 
     def assert_compile_rejected(self, root, source, before, message):
         dump(root / "source.json", source)

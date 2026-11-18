@@ -93,9 +93,13 @@ def main(argv=None):
     diagnostic.add_argument('--connectivity', help='explicit offline canonical connectivity')
     diagnostic.add_argument('--live', action='store_true', help='read fresh live snapshot/connectivity; no writes')
     prepare = sub.add_parser("prepare", help="compile an upstream composition and dry-run; no project writes")
-    for field in ("contract", "approval", "plan", "composition", "before", "run-dir"):
+    for field in ("composition", "before", "run-dir"):
         prepare.add_argument("--" + field, required=True)
-    prepare.add_argument("--placement-run", help="owned staging/measurement proof; preserves native instances")
+    for field in ("contract", "approval", "plan"):
+        prepare.add_argument("--" + field)
+    preparation = prepare.add_mutually_exclusive_group()
+    preparation.add_argument("--placement-run", help="owned staging/measurement proof; preserves native instances")
+    preparation.add_argument("--revision-of", help="owned prior run; preserves existing parts and approved circuit")
     prepare.add_argument("--layout-page", help="selected upstream layout-sheet-plan page; compiled without repacking")
     stage = sub.add_parser("stage", help="place reviewed library parts only in an approved blank test page")
     for field in ("contract", "approval", "plan", "bindings", "run-dir"):
@@ -237,7 +241,17 @@ def main(argv=None):
         else:
             workflow = Workflow(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir)
             if args.command == "prepare":
-                output = workflow.prepare(load(args.contract), load(args.approval), load(args.plan), args.composition, args.before, args.placement_run, layout_page=args.layout_page)
+                if args.revision_of:
+                    if any((args.contract, args.approval, args.plan)):
+                        raise Refused("revision uses the parent run's contract, approval, and plan")
+                    output = workflow.prepare_revision(args.revision_of, args.composition, args.before,
+                                                       layout_page=args.layout_page)
+                else:
+                    if not all((args.contract, args.approval, args.plan)):
+                        raise Refused("prepare requires --contract, --approval, and --plan")
+                    output = workflow.prepare(load(args.contract), load(args.approval), load(args.plan),
+                                              args.composition, args.before, args.placement_run,
+                                              layout_page=args.layout_page)
             elif args.command == "execute": output = workflow.execute()
             elif args.command == "verify": output = workflow.verify()
         print(json.dumps(output, ensure_ascii=False, indent=2))

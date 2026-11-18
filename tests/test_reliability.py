@@ -253,3 +253,26 @@ class DiagnosticsTests(unittest.TestCase):
                 code = main(['--easyeda', 'MISSING', 'diagnose', '--run-dir', str(root)])
             self.assertEqual(code, 0)
             self.assertEqual(json.loads(output.getvalue())['state'], 'diagnostic-only')
+
+
+class RevisionLockTests(unittest.TestCase):
+    def test_revision_uses_same_target_lock_and_allows_another_target(self):
+        from test_recovery import DrawingRevisionTests
+        from eso.core import dump
+        from eso.locking import target_lock
+        from eso.workflow import Workflow
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as directory, patch.dict(
+                "os.environ", {"ESO_LOCK_DIR": str(Path(directory) / 'locks')}):
+            root = Path(directory)
+            target, source, adapter, parent = DrawingRevisionTests().start(root)
+            before = root / 'fresh.json'
+            dump(before, adapter.current)
+            active = Workflow(adapter, root / 'active')
+            with target_lock(target):
+                with self.assertRaisesRegex(Refused, 'target is busy'):
+                    active.prepare_revision(parent.root, source, before)
+            other = dict(target, document_uuid='separate-page')
+            with target_lock(other):
+                self.assertEqual(active.prepare_revision(parent.root, source, before)['state'], 'prepared')
