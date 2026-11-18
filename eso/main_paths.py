@@ -217,7 +217,10 @@ def check_source_paths(plan, source):
         raise Refused('complete authored source physical pin geometry required for primary paths')
     segments = audit.scene_segments({'wires': wires})
     physical = audit.contact_graph(segments, pins, [], [], with_labels=False)
-    issues = audit.physical_path_findings(target, pins, segments, physical)
+    # Compiler-derived marker and terminal leads can finish declared relations.
+    # Check explicit unauthorized contacts here, then require complete connectivity
+    # in check_compiled_paths before any prepared state or Apply.
+    issues = audit.physical_path_findings(target, pins, segments, physical, complete=False)
     if issues:
         raise Refused('source primary path audit failed: ' + str(issues))
 
@@ -228,7 +231,7 @@ def check_scene_page(scene, snapshot, target):
     if context.get('projectUuid') != target['project_uuid'] or context.get('documentUuid') != target['document_uuid']:
         raise Refused('supplementary snapshot document differs from protected target')
     pages = set()
-    for field in ('pins', 'wires', 'junctions', 'labels', 'bodies', 'texts', 'moduleFrames'):
+    for field in ('pins', 'wires', 'junctions', 'labels', 'bodies', 'texts'):
         for item in scene.get(field, []):
             page = item.get('page')
             if not isinstance(page, str) or not page:
@@ -236,6 +239,11 @@ def check_scene_page(scene, snapshot, target):
             pages.add(page)
     if len(pages) != 1:
         raise Refused('current scene geometry must share the single observed document page')
+    for frame in scene.get('moduleFrames', []):
+        if 'page' not in frame and 'moduleId' in frame and 'drawingGroupId' not in frame:
+            continue
+        if frame.get('page') not in pages:
+            raise Refused('current scene frame must share the single observed document page')
 
 
 def check_compiled_paths(plan, computed, queue, document_id, *, modern=False):

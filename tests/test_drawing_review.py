@@ -206,6 +206,31 @@ class DrawingReviewTests(unittest.TestCase):
                 manifest = cli.delivery_manifest(workflow.root, root / 'manifest.json', path)
                 self.assertEqual(manifest['state'], 'verified' if defect is None else 'incomplete', manifest)
 
+    def test_legacy_missing_frame_page_inherits_observed_alias(self):
+        for modern, page in ((False, 'omitted'), (False, 'conflict'), (False, None), (True, 'omitted')):
+            with self.subTest(modern=modern, page=page), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                workflow, path = drawing_run(root, modern=modern)
+                scene = load(root / 'scene.json')
+                frame = scene['moduleFrames'][0]
+                if page == 'omitted':
+                    frame.pop('page')
+                else:
+                    frame['page'] = page
+                dump(root / 'scene.json', scene)
+                reviews = load(path)
+                files = reviews['layers']['geometry']['files']
+                files['scene']['sha256'] = file_digest(root / 'scene.json')
+                for name in ('report', 'readability'):
+                    report = load(files[name]['path'])
+                    report['inputSha256'] = {key: files[key]['sha256'] for key in ('target', 'scene')}
+                    dump(files[name]['path'], report)
+                    files[name]['sha256'] = file_digest(files[name]['path'])
+                dump(path, reviews)
+                manifest = cli.delivery_manifest(workflow.root, root / 'manifest.json', path)
+                expected = 'verified' if not modern and page == 'omitted' else 'incomplete'
+                self.assertEqual(manifest['state'], expected, manifest)
+
     def test_final_delivery_rechecks_text_against_wires_bodies_and_other_text(self):
         for bounds in ([20, -2, 30, 2], [1, -2, 6, 2], [0, 6, 5, 8]):
             with self.subTest(bounds=bounds), tempfile.TemporaryDirectory() as directory:

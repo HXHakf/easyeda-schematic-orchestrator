@@ -179,13 +179,55 @@ class InstallTests(unittest.TestCase):
             wheels = root / 'wheels'
             built = subprocess.run(['uv', 'build', '--offline', '--wheel', '--out-dir', str(wheels), str(source)],
                                    capture_output=True, text=True)
+            if built.returncode and 'offline' in built.stderr.lower() and 'cache' in built.stderr.lower():
+                self.skipTest('offline wheel build resources unavailable: ' + built.stderr)
             self.assertEqual(built.returncode, 0, built.stderr)
             runtime = root / 'runtime'
-            shutil.copytree(sys.prefix, runtime, symlinks=True)
+            venv.EnvBuilder(with_pip=False).create(runtime)
             python = runtime / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
+            probe = subprocess.run([str(python), '-I', '-c',
+                "import json,sys,sysconfig;print(json.dumps([sys.prefix,sys.base_prefix,sysconfig.get_path('purelib')]))"],
+                capture_output=True, text=True, cwd=root, check=True)
+            prefix, base_prefix, purelib = map(Path, json.loads(probe.stdout))
+            self.assertEqual(prefix.resolve(), runtime.resolve())
+            self.assertNotEqual(prefix.resolve(), base_prefix.resolve())
+            self.assertTrue(purelib.resolve().is_relative_to(runtime.resolve()))
+            # Reuse only the already installed pinned jsonschema runtime dependencies.
+            # Do not copy any interpreter prefix or install outside the verified venv.
+            from importlib import metadata
+            dependencies = ['jsonschema', 'attrs', 'jsonschema-specifications', 'referencing', 'rpds-py']
+            if sys.version_info < (3, 13):
+                dependencies.append('typing-extensions')
+            versions = {}
+            for name in dependencies:
+                try:
+                    distribution = metadata.distribution(name)
+                except metadata.PackageNotFoundError:
+                    self.skipTest('offline dependency unavailable: ' + name)
+                if not distribution.files:
+                    self.skipTest('offline dependency inventory unavailable: ' + name)
+                versions[name] = distribution.version
+                for relative in distribution.files:
+                    if relative.is_absolute() or '..' in relative.parts:
+                        continue
+                    original = Path(distribution.locate_file(relative))
+                    if original.is_file():
+                        destination = purelib / relative
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(original, destination)
+            check = subprocess.run([str(python), '-I', '-c',
+                'import json,jsonschema;from importlib import metadata;print(json.dumps({n:metadata.version(n) for n in json.loads(__import__("sys").argv[1])}))',
+                json.dumps(dependencies)], capture_output=True, text=True, cwd=root)
+            if check.returncode:
+                self.skipTest('copied offline dependencies unavailable in disposable venv: ' + check.stderr)
+            self.assertEqual(json.loads(check.stdout), versions)
+            bootstrap = subprocess.run([str(python), '-I', '-m', 'ensurepip', '--default-pip'],
+                                       capture_output=True, text=True, cwd=root)
+            if bootstrap.returncode:
+                self.skipTest('offline pip bootstrap unavailable: ' + bootstrap.stderr)
             wheel = next(wheels.glob('*.whl'))
-            installed = subprocess.run([str(python), '-m', 'pip', 'install', '--no-index', '--no-deps',
-                                        '--force-reinstall', str(wheel)], capture_output=True, text=True, cwd=root)
+            installed = subprocess.run([str(python), '-I', '-m', 'pip', 'install', '--no-index', '--no-deps',
+                                        str(wheel)], capture_output=True, text=True, cwd=root)
             self.assertEqual(installed.returncode, 0, installed.stderr)
             for name in ('circuit_audit.py', 'readability_audit.py'):
                 self.assertTrue((runtime / 'share/eso/auditors' / name).is_file())
@@ -215,7 +257,7 @@ finally:
     (base/'offline-calls.json').write_text(json.dumps(calls))
 raise SystemExit(code)
 ''')
-            for defect in (None, 'marker-branch', 'local-open'):
+            for defect in (None, 'authorized-marker', 'marker-branch', 'local-open'):
                 candidate = root / ('candidate-' + str(defect))
                 candidate.mkdir()
                 prepared_inputs(candidate, defect)
@@ -225,10 +267,11 @@ raise SystemExit(code)
                         '--before', str(candidate/'before.json'), '--run-dir', str(candidate/'run')]
                 result = subprocess.run([str(python), '-I', str(script), str(candidate), *args],
                                         capture_output=True, text=True, cwd=root)
-                self.assertEqual(result.returncode, 0 if defect is None else 2, result.stderr + result.stdout)
-                self.assertEqual((candidate/'run/bundle.json').exists(), defect is None)
+                accepted = defect in (None, 'authorized-marker')
+                self.assertEqual(result.returncode, 0 if accepted else 2, result.stderr + result.stdout)
+                self.assertEqual((candidate/'run/bundle.json').exists(), accepted)
                 calls = load(candidate/'offline-calls.json')
-                if defect is not None:
+                if not accepted:
                     self.assertFalse(any(call[:2] == ['sch','apply'] for call in calls), calls)
             delivery = root/'delivery'
             delivery.mkdir()

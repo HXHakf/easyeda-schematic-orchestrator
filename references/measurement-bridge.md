@@ -99,8 +99,8 @@ prepare 将所选页复制到运行包并纳入摘要。原文件后续变化不
 缺少可用于定位的主路径关系时返回具体错误，可提供完整 authored composition。
 
 主路径网络优先采用 `direct`，其余逻辑边界采用标签策略。上游策略作用于整个网络，
-可能同时连接未声明支路。collect 与 prepare 会从完整 source 的物理引脚和导线重建线树，
-检查每段主路径与全部接触端点。额外分支失败时调整分组或提供完整 composition，
+可能同时连接未声明支路。collect 与 prepare 会从 source 的物理引脚和显式导线重建线树，
+检查已有接触是否超出声明关系。主路径与本地 attach 的完整连通要求由包含派生引线的编译后门核验。额外分支失败时调整分组或提供完整 composition，
 并通过同一审计。标签无法满足实体主路径。
 
 补充审计 target 保留逻辑 modules，并通过 `audit_projection(plan,target_nets)`
@@ -122,3 +122,9 @@ prepare 将所选页复制到运行包并纳入摘要。原文件后续变化不
 wheel 在 `share/eso/auditors` 保存同一份附加审计脚本，运行时优先使用源码位置，
 安装态从当前解释器 `sys.prefix` 定位。最终单页 scene 的引脚、线、节点、标签、器件、
 文字和框必须使用同一页面别名，并核对原始快照的工程与文档身份。
+
+
+source 图尚未包含 compiler 生成的 marker/terminal 引线，允许声明内的关系等待完整编译后验证。
+它继续拒绝显式的未授权接触。编译后门仍须在 prepared 和任何 Apply 之前证明所有路径及 attach。
+旧 `moduleId` 框省略 page 时，使用其余实测对象已确定的唯一页面别名。
+显式冲突、显式空值以及现代 `drawingGroupId` 缺页继续拒绝，保留原始证据字节。

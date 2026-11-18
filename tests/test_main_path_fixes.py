@@ -25,9 +25,11 @@ def prepared_inputs(root, defect=None):
                               'target_project': upstream.TARGET['project_name']}, upstream.TARGET)
     plan['contract_sha256'] = digest(contract)
     module = source['modules'][0]
-    if defect == 'marker-branch':
+    if defect in ('marker-branch','authorized-marker'):
         component = next(c for c in plan['components'] if c['ref'] == 'R1')
         component['pins'][1].update(net='MAIN', nc_reason=None)
+        if defect == 'authorized-marker':
+            component['attach'] = {'pin':'2','ref':'U1','pin_number':'2'}
         next(p for p in module['placements'] if p['designator'] == 'R1')['pins'][1]['net'] = 'MAIN'
         module['wires'].append({'net': 'MAIN', 'points': [[130,200],[155,200],[155,110],[200,110]]})
         next(f for f in module['flags'] if f['net'] == 'MAIN').update(direction='up', offset=40)
@@ -114,7 +116,7 @@ class MainPathFixTests(unittest.TestCase):
 
     @unittest.skipUnless(os.environ.get('EASYEDA_BIN'),'requires actual offline CLI')
     def test_actual_compiler_marker_leads_and_local_direct(self):
-        for defect in (None,'terminal','marker-branch','local-open'):
+        for defect in (None,'terminal','authorized-marker','marker-branch','local-open'):
             with self.subTest(defect=defect),tempfile.TemporaryDirectory() as directory:
                 root=Path(directory);plan,source=prepared_inputs(root,defect)
                 adapter=EasyEDA(os.environ['EASYEDA_BIN'],root/'receipts')
@@ -123,9 +125,7 @@ class MainPathFixTests(unittest.TestCase):
                 computed,queue=load(root/'computed.json'),load(root/'queue.json')
                 # Actual typed dry-run accepts these topologies. ESO adds the exact endpoint gate.
                 adapter.run(['sch','apply',root/'queue.json','--dry-run'],json_output=False)
-                if defect=='local-open':
-                    with self.assertRaisesRegex(Refused,'direct-required'):check_source(plan,source,upstream.TARGET)
-                else:check_source(plan,source,upstream.TARGET)
+                check_source(plan,source,upstream.TARGET)
                 if defect in ('marker-branch','local-open'):
                     with self.assertRaisesRegex(Refused,'compiled physical'):check_compiled_paths(plan,computed,queue,upstream.TARGET['document_uuid'])
                 else:

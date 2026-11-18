@@ -95,8 +95,13 @@ def drawing_groups(target):
     return groups
 
 
-def physical_path_findings(target, pins, segments, physical):
-    """Authorize only declared pin relations, including reviewed local direct groups."""
+def physical_path_findings(target, pins, segments, physical, *, complete=True):
+    """Authorize exact pin relations, including reviewed local direct groups.
+
+    Source-only graphs may omit compiler-derived leads. In that case only
+    explicit unauthorized contacts are rejected; complete graphs also require
+    every primary path and local attachment to be physically connected.
+    """
     inventory, states = target_index(target)
     declarations = primary_declarations(target, inventory, states)
     owner = {c: m['id'] for m in target['modules'] for c in m['members']}
@@ -107,17 +112,17 @@ def physical_path_findings(target, pins, segments, physical):
     allowed = DSU(len(keys))
     issues = []
     for path, net, a, b in declarations:
-        if pages[a] != pages[b] or physical.root(nodes[a]) != physical.root(nodes[b]):
+        if complete and (pages[a] != pages[b] or physical.root(nodes[a]) != physical.root(nodes[b])):
             finding(issues, 'primary-path-required', path, net, list(a), list(b), pages[a], pages[b])
             continue
         allowed.join(indexes[a], indexes[b])
     for module in target['modules']:
         for group in module['direct']:
             group = [pin_key(p) for p in group]
-            if ('primary_paths' in target or 'drawing_groups' in target) and len({(pages[p], physical.root(nodes[p])) for p in group}) != 1:
+            if complete and ('primary_paths' in target or 'drawing_groups' in target) and len({(pages[p], physical.root(nodes[p])) for p in group}) != 1:
                 finding(issues, 'direct-required', module['id'], *[list(p) for p in group])
             for a, b in zip(group, group[1:]):
-                if pages[a] == pages[b] and physical.root(nodes[a]) == physical.root(nodes[b]):
+                if not complete or (pages[a] == pages[b] and physical.root(nodes[a]) == physical.root(nodes[b])):
                     allowed.join(indexes[a], indexes[b])
     trees = defaultdict(list)
     for key, node in nodes.items():
