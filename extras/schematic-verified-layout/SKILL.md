@@ -1,6 +1,6 @@
 ---
 name: schematic-verified-layout
-description: Use when creating, redrawing, arranging, or changing connections in EasyEDA Pro / 嘉立创EDA专业版 schematics, including 墨水屏转接板 and Python-driven circuit drawing; also covers modular layout (module frames, cross-module label-only boundaries), netport/label-based bulk wiring (sch autoconnect), partition frames and title blocks, readability gates (crossings/bends/spacing/page fit), drawing grammar and page-flow review, netlist reconciliation, and connector-crash recovery. Apply for every schematic drawing task; not for PCB routing or image-only circuit illustrations.
+description: Use for creating, redrawing, arranging, or editing connections in EasyEDA Pro / 嘉立创EDA专业版 schematics. Covers module frames, continuous primary paths, netport and label boundaries, drawing grammar, geometry and readability checks, independent review, netlist reconciliation, and connector recovery. Applies to schematic drawing.
 ---
 
 # 可验证的原理图绘制
@@ -104,6 +104,9 @@ python <skill>/scripts/snapshot_semantic_diff.py --before before.json --after af
 图面复审还检查同网无接点十字交叉与全部可见文字跨框，包括自由说明文字。
 使用完整 ESO 分发中的检查器，布局选择和最终交付复用同一组检查。
 逐项记录阅读顺序、外围归属、重复支路、符号与标签方向、字号和页面留白，给出对象与判断依据并关闭遗留问题。
+在新设计流程中由独立上下文复审原生导图。首次完整通过后再进行一轮有界比较，保留已合格图纸。
+清晰度优先，同等级才比较导线折弯、长度和图面包络。只有全项通过的结果才可替换已验收图纸。
+已写入的失败候选走 `prepare --revision-of` 恢复原合格源，再保存、重开、回读与独立审阅。
 格式和交付入口见[工作流辅助工具](../../references/workflow-assistance.md)，具体反例见[可读性复盘](../../references/live-recovery.md#图面可读性复盘)。
 
 摆件与走线的正面规则、角色画法表、间距与修复顺序读 [drawing-grammar.md](references/drawing-grammar.md)；可读性门 A 规则表与门 B 图面审阅协议读 [readability-gate.md](references/readability-gate.md)；事件账本、归因分层与「先校准检查器」读 [self-iteration.md](references/self-iteration.md)。

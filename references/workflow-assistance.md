@@ -164,3 +164,27 @@ deliver 需要当前完整的 core、geometry 和 visual。缺少 --reviews、�
 state=incomplete，返回退出码 3，并保留 core_state 说明原有机器检查状态。
 已有核心报告和契约可继续读取，原始内容及确认保留。历史索引用 --attempt 按原始报告复核，
 当前最终交付补齐新的图面证据。电气及实物验证按项目范围单独记录。
+
+## 新设计迭代与恢复
+
+```sh
+eso iteration-record --iteration-dir runs/design-iterations runs/event.json
+eso iteration-status --iteration-dir runs/design-iterations
+eso deliver --run-dir runs/selected --reviews runs/selected-reviews.json --iteration-dir runs/design-iterations --out runs/manifest.json
+```
+
+每个事件包含唯一 id、kind、contract_sha256、summary，可附 elapsed_seconds。完全相同的事件可安全重放，
+同一 ID 内容变化时拒绝。事件文件出现在宿主私有运行目录，路径按该次调用的工作目录解释，建议使用明确的绝对路径。
+
+| kind | 额外字段与通过条件 |
+|---|---|
+| attempt | candidate_id、run_dir、verification_sha256、reviews（path、sha256）。执行中断且未到验收时提供 execution_sha256（bundle.json 的文件摘要），保留原 journal |
+| extra-start | 首次完整通过后指定新 candidate_id，给本设计唯一的一轮额外比较 |
+| extra-result | candidate_id、outcome=evaluated、manifest 及 comparison 的 path/sha256。额外候选写入时同时提供其对应 attempt 字段 |
+| extra-result | 本次预算内没有可用布局时提供 outcome=search-exhausted、search_input 与原始 search_receipt 的 path/sha256 |
+| restored | 本轮候选已写入且未取代基线时，用同一基线 candidate_id、新受保护修订目录及对应 attempt 字段登记恢复结果 |
+| blocked / resume | summary 记录实际阻塞与恢复依据，继续已开始的轮次 |
+
+每次验收和恢复在独立运行目录保留原始对象。保留基线的额外候选无需写入，若已改现场则从最近写入的
+运行用 `prepare --revision-of` 恢复基线源。重新保存、重开并取得当前独立审阅后，才可登记为已恢复。
+交付会重新核对额外轮的原证据，并读取当前精确原理图页。历史图纸与当前页有差异时返回 incomplete。

@@ -1,4 +1,4 @@
 interface:
   display_name: "EasyEDA Schematic Orchestrator"
   short_description: "原理图设计与紧凑图面验收，执行范围限定为原理图"
-  default_prompt: "使用 $easyeda-schematic-orchestrator 完成原理图设计、连接、紧凑布局和保存重开验收，复用 easyeda-agent 的原理图命令，完成原理图交付后结束流程。"
+  default_prompt: "使用 $easyeda-schematic-orchestrator 从功能需求完成选型和原理图设计，绘图前集中确认方案。自主调整连接和图面，完成保存重开及独立审阅，达标后比较一轮再交付原理图。"

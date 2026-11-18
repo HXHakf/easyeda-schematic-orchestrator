@@ -53,6 +53,11 @@ def main(argv=None):
         catalog_review.add_argument('--' + field, required=True)
     compare = sub.add_parser('layout-compare', help='rank a bounded set of audited layout candidates')
     compare.add_argument('manifest'); compare.add_argument('--out', required=True)
+    for command in ('iteration-record', 'iteration-status'):
+        iteration = sub.add_parser(command, help='record or inspect one confirmed design iteration')
+        iteration.add_argument('--iteration-dir', required=True)
+        if command == 'iteration-record':
+            iteration.add_argument('event')
     for command in ('text-restore-preview', 'text-restore-apply', 'evidence-index'):
         parser = sub.add_parser(command)
         parser.add_argument('--run-dir', required=True)
@@ -116,6 +121,7 @@ def main(argv=None):
         if action == "deliver":
             a.add_argument("--out", required=True)
             a.add_argument("--reviews", help="bound geometry and object-specific visual review files")
+            a.add_argument("--iteration-dir", help="required for current new-design delivery")
     args = p.parse_args(argv)
     if args.material_store: os.environ["ESO_MATERIAL_STORE"] = args.material_store
     try:
@@ -211,6 +217,10 @@ def main(argv=None):
                                      visual_comparison=manifest.get('visual_comparison'),
                                      author_context_id=manifest.get('author_context_id'))
             dump(args.out, output)
+        elif args.command in ('iteration-record', 'iteration-status'):
+            from .iteration import iteration_status, record_iteration
+            output = (record_iteration(args.iteration_dir, load(args.event)) if args.command == 'iteration-record'
+                      else iteration_status(args.iteration_dir))
         elif args.command == 'evidence-index':
             from .evidence import evidence_index
             output = evidence_index(args.run_dir, load(args.reviews) if args.reviews else None, attempt=args.attempt)
@@ -230,7 +240,9 @@ def main(argv=None):
             from .assistance import apply_text_restore
             output = apply_text_restore(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir, args.preview, args.out)
         elif args.command == "status": output = load(Path(args.run_dir) / "bundle.json")
-        elif args.command == "deliver": output = delivery_manifest(args.run_dir, args.out, args.reviews)
+        elif args.command == "deliver":
+            output = delivery_manifest(args.run_dir, args.out, args.reviews, iteration_dir=args.iteration_dir,
+                                       adapter_factory=lambda: EasyEDA(args.easyeda, args.evidence, window=args.window))
         elif args.command == "recover-stage":
             from .recovery import recover_stage
             output = recover_stage(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir, args.out)
@@ -265,7 +277,18 @@ def main(argv=None):
         return 2
 
 
-def delivery_manifest(run_dir, output_path, reviews_path=None):
+def delivery_manifest(run_dir, output_path, reviews_path=None, *, iteration_dir=None, adapter_factory=None):
+    from contextlib import nullcontext
+    from .locking import target_lock
+    root = Path(run_dir).resolve()
+    path = root / 'contract.json'
+    contract = load(path) if path.is_file() else {}
+    modern = 'design_evidence' in contract
+    with target_lock(contract['target']) if modern else nullcontext():
+        return _delivery_manifest(root, output_path, reviews_path, modern, iteration_dir, adapter_factory)
+
+
+def _delivery_manifest(run_dir, output_path, reviews_path, modern, iteration_dir, adapter_factory):
     from .core import file_digest
     root = Path(run_dir).resolve()
     if not root.is_dir(): raise Refused("run directory missing")
@@ -273,7 +296,7 @@ def delivery_manifest(run_dir, output_path, reviews_path=None):
     report = load(verification) if verification.exists() else {}
     eligible, issues = delivery_eligibility(root, report)
     core_state = 'verified' if eligible else 'incomplete'
-    drawing = None
+    drawing = iteration = None
     if reviews_path is None:
         issues.append('final delivery requires --reviews with geometry and object-specific visual assessments')
         eligible = False
@@ -288,8 +311,18 @@ def delivery_manifest(run_dir, output_path, reviews_path=None):
         except (OSError, ValueError, KeyError, TypeError) as error:
             issues.append('drawing evidence unavailable: ' + str(error))
             eligible = False
+    if modern and eligible:
+        try:
+            if iteration_dir is None or adapter_factory is None:
+                raise Refused('new design delivery requires --iteration-dir and a current EDA readback')
+            from .iteration import current_iteration
+            iteration = current_iteration(iteration_dir, root, reviews_path, adapter_factory(), report)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            issues.append('iteration delivery unavailable: ' + str(error))
+            eligible = False
     manifest = {"schema_version": 1, "state": "verified" if eligible else "incomplete",
                 "core_state": core_state, "drawing": drawing,
+                **({'iteration': iteration} if modern else {}),
                 "level": report.get("level", "not-live-verified") if eligible else "not-verified",
                 "files": [{"path": str(f.relative_to(root)), "sha256": file_digest(f)}
                           for f in sorted(root.rglob("*")) if f.is_file() and f.resolve() != Path(output_path).resolve()],

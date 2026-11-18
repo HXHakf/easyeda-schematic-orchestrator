@@ -51,8 +51,11 @@ class IndependentDrawingTests(unittest.TestCase):
                     dump(reviews_path, reviews)
                     manifest = cli.delivery_manifest(workflow.root, output, reviews_path)
                     self.assertEqual(manifest['core_state'], 'verified')
-                    wanted = 'verified' if defect is None else 'incomplete'
-                    self.assertEqual(manifest['state'], wanted, manifest['unverified'])
+                    self.assertEqual(manifest['state'], 'incomplete')
+                    if defect is None:
+                        self.assertIn('new design delivery requires --iteration-dir', ' '.join(manifest['unverified']))
+                    else:
+                        self.assertNotIn('new design delivery requires --iteration-dir', ' '.join(manifest['unverified']))
             qualified = design_qualification(workflow.root, reviews)
             self.assertTrue(qualified['qualified'])
             self.assertEqual(qualified['evidence']['electrical'], 'independently-reviewed')
