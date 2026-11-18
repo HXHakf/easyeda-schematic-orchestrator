@@ -1,6 +1,9 @@
 """Exercise durable optimization state and the live final-delivery boundary."""
 import contextlib
 import io
+import json
+import subprocess
+import sys
 import os
 import copy
 from concurrent.futures import ThreadPoolExecutor
@@ -92,9 +95,20 @@ class IterationTests(unittest.TestCase):
         self.assertEqual(self.deliver()[0], 3)
 
     def test_concurrent_replay_keeps_one_extra_start_and_resume_survives(self):
+        event_file = self.root / 'first-event.json'
+        dump(event_file, self.first)
+        source = Path(__file__).resolve().parents[1]
+        command = [sys.executable, str(source / 'scripts/eso.py'), 'iteration-record',
+                   '--iteration-dir', str(self.iteration), str(event_file)]
         with ThreadPoolExecutor(max_workers=2) as executor:
-            results = list(executor.map(lambda event: record_iteration(self.iteration, event), [self.first, self.first]))
+            pending = [executor.submit(subprocess.run, command, cwd=self.root, capture_output=True,
+                                       text=True, timeout=15) for _ in range(2)]
+            results = [future.result() for future in pending]
+        for result in results:
+            self.assertEqual(result.returncode, 0, result.stderr)
+        results = [json.loads(result.stdout) for result in results]
         self.assertEqual(results[0], results[1])
+        self.assertEqual(len(results[0]['events']), 1)
         record_iteration(self.iteration, self.start)
         with self.assertRaisesRegex(Refused, 'already used'):
             record_iteration(self.iteration, dict(self.start, candidate_id='different'))
