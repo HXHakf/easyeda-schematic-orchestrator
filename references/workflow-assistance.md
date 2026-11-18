@@ -91,6 +91,8 @@ eso layout-compare runs/candidates.json --out runs/layout-comparison.json
 新流程先用 prepare 编译每个候选并完成 dry-run。每个候选提供 run_dir、source 路径及 preview 对象。
 source 使用受保护运行的 layout-page.json，未指定整页时使用 composition.json。preview 包含 path、
 source_sha256、scene_sha256、render_method 和 pixels_per_raw。按同一比例制作实际 SVG 或 PNG 预览，保留真实生成方式。
+候选 scene 的器件框、引脚、导线及模块框来自该候选 `upstream-plan.json` 的 layout。
+用 flags 的 pinX/pinY、direction 和 offset 还原标签落点与引线，保留编译文字及实际渲染中的可见文字。
 比较先核对同一已确认契约及电气计划，核对 scene 中的脚、器件、导线、标记、框和已测量文字与编译结果，
 再运行几何及可读性检查。候选可采用不同图面分组。manifest 可传入上轮已保护的 contract 与 plan 文件路径，
 明确固定比较依据。manifest 另需 author_context_id 和 visual_comparison。后者使用 scope=independent-layout-comparison，

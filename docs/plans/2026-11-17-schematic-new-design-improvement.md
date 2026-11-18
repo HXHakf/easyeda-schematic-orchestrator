@@ -112,11 +112,11 @@
 
 **接口** 输入两组逻辑模块、明确的同网主路径和现有合成库几何，输出上游 composition、playbook 与离线校验回执。
 
-- [ ] 添加 `test_joint_drawing_group_preserves_primary_wire`。同一 canonical 绘图分组包含原有核心与外围，器件清单和 net/NC 守恒，主路径导线进入源与受保护队列。
-- [ ] 添加 `test_owned_wired_revision_compiles_with_preserved_instances`。从合成已接线快照经 `compose --before --replace --preserve-instances` 编译，保留原生实例及完整属性，生成受保护图面重建队列。
-- [ ] 对生成队列运行现有 `validate_queue` 和 `apply --dry-run`。记录当前接口支持范围、完整 reset 判据和实际框数量。
-- [ ] 新增丢失成员、重复归属及错误 net/NC 反例。断开的主路径由任务 3 的物理审计拒绝。
-- [ ] 固定可执行的数据映射，再进入任务 3 和任务 4。若上游不能表达所需 source，记录最小复现及具体缺失字段，先修该依赖再继续对应任务。
+- [x] 添加 `test_joint_drawing_group_preserves_primary_wire`。同一 canonical 绘图分组包含原有核心与外围，器件清单和 net/NC 守恒，主路径导线进入源与受保护队列。
+- [x] 添加 `test_owned_wired_revision_compiles_with_preserved_instances`。从合成已接线快照经 `compose --before --replace --preserve-instances` 编译，保留原生实例及完整属性，生成受保护图面重建队列。
+- [x] 对生成队列运行现有 `validate_queue` 和 `apply --dry-run`。记录当前接口支持范围、完整 reset 判据和实际框数量。
+- [x] 新增丢失成员、重复归属及错误 net/NC 反例。断开的主路径由任务 3 的物理审计拒绝。
+- [x] 固定可执行的数据映射，再进入任务 3 和任务 4。若上游不能表达所需 source，记录最小复现及具体缺失字段，先修该依赖再继续对应任务。
 
 ```sh
 EASYEDA_BIN=easyeda python -m unittest discover -s tests -p test_upstream_cli.py -v
@@ -130,15 +130,15 @@ EASYEDA_BIN=easyeda python -m unittest discover -s tests -p test_upstream_cli.py
 
 **接口** `assess_design_review(requirements)` 输出 `questions`、`research_tasks`、`selection_tasks`、`defaults`、`ready`。`validate_design_evidence(contract, plan=None)` 重新核对已固定文件、意图及独立审阅。
 
-- [ ] 添加 `test_new_intake_requires_review_beyond_function_text`。新 `intake → assess` 仅有功能说明时保持未完成，关键用户问题至多三项，可查事实进入检索任务。
-- [ ] 添加 `test_design_evidence_binds_intent_without_digest_cycle`。完成审阅后正常生成 contract、确认并验证 plan。纯坐标变化沿用确认，选型、物理脚或关键参数变化使其失效。
-- [ ] 实现需求适用性和有据默认检查。供电、负载、接口及装配按当前功能逐项说明适用性，复用项目已有答案，条件变化撤销受影响的推断。
-- [ ] 实现任意器件角色的选型任务和来源清单。保留严格知识库专属计算路径，通用设计依据通过文件摘要、型号/封装、引脚资料和应用电路定位核验。
-- [ ] `stage/prepare` 固定设计依据、独立审阅及资料清单到运行目录，再核验副本摘要并纳入 bundle。原资料位置变化通过内容摘要核对，资料内容变化按证据失效处理。
-- [ ] BOM 保存料号、数量、单价、计价梯度、币种、查询时间和原始来源。候选比较采用相同采购数量条件，覆盖必要外围和外接件，未知报价显示缺项与已知小计。
-- [ ] 添加外围遗漏、数量梯度不同、同料号不同封装和湿度功能选错传感器的反例。成本缺项影响已约定预算或候选比较时，保持对应成本结论未完成。
-- [ ] 中文确认页展示功能框图、核心选型、供电与接口、装配、完整 BOM 成本状态、主路径、来源和默认假设。独立电气审阅先于集中确认完成。
-- [ ] 保持旧输入的原字节与摘要。增加 legacy/new policy 混用、孤立标记、资料变化、空审阅和伪造通过布尔的回归。
+- [x] 添加 `test_new_intake_requires_review_beyond_function_text`。新 `intake → assess` 仅有功能说明时保持未完成，关键用户问题至多三项，可查事实进入检索任务。
+- [x] 添加 `test_design_evidence_binds_intent_without_digest_cycle`。完成审阅后正常生成 contract、确认并验证 plan。纯坐标变化沿用确认，选型、物理脚或关键参数变化使其失效。
+- [x] 实现需求适用性和有据默认检查。供电、负载、接口及装配按当前功能逐项说明适用性，复用项目已有答案，条件变化撤销受影响的推断。
+- [x] 实现任意器件角色的选型任务和来源清单。保留严格知识库专属计算路径，通用设计依据通过文件摘要、型号/封装、引脚资料和应用电路定位核验。
+- [x] `stage/prepare` 固定设计依据、独立审阅及资料清单到运行目录，再核验副本摘要并纳入 bundle。原资料位置变化通过内容摘要核对，资料内容变化按证据失效处理。
+- [x] BOM 保存料号、数量、单价、计价梯度、币种、查询时间和原始来源。候选比较采用相同采购数量条件，覆盖必要外围和外接件，未知报价显示缺项与已知小计。
+- [x] 添加外围遗漏、数量梯度不同、同料号不同封装和湿度功能选错传感器的反例。成本缺项影响已约定预算或候选比较时，保持对应成本结论未完成。
+- [x] 中文确认页展示功能框图、核心选型、供电与接口、装配、完整 BOM 成本状态、主路径、来源和默认假设。独立电气审阅先于集中确认完成。
+- [x] 保持旧输入的原字节与摘要。增加 legacy/new policy 混用、孤立标记、资料变化、空审阅和伪造通过布尔的回归。
 
 ```sh
 python -m unittest discover -s tests -p test_design_review.py -v
@@ -156,13 +156,13 @@ python -m unittest discover -s tests -p test_workflow.py -v
 
 **接口** 输入经过确认的逻辑模块、主路径和分组，经共享投影生成上游模块。输出包含实际线树、分组外框和真实文字的完整候选及审计 scene。
 
-- [ ] 测试 `validate_primary_paths` 与 `project_drawing_groups`。保留 `attach` 的原逻辑模块约束，验证每个声明端点、网络、成员和唯一归属。
-- [ ] `bind_plan`、`check_source`、测量 bridge 和交付索引统一复用投影。主路径输入上游 direct 策略，其他边界沿用标签策略。
-- [ ] 主路径逐段复用已有无标签物理接触图检查。扩展精确授权检查，加入“允许 A–B 后同网连接未授权 C”“同模块对的另一网络实体跨接”“跨页主路径”和“同名标签代替实体线”反例。
-- [ ] 同网选取 direct 策略后，核对该树接触的全部端点。当前上游策略粒度覆盖整个网络，额外分支若违反逻辑边界，应重新组织分组或使用受支持的完整 composition，候选必须通过精确端点审计。
-- [ ] 修改分组框的覆盖和净空检查。scene 中的框数、位置、标题和文字必须对应原生图，联合外框覆盖其实际成员及主路径导线。
-- [ ] 在 evidence 中核对补充 target 的 members/core/direct、主路径及分组与正式 plan。篡改 ownership、扩大端点集或替换分组均需拒绝。
-- [ ] 保持原有短接、NC、引脚出口、内部 X、文字对文字/器件/导线/框的规则。无新字段的旧源按既有语义测试。
+- [x] 测试 `validate_primary_paths` 与 `project_drawing_groups`。保留 `attach` 的原逻辑模块约束，验证每个声明端点、网络、成员和唯一归属。
+- [x] `bind_plan`、`check_source`、测量 bridge 和交付索引统一复用投影。主路径输入上游 direct 策略，其他边界沿用标签策略。
+- [x] 主路径逐段复用已有无标签物理接触图检查。扩展精确授权检查，加入“允许 A–B 后同网连接未授权 C”“同模块对的另一网络实体跨接”“跨页主路径”和“同名标签代替实体线”反例。
+- [x] 同网选取 direct 策略后，核对该树接触的全部端点。当前上游策略粒度覆盖整个网络，额外分支若违反逻辑边界，应重新组织分组或使用受支持的完整 composition，候选必须通过精确端点审计。
+- [x] 修改分组框的覆盖和净空检查。scene 中的框数、位置、标题和文字必须对应原生图，联合外框覆盖其实际成员及主路径导线。
+- [x] 在 evidence 中核对补充 target 的 members/core/direct、主路径及分组与正式 plan。篡改 ownership、扩大端点集或替换分组均需拒绝。
+- [x] 保持原有短接、NC、引脚出口、内部 X、文字对文字/器件/导线/框的规则。无新字段的旧源按既有语义测试。
 
 ```sh
 python -m unittest discover -s tests -p test_main_paths.py -v
@@ -181,11 +181,11 @@ python -m unittest discover -s extras/schematic-verified-layout/tests -v
 
 **接口** 新增 `Workflow.prepare_revision(parent_run, composition_path, before_path, *, layout_page=None)`，CLI 在 `prepare` 增加互斥的 `--revision-of` 与既有 `--placement-run` 路径。父运行提供不可变契约、计划、归属与 journal，新候选提供完整 source/page 和新鲜快照。
 
-- [ ] 添加“首次已接线结果可重新布局且实例/属性/net/NC 守恒”的正常入口测试，保持空白页和未接线 staged 入口行为。
-- [ ] 从父运行、原队列、journal 和当前完整图元清单核对本轮归属。复用 `observed_parts`、`journal_ownership`、`snapshot_fingerprint` 及已有 target lock。
-- [ ] 使用新的运行目录重新编译 `compose → dry-run → execute → verify`，执行前重查新鲜基线，保留父运行及全部失败回执。
-- [ ] 用合成适配器测试部分接线、超时但实际已落地、窗口变化、重复恢复、未知图元及人工修改。未知归属或电气意图漂移时，保留具体差异及 incomplete 状态。
-- [ ] 进程重启后读取真实现场，生成新的差异和受保护队列。验证恢复操作幂等、同目标串行、不同目标可独立推进。
+- [x] 添加“首次已接线结果可重新布局且实例/属性/net/NC 守恒”的正常入口测试，保持空白页和未接线 staged 入口行为。
+- [x] 从父运行、原队列、journal 和当前完整图元清单核对本轮归属。复用 `observed_parts`、`journal_ownership`、`snapshot_fingerprint` 及已有 target lock。
+- [x] 使用新的运行目录重新编译 `compose → dry-run → execute → verify`，执行前重查新鲜基线，保留父运行及全部失败回执。
+- [x] 用合成适配器测试部分接线、超时但实际已落地、窗口变化、重复恢复、未知图元及人工修改。未知归属或电气意图漂移时，保留具体差异及 incomplete 状态。
+- [x] 进程重启后读取真实现场，生成新的差异和受保护队列。验证恢复操作幂等、同目标串行、不同目标可独立推进。
 
 ```sh
 python -m unittest discover -s tests -p test_recovery.py -v
@@ -203,13 +203,13 @@ python -m unittest discover -s tests -p test_workflow.py -v
 
 **接口** 保留 `compare_layouts(candidates, budget)` 的调用方式。新增 `eso/evidence.py::design_qualification(run_dir, reviews)`，复用 `delivery_eligibility` 与 `evidence_index` 组合设计质量判断，独立于迭代完成状态。新流程候选增加独立审阅与同尺度预览的绑定。报告提供主路径、归属、绕行、文字、重复支路和页面判断，以及与已合格候选比较的对象和理由。
 
-- [ ] 添加“小面积候选的主路径更难追踪”反例，验证选择清楚版本。添加无审阅、错候选、过期预览、同作者自签和未关闭问题的反例。
-- [ ] 先通过电气/几何检查，再核对独立图面审阅和候选间阅读质量比较。在清晰程度相当的候选中沿用折弯、线长、实际包络面积和稳定 ID 排序。
-- [ ] 几何指标直接计算。阅读质量保留对象化观察与比较依据，宿主对实际预览作判断。
-- [ ] 方案审阅复用任务 2 的资料与意图绑定，最终图面审阅继续绑定同轮原生 snapshot/SVG/PNG。独立角色获得原始对象和依据，问题关闭后重新审阅受影响部分。
-- [ ] 候选预览记录生成方式与源摘要。最终交付的图面审阅使用当前现场新导出的原生图。
-- [ ] 新流程 `deliver` 核验方案审阅、当前图面审阅、完整机器验收和未关闭问题。保留原有 `core_state` 及历史读取方式，明确区分 EDA 验收与硬件实测状态。
-- [ ] 针对移动/旋转后文字复位、保存重开实例变化、新图配旧审阅和报告文件被替换增加当前入口回归。
+- [x] 添加“小面积候选的主路径更难追踪”反例，验证选择清楚版本。添加无审阅、错候选、过期预览、同作者自签和未关闭问题的反例。
+- [x] 先通过电气/几何检查，再核对独立图面审阅和候选间阅读质量比较。在清晰程度相当的候选中沿用折弯、线长、实际包络面积和稳定 ID 排序。
+- [x] 几何指标直接计算。阅读质量保留对象化观察与比较依据，宿主对实际预览作判断。
+- [x] 方案审阅复用任务 2 的资料与意图绑定，最终图面审阅继续绑定同轮原生 snapshot/SVG/PNG。独立角色获得原始对象和依据，问题关闭后重新审阅受影响部分。
+- [x] 候选预览记录生成方式与源摘要。最终交付的图面审阅使用当前现场新导出的原生图。
+- [x] 新流程 `deliver` 核验方案审阅、当前图面审阅、完整机器验收和未关闭问题。保留原有 `core_state` 及历史读取方式，明确区分 EDA 验收与硬件实测状态。
+- [x] 针对移动/旋转后文字复位、保存重开实例变化、新图配旧审阅和报告文件被替换增加当前入口回归。
 
 ```sh
 python -m unittest discover -s tests -p test_assistance.py -v
@@ -285,4 +285,5 @@ python scripts/install.py --dry-run
 | 达标后额外一轮 | 6、7 | 首次达标、额外比较、最终当前验收的状态链 |
 | 原理图交付终点 | 6、7 | schematic-only 回归与原理图交付清单 |
 
-本文件的任务当前均为待实施。计划阶段已完成代码与接口核对、官方资料检索和 305 项既有基线测试。新增流程、主路径投影、受保护修订和完整样例现场验收的结论由实施记录逐项补充。
+复选框记录本轮实际完成状态。计划阶段已完成代码与接口核对、官方资料检索和 305 项既有基线测试。
+软件回归与隔离工程实画各按已取得的证据更新，软件通过结论仅覆盖相应规则和接口。
