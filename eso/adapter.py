@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import uuid
 from pathlib import Path
-from .core import Refused, dump, now
+from .core import Refused, dump, file_digest, now
 
 
 def result(envelope):
@@ -37,6 +37,11 @@ class EasyEDA:
                 argv += ["--window", self.window]
         env = dict(os.environ, EASYEDA_NO_AUTOSTART="1")
         self.counter += 1
+        search_input = None
+        if args[:2] in (['sch', 'lib-layout'], ['sch', 'layout-plan']) and args.count('--from') == 1:
+            index = args.index('--from') + 1
+            if index < len(args) and Path(args[index]).is_file():
+                search_input = (Path(args[index]), file_digest(args[index]))
         started = now()
         label = started.replace(":", "").replace(".", "") + "-" + uuid.uuid4().hex
         try:
@@ -47,9 +52,18 @@ class EasyEDA:
             receipt = {"started_at": started, "argv": argv, "exit_code": None, "timeout": True,
                        "stdout": (e.stdout or b"").decode(errors="replace") if isinstance(e.stdout, bytes) else e.stdout,
                        "stderr": (e.stderr or b"").decode(errors="replace") if isinstance(e.stderr, bytes) else e.stderr}
+            if search_input is not None:
+                receipt['input_sha256'] = search_input[1]
             if self.evidence:
                 dump(self.evidence / f"{label}-{self.counter:03d}-{args[0]}-timeout.json", receipt)
             raise Refused("CLI timed out: write may have landed; STOP and read back before any retry") from e
+        if search_input is not None:
+            receipt['input_sha256'] = search_input[1]
+            if not search_input[0].is_file() or file_digest(search_input[0]) != search_input[1]:
+                receipt['input_changed'] = True
+                if self.evidence:
+                    dump(self.evidence / (label + '-input-changed.json'), receipt)
+                raise Refused('offline search input changed while the tool was running')
         if self.evidence:
             # A per-call identity also preserves receipts from concurrent processes.
             dump(self.evidence / f"{label}-{self.counter:03d}-{args[0]}.json", receipt)

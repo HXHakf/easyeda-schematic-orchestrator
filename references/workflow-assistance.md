@@ -195,3 +195,14 @@ eso deliver --run-dir runs/selected --reviews runs/selected-reviews.json --itera
 每次验收和恢复在独立运行目录保留原始对象。保留基线的额外候选无需写入，若已改现场则从最近写入的
 运行用 `prepare --revision-of` 恢复基线源。重新保存、重开并取得当前独立审阅后，才可登记为已恢复。
 交付会重新核对额外轮的原证据，并读取当前精确原理图页。历史图纸与当前页有差异时返回 incomplete。
+
+
+额外搜索无解只接受本轮 `extra-start` 之后的实际、有限预算 `sch lib-layout` 回执。
+输入必须携带已确认电路的 canonical 目标、库身份和全部物理脚，layoutModules 复用测量 bridge 的约束。
+器件原生 ID、测量姿态、pin/body/text 几何与已固定的 composition 或 measurement 输入对账，纸张和 keepouts 保持当前受保护来源。
+adapter 在只读搜索开始时记录 `input_sha256`，返回后再次核对输入字节。输入变化、重复 --from、
+其他工程/电路或旧回执不能完成额外轮。identity-free 的 layout-plan 回执尚无相同绑定证明，保持不计入该完成路径。
+
+事件首次接收时另存原解析位置与已解析引用的摘要，保留原 payload 与原摘要供完全相同 ID 重放。
+重启后切换工作目录不会重新解释已接受的相对 artifact 路径。
+比较 manifest 的候选、预览和独立调用记录也按该次已固定的位置读取，原始证据文件字节不改写。

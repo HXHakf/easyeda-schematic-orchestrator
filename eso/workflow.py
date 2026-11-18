@@ -71,7 +71,7 @@ def validate_electrical_inventory(plan):
     return plan
 
 
-def check_source(plan, source, target):
+def check_source(plan, source, target, *, check_geometry=True):
     """The geometry stays upstream; verify its electrical intent before compilation."""
     ir = source.get("connectivity", {})
     if ir.get("schemaVersion") != "1.4" or ir.get("projectId") != target["project_uuid"] or ir.get("documentId") != target["document_uuid"]:
@@ -133,7 +133,8 @@ def check_source(plan, source, target):
         if source.get('modules') is not None and {m['id']: m.get('title') for m in source['modules']} != names:
             raise Refused('authored drawing group titles differ from protected plan')
     from .main_paths import check_source_paths
-    check_source_paths(plan, source)
+    if check_geometry:
+        check_source_paths(plan, source)
     return ir
 
 

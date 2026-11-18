@@ -11,7 +11,7 @@ from .core import Refused, digest, dump, file_digest, load
 from .drawing_checks import check_visual_review
 
 
-def check_invocation(review, subject, author_context, *, outcome):
+def check_invocation(review, subject, author_context, *, outcome, reference_base=None):
     reviewer = review.get('reviewer')
     if (not isinstance(author_context, str) or not author_context.strip()
             or not isinstance(reviewer, dict) or reviewer.get('independent') is not True
@@ -22,7 +22,10 @@ def check_invocation(review, subject, author_context, *, outcome):
     if review.get('subject_sha256') != binding:
         raise Refused('independent review refers to another drawing or candidate set')
     from .design_review import resolve_artifact
-    record = load(resolve_artifact(review.get('invocation')))
+    invocation = review.get('invocation')
+    if reference_base is not None and isinstance(invocation, dict) and isinstance(invocation.get('path'), str):
+        invocation = dict(invocation, path=str((Path(reference_base) / invocation['path']).resolve()))
+    record = load(resolve_artifact(invocation))
     if (not isinstance(record, dict) or record.get('subject_sha256') != binding
             or record.get('reviewer_id') != reviewer['id'] or record.get('context_id') != reviewer['context_id']
             or record.get('author_context_id') != author_context
@@ -76,13 +79,13 @@ def comparison_subject(candidates, author_context):
     return {'author_context_id': author_context, 'pixels_per_raw': scales.pop(), 'candidates': subjects}
 
 
-def review_comparison(review, subject, machine_passing):
+def review_comparison(review, subject, machine_passing, *, reference_base=None):
     if not isinstance(review, dict) or review.get('scope') != 'independent-layout-comparison':
         raise Refused('modern comparison requires an independent visual comparison')
     evaluations = review.get('evaluations')
     if not isinstance(evaluations, dict) or set(evaluations) != set(subject['candidates']):
         raise Refused('independent review must assess each compared candidate')
-    check_invocation(review, subject, subject['author_context_id'], outcome={'evaluations': evaluations})
+    check_invocation(review, subject, subject['author_context_id'], outcome={'evaluations': evaluations}, reference_base=reference_base)
     ranks = {}
     for cid, item in evaluations.items():
         if (not isinstance(item, dict) or type(item.get('accepted')) is not bool

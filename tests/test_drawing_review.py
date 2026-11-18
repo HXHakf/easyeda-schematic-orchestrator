@@ -43,7 +43,7 @@ def bound_visual(workflow, report, root, svg_source='<svg/>'):
 
 
 def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, modern=False, new_policy=False,
-                native_export_error=None):
+                native_export_error=None, search_measurements=False):
     """A synthetic two-terminal drawing with real audit reports and a simulated EDA adapter."""
     import sys
     from eso.core import confirm
@@ -97,6 +97,10 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, mod
             'componentType': 'part', 'primitiveId': part['id'], 'designator': part['ref'],
             'bbox': dict(zip(('minX', 'minY', 'maxX', 'maxY'), bounds)),
             'pins': [{'primitiveId': part['id'] + '-pin', 'pinNumber': '1', 'x': x, 'y': 0}]})
+    if search_measurements:
+        for part, x in zip(snapshot['result']['components'], (0, 50)):
+            part.update(x=x, y=0, rotation=0, mirror=False, pinsAvailable=True)
+            part['pins'][0].update(pinName='1', net='SIGNAL', noConnected=False)
     snapshot['result']['wires'] = [{'x0': 10, 'y0': 0, 'x1': 40, 'y1': 0}]
     if modern:
         snapshot['result']['components'].append({'componentType': 'netport', 'primitiveId': 'marker', 'net': 'SIGNAL',
@@ -144,6 +148,18 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, mod
             {'designator': c['ref'], 'pins': [{'number': '1', 'x': x, 'y': 0}]}
             for c, x in zip(plan['components'], [10, 40])],
             'wires': [{'points': [[10, 0], [40, 0]]}]}]
+    if search_measurements:
+        source.update(sheet={'minX': -100, 'minY': -100, 'maxX': 200, 'maxY': 200},
+                      sheetBorder={'minX': -90, 'minY': -90, 'maxX': 190, 'maxY': 190}, keepouts=[])
+        raw_parts = {p['designator']: p for p in snapshot['result']['components'] if p['componentType'] == 'part'}
+        for part in source['modules'][0]['placements']:
+            raw = raw_parts[part['designator']]
+            part.update(primitiveId=raw['primitiveId'], value='synthetic-terminal',
+                        **{key: raw[key] for key in ('x', 'y', 'rotation', 'mirror', 'bbox')},
+                        textBboxes=[{'minX': -3, 'minY': 5, 'maxX': 6, 'maxY': 9}] if part['designator'] == 'J1'
+                        else [{'minX': 42, 'minY': 5, 'maxX': 51, 'maxY': 9}])
+            for pin in part['pins']:
+                pin.update(name='1', net='SIGNAL')
     dump(root / 'source.json', source)
     dump(root / 'before.json', fixtures.blank())
     workflow = Workflow(adapter, root / 'run')

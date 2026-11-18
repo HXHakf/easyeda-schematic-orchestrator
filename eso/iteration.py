@@ -1,5 +1,7 @@
 """Durable host-driven iteration for one confirmed schematic target."""
 import math
+from copy import deepcopy
+from datetime import datetime
 from pathlib import Path
 
 from .core import Refused, digest, dump, file_digest, load, now
@@ -8,12 +10,42 @@ from .locking import file_lock, target_lock
 from .workflow import snapshot_fingerprint
 
 
+def _resolved_event(event, base):
+    resolved = deepcopy(event)
+    resolved['_reference_base'] = str(base)
+    if isinstance(resolved.get('run_dir'), str):
+        resolved['run_dir'] = str((base / resolved['run_dir']).resolve())
+    for key in ('reviews', 'manifest', 'comparison', 'search_input', 'search_receipt'):
+        record = resolved.get(key)
+        if isinstance(record, dict) and isinstance(record.get('path'), str):
+            record['path'] = str((base / record['path']).resolve())
+    return resolved
+
+
+def _comparison_paths(manifest, base):
+    """Interpret persisted manifest references at the accepted event's origin."""
+    manifest = deepcopy(manifest)
+    for candidate in manifest['candidates']:
+        for key in ('run_dir', 'source', 'target', 'scene', 'geometry_report', 'readability_report'):
+            if isinstance(candidate.get(key), str):
+                candidate[key] = str((base / candidate[key]).resolve())
+        if isinstance(candidate.get('preview'), dict) and isinstance(candidate['preview'].get('path'), str):
+            candidate['preview']['path'] = str((base / candidate['preview']['path']).resolve())
+    manifest['visual_comparison'] = str((base / manifest['visual_comparison']).resolve())
+    return manifest
+
+
 def iteration_status(root):
     state = load(Path(root) / 'iteration.json')
     seen = set()
     for item in state['events']:
         if digest(item['payload']) != item['sha256']:
             raise Refused('iteration event contents changed')
+        resolved = item.get('resolved_payload')
+        if (not isinstance(resolved, dict) or digest(resolved) != item.get('resolved_sha256')
+                or not isinstance(resolved.get('_reference_base'), str)
+                or resolved != _resolved_event(item['payload'], Path(resolved['_reference_base']))):
+            raise Refused('iteration event reference resolution changed')
         payload = item['payload']
         if payload['id'] in seen or payload['contract_sha256'] != state['contract_sha256']:
             raise Refused('iteration history has duplicate events or a different contract')
@@ -72,7 +104,7 @@ def _observe_candidate(event, state):
 
 def _comparison(event, state):
     from .assistance import compare_layouts
-    manifest = load(_artifact(event['manifest']))
+    manifest = _comparison_paths(load(_artifact(event['manifest'])), Path(event['_reference_base']))
     report = load(_artifact(event['comparison']))
     retained_root = Path(state['best']['run_dir'])
     contract = load(retained_root / 'contract.json')
@@ -85,7 +117,8 @@ def _comparison(event, state):
         raise Refused('extra comparison must review the retained and one new candidate')
     calculated = compare_layouts(manifest['candidates'], manifest['max_candidates'],
                                  visual_comparison=manifest['visual_comparison'], author_context_id=author,
-                                 contract=contract, plan=load(retained_root / 'plan.json'))
+                                 contract=contract, plan=load(retained_root / 'plan.json'),
+                                 reference_base=event['_reference_base'])
     if report != calculated or not report.get('comparison_subject_sha256'):
         raise Refused('extra comparison report no longer matches the actual review and inputs')
     rows = {item['id']: item for item in report['candidates']}
@@ -94,15 +127,106 @@ def _comparison(event, state):
     return report, rows
 
 
-def _search_exhausted(event):
+def _check_search_input(data, state, command):
+    """A failed search counts only for this protected circuit and its measured symbols."""
+    from .workflow import Workflow, check_source
+    from .bridge import bbox, number, layout_modules_for
+    root = _run(state['best'], state)
+    bundle = load(root / 'bundle.json')
+    Workflow(None, root)._check_bundle(bundle)
+    plan = load(root / 'plan.json')
+    if command != 'lib-layout' or data.get('schemaVersion') != 1:
+        raise Refused('extra search requires the evidenced canonical lib-layout input for this design')
+    canonical = check_source(plan, {'connectivity': data.get('connectivity', {})}, state['target'], check_geometry=False)
+    expected = load(root / 'expected.json')
+    identities = lambda ir: {c['id']: (c['ref'], c['device'], sorted((p['number'], p['name']) for p in c['pins']))
+                             for c in ir['components']}
+    if identities(canonical) != identities(expected):
+        raise Refused('extra search library or physical pin identity differs from the protected run')
+    modules = data.get('layoutModules')
+    from .main_paths import project_drawing_groups
+    cores = {g['id']: set(g['coreComponents']) for g in project_drawing_groups(plan)}
+    if (not isinstance(modules, list) or len(modules) != len(cores)
+            or {m.get('id') for m in modules} != set(cores)
+            or any(m.get('coreComponentId') not in cores[m['id']] for m in modules)):
+        raise Refused('extra search group/core inventory differs from the protected plan')
+    anchors = {m['coreComponentId'] for m in modules}
+    ordered = dict(plan, components=sorted(plan['components'], key=lambda c: c['id'] not in anchors))
+    def module_intent(rows):
+        return {m['id']: dict(m, peripherals=sorted(m.get('peripherals', []), key=lambda p: p['componentId'])) for m in rows}
+    if module_intent(modules) != module_intent(layout_modules_for(ordered, canonical)):
+        raise Refused('extra search layout intent differs from the protected logical modules and paths')
+    report = load(root / 'verification-history' / state['best']['attempt'] / 'verification.json')
+    archive = check_attempt(root, report)
+    snapshot = load(archive / 'final-snapshot.json')
+    from .adapter import result
+    parts = {p['designator']: p for p in result(snapshot)['components'] if p.get('componentType') == 'part'}
+    approved = load(archive / 'composition.json')
+    for key in ('sheet', 'sheetBorder', 'keepouts'):
+        default = [] if key == 'keepouts' else None
+        if data.get(key, default) != approved.get(key, default):
+            raise Refused('extra search paper or keepouts differ from the protected source')
+    bbox(data.get('sheet'), 'extra search sheet')
+    witnesses = [p for group in approved.get('modules', []) for p in group.get('placements', [])]
+    if 'measurement--layout-input.json' in bundle['artifacts']:
+        witnesses += load(archive / 'measurement--layout-input.json')['measurements']
+    rows = data.get('measurements')
+    if (not isinstance(rows, list) or len(rows) != len(parts)
+            or {p.get('designator') for p in rows} != set(parts)
+            or len({p.get('primitiveId') for p in rows}) != len(rows)):
+        raise Refused('extra search must measure every protected physical part exactly once')
+    names = {n['id']: n['name'] for n in canonical['nets']}
+    connections = {(e['componentId'], e['pinNumber']): names[e['netId']] for e in canonical['connections']}
+    pin_intent = {c['ref']: {p['number']: (p['name'], connections.get((c['id'], p['number']), ''))
+                           for p in c['pins']} for c in canonical['components']}
+    for row in rows:
+        ref = row['designator']
+        if row.get('primitiveId') != parts[ref]['primitiveId']:
+            raise Refused('extra search measured native identity differs: ' + ref)
+        bbox(row.get('bbox'), 'extra search ' + ref)
+        for key in ('x', 'y', 'rotation'):
+            number(row.get(key), 'extra search ' + ref + '.' + key)
+        if type(row.get('mirror')) is not bool or not isinstance(row.get('textBboxes'), list):
+            raise Refused('extra search requires measured pose and text bounds: ' + ref)
+        for bounds in row['textBboxes']:
+            bbox(bounds, 'extra search text ' + ref)
+        pins = row.get('pins', [])
+        for pin in pins:
+            number(pin.get('x'), 'extra search pin.x')
+            number(pin.get('y'), 'extra search pin.y')
+        if (len(pins) != len(pin_intent[ref]) or
+                {p['number']: (p['name'], p['net']) for p in pins} != pin_intent[ref]):
+            raise Refused('extra search measured physical pin intent differs: ' + ref)
+        def geometry(part):
+            return ([part.get(k) for k in ('x', 'y', 'rotation', 'mirror', 'bbox', 'textBboxes')],
+                    sorted((p['number'], p['x'], p['y']) for p in part['pins']))
+        if not any(p.get('designator') == ref and geometry(p) == geometry(row) for p in witnesses):
+            raise Refused('extra search geometry lacks the protected measurement/source evidence: ' + ref)
+
+
+def _search_exhausted(event, state):
     receipt = load(_artifact(event['search_receipt']))
     source = _artifact(event['search_input'])
     args = receipt.get('argv')
+    base = Path(event['_reference_base'])
     if (not isinstance(args, list) or len(args) < 5 or args[1:3] not in (['sch', 'lib-layout'], ['sch', 'layout-plan'])
-            or args[3] != '--from' or Path(args[4]).resolve() != source.resolve()
+            or args[3] != '--from' or args.count('--from') != 1
+            or any(str(arg).startswith('--from=') for arg in args)
+            or (base / args[4]).resolve() != source.resolve()
+            or receipt.get('input_sha256') != event['search_input']['sha256'] or receipt.get('input_changed')
             or type(receipt.get('exit_code')) is not int or receipt['exit_code'] == 0):
         raise Refused('extra round needs the retained nonzero upstream layout-search receipt')
-    maximum = load(source).get('maxCandidates', 20000)
+    start_event = next(item for item in state['events'] if item['payload']['id'] == state['extra']['started_by'])
+    try:
+        times = [datetime.fromisoformat(value.replace('Z', '+00:00')) for value in
+                 (start_event['recorded_at'], receipt['started_at'], receipt['completed_at'])]
+        if any(time.tzinfo is None for time in times) or not times[0] <= times[1] <= times[2]:
+            raise ValueError('search was not performed in the extra round')
+    except (KeyError, TypeError, ValueError, AttributeError) as error:
+        raise Refused('extra search requires a fresh timed receipt after extra-start') from error
+    data = load(source)
+    _check_search_input(data, state, args[2])
+    maximum = data.get('maxCandidates', 20000)
     if type(maximum) is not int or not 1 <= maximum <= 1000000:
         raise Refused('extra search must use a supported finite candidate budget')
     detail = (str(receipt.get('stderr', '')) + str(receipt.get('stdout', ''))).casefold()
@@ -118,7 +242,7 @@ def _finish_extra(event, state):
     if outcome == 'search-exhausted':
         if event.get('run_dir') is not None:
             raise Refused('use the evaluated outcome when an extra candidate was written')
-        _search_exhausted(event)
+        _search_exhausted(event, state)
         return 'complete', 'bounded extra search did not yield a usable candidate'
     if outcome != 'evaluated':
         raise Refused('extra round requires an evaluated result or a retained unsuccessful search')
@@ -224,8 +348,10 @@ def record_iteration(root, event):
                     raise Refused('iteration event ID was already used for different content')
                 return state
         with target_lock(state['target']):
-            state['state'], state['stop_reason'] = _transition(event, state)
-            state['events'].append({'sha256': sha, 'payload': event, 'recorded_at': now()})
+            resolved = _resolved_event(event, Path.cwd().resolve())
+            state['state'], state['stop_reason'] = _transition(resolved, state)
+            state['events'].append({'sha256': sha, 'payload': event, 'recorded_at': now(),
+                                    'resolved_payload': resolved, 'resolved_sha256': digest(resolved)})
             dump(path, state)
         return state
 
@@ -241,12 +367,12 @@ def current_iteration(root, run_dir, reviews_path, adapter, report):
             or file_digest(reviews_path) != selected['reviews_sha256']
             or digest(load(Path(run_dir) / 'contract.json')) != state['contract_sha256']):
         raise Refused('delivery differs from the selected iteration attempt')
-    extra_event = next((item['payload'] for item in state['events']
+    extra_event = next((item['resolved_payload'] for item in state['events']
                        if item['payload']['id'] == state['extra']['finished_by']), None)
     if extra_event is None or extra_event.get('kind') != 'extra-result':
         raise Refused('iteration is missing its recorded extra comparison')
     if extra_event['outcome'] == 'search-exhausted':
-        _search_exhausted(extra_event)
+        _search_exhausted(extra_event, state)
     else:
         _comparison(extra_event, dict(state, best=state['first_qualified']))
     fresh = adapter.snapshot(state['target'])

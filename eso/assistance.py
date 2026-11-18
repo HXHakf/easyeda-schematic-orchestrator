@@ -83,7 +83,7 @@ def text_restore_preview(reference, current):
             'baseline_fingerprint': snapshot_fingerprint(current), 'moves': moves}
 
 
-def compare_layouts(candidates, budget, *, visual_comparison=None, author_context_id=None, contract=None, plan=None):
+def compare_layouts(candidates, budget, *, visual_comparison=None, author_context_id=None, contract=None, plan=None, reference_base=None):
     if type(budget) is not int or budget < 1 or len(candidates) > budget or not candidates:
         raise Refused('candidate count must fit a positive explicit budget')
     from .visual_review import check_candidate, comparison_subject, review_comparison
@@ -150,7 +150,8 @@ def compare_layouts(candidates, budget, *, visual_comparison=None, author_contex
     visual = {}
     if modern:
         subject = comparison_subject(candidates, author_context_id)
-        ranks = review_comparison(load(visual_comparison), subject, {r['id'] for r in rows if r['passed']})
+        ranks = review_comparison(load(visual_comparison), subject, {r['id'] for r in rows if r['passed']},
+                                  reference_base=reference_base)
         for row in rows:
             row['passed'] = row['passed'] and row['id'] in ranks
             row['clarity_rank'] = ranks.get(row['id'])
