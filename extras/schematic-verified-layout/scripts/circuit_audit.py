@@ -61,6 +61,73 @@ def target_index(target):
     return inventory, states
 
 
+def primary_declarations(target, inventory, states):
+    """Validate exact net identities before any geometric authorization."""
+    from eso.main_paths import endpoint
+    ids = set()
+    links = []
+    for path in target.get('primary_paths', []):
+        if not path['id'] or path['id'] in ids or not path['links']:
+            raise ValueError('primary paths require unique IDs and links')
+        ids.add(path['id'])
+        for link in path['links']:
+            a, b = endpoint(link['from']), endpoint(link['to'])
+            if (a == b or a not in inventory or b not in inventory or
+                    states[a] != [link['net']] or states[b] != [link['net']] or link['net'] is None):
+                raise ValueError('primary endpoint/net declaration differs')
+            links.append((path['id'], link['net'], a, b))
+    return links
+
+
+def drawing_groups(target):
+    modules = {m['id'] for m in target['modules']}
+    groups = target.get('drawing_groups', [{'id': m, 'modules': [m]} for m in sorted(modules)])
+    seen, ids = set(), set()
+    for group in groups:
+        members = group['modules']
+        if (not group['id'] or group['id'] in ids or not members or len(set(members)) != len(members)
+                or set(members) - modules or seen & set(members)):
+            raise ValueError('invalid drawing group ownership')
+        ids.add(group['id'])
+        seen.update(members)
+    if seen != modules:
+        raise ValueError('drawing groups must cover logical modules')
+    return groups
+
+
+def physical_path_findings(target, pins, segments, physical):
+    """Authorize only declared pin relations, including reviewed local direct groups."""
+    inventory, states = target_index(target)
+    declarations = primary_declarations(target, inventory, states)
+    owner = {c: m['id'] for m in target['modules'] for c in m['members']}
+    nodes = {pin_key(p['pin']): len(segments) + i for i, p in enumerate(pins)}
+    pages = {pin_key(p['pin']): p['page'] for p in pins}
+    keys = sorted(inventory)
+    indexes = {key: i for i, key in enumerate(keys)}
+    allowed = DSU(len(keys))
+    issues = []
+    for path, net, a, b in declarations:
+        if pages[a] != pages[b] or physical.root(nodes[a]) != physical.root(nodes[b]):
+            finding(issues, 'primary-path-required', path, net, list(a), list(b), pages[a], pages[b])
+            continue
+        allowed.join(indexes[a], indexes[b])
+    for module in target['modules']:
+        for group in module['direct']:
+            group = [pin_key(p) for p in group]
+            for a, b in zip(group, group[1:]):
+                if pages[a] == pages[b] and physical.root(nodes[a]) == physical.root(nodes[b]):
+                    allowed.join(indexes[a], indexes[b])
+    trees = defaultdict(list)
+    for key, node in nodes.items():
+        trees[physical.root(node)].append(key)
+    for endpoints in trees.values():
+        if len({owner[p[0]] for p in endpoints}) <= 1:
+            continue
+        if len({allowed.root(indexes[p]) for p in endpoints}) != 1:
+            finding(issues, 'module-physical-crossing', *[list(p) for p in sorted(endpoints)])
+    return issues
+
+
 def validate_target(target):
     issues = []
     try:
@@ -82,6 +149,8 @@ def validate_target(target):
                 if (len(set(pins)) < 2 or any(p not in inventory or p[0] not in module['members'] for p in pins)
                         or len(nets) != 1 or None in nets):
                     finding(issues, 'direct-declaration', module['id'], group)
+        primary_declarations(target, inventory, states)
+        drawing_groups(target)
         # Different global identities with the same native name cannot be isolated in EDA.
         names = Counter(n['name'] for n in target['nets'] if n['scope'] == 'global')
         for name, count in names.items():
@@ -234,6 +303,9 @@ def audit_scene(target, scene):
             if len(hits) < 2:
                 finding(issues, 'orphan-junction', junction)
         dsu = contact_graph(segments, pins, labels, scene['junctions'])
+        physical = contact_graph(segments, pins, labels, scene['junctions'], with_labels=False)
+        if 'primary_paths' in target or 'drawing_groups' in target:
+            issues.extend(physical_path_findings(target, pins, segments, physical))
         directions = {'right': (1, 0), 'left': (-1, 0), 'up': (0, 1), 'down': (0, -1)}
         for i, pin in enumerate(pins):
             at = point(pin['at'])

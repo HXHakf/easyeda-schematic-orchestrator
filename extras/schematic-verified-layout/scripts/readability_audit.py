@@ -236,9 +236,10 @@ def module_structure(target, scene, owner, pins, segments, phys, grid, gutter_gr
             continue
         tree_modules[phys.root(nseg + i)].add(module)
         module_pages[module].add(pin['page'])
+    path_issues = ca.physical_path_findings(target, pins, segments, phys)
+    for issue in path_issues:
+        add(findings, issue['rule'], 'hard', issue['objects'])
     bridges = sorted({'|'.join(sorted(modules)) for modules in tree_modules.values() if len(modules) > 1})
-    if bridges:
-        add(findings, 'module-physical-crossing', 'hard', bridges)
     split = sorted(module for module, pages in module_pages.items() if len(pages) > 1)
     if split:
         add(findings, 'module-split-pages', 'hard', split)
@@ -249,18 +250,28 @@ def module_structure(target, scene, owner, pins, segments, phys, grid, gutter_gr
     frames = scene.get('moduleFrames')
     if frames is None:
         return metrics
-    known = {module['id'] for module in target.get('modules', [])}
+    groups = ca.drawing_groups(target)
+    grouped = 'drawing_groups' in target
+    known = {g['id']: set(g['modules']) for g in groups}
     by_module = {}
     for frame in frames:
-        module = frame['moduleId']
-        if module not in known:
-            raise ValueError(f'module frame refers to unknown module: {module}')
-        if module in by_module:
-            raise ValueError(f'duplicate module frame: {module}')
+        if ('moduleId' in frame) == ('drawingGroupId' in frame):
+            raise ValueError('frame requires exactly one moduleId or drawingGroupId')
+        if grouped != ('drawingGroupId' in frame):
+            raise ValueError('frame identity does not match drawing group format')
+        module = frame.get('drawingGroupId', frame.get('moduleId'))
+        if module not in known or module in by_module:
+            raise ValueError('unknown or duplicate module frame: ' + str(module))
         by_module[module] = frame
-    missing = sorted(set(module_pages) - set(by_module))
+    missing = sorted(set(known) - set(by_module))
     if missing:
         add(findings, 'module-frame-missing', 'hard', missing)
+    for group, logical in known.items():
+        pages = set().union(*(module_pages[m] for m in logical))
+        if len(pages) > 1:
+            add(findings, 'module-split-pages', 'hard', [group])
+        if group in by_module and (grouped or by_module[group].get('page')) and by_module[group].get('page') not in pages:
+            add(findings, 'module-frame-page', 'hard', [group])
 
     ids = sorted(by_module)
     minimum, tight = None, []
@@ -282,18 +293,18 @@ def module_structure(target, scene, owner, pins, segments, phys, grid, gutter_gr
         page = frame.get('page')
         outside = []
         for pin in pins:
-            if owner.get(pin['pin'][0]) != module or (page and pin['page'] != page):
+            if owner.get(pin['pin'][0]) not in known[module] or (page and pin['page'] != page):
                 continue
             if not rect_inside(rect, *ca.point(pin['at'])):
                 outside.append(f'pin:{pin["pin"][0]}.{pin["pin"][1]}')
         for obj in scene.get('bodies', []) + scene.get('texts', []):
             component = obj.get('componentId')
-            if component and owner.get(component) == module and not box_inside(rect, ca.box(obj['bbox'])):
+            if component and owner.get(component) in known[module] and not box_inside(rect, ca.box(obj['bbox'])):
                 outside.append(obj['id'])
         for i, (wid, wpage, a, b) in enumerate(segments):
             if page and wpage != page:
                 continue
-            if tree_modules.get(phys.root(i)) == {module} and not (rect_inside(rect, *a) and rect_inside(rect, *b)):
+            if bool(tree_modules.get(phys.root(i))) and tree_modules[phys.root(i)] <= known[module] and not (rect_inside(rect, *a) and rect_inside(rect, *b)):
                 outside.append(wid)
         if outside:
             add(findings, 'module-out-of-frame', 'hard', [f'{module}:{item}' for item in outside])

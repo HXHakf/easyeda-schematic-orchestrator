@@ -197,16 +197,19 @@ def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, s
     layout_modules = []
     refs = {c['ref']: c for c in plan['components']}
     net_ids = {n['name']: n['id'] for n in canonical['nets']}
-    for m in plan['modules']:
-        members = [c for c in plan['components'] if c['module'] == m['id']]
+    from .main_paths import project_drawing_groups
+    primary_nets = {link['net'] for path in plan.get('primary_paths', []) for link in path['links']}
+    for m in project_drawing_groups(plan):
+        member_ids = set(m['coreComponents'] + m['peripheralComponents'])
+        members = [c for c in plan['components'] if c['id'] in member_ids]
         policies = {}
         for c in members:
             for p in c['pins']:
                 net = p['net']
                 if net is None: continue
-                external = any(x['module'] != m['id'] and any(q['net'] == net for q in x['pins']) for x in plan['components'])
+                external = any(x['module'] != c['module'] and any(q['net'] == net for q in x['pins']) for x in plan['components'])
                 role = next(n['role'] for n in canonical['nets'] if n['name'] == net)
-                policies[net_ids[net]] = ('local_power' if role == 'power' else 'local_ground' if role == 'ground'
+                policies[net_ids[net]] = ('direct' if net in primary_nets else 'local_power' if role == 'power' else 'local_ground' if role == 'ground'
                                            else 'module_port' if external else 'direct')
         peripherals = []
         for c in members:
@@ -214,7 +217,32 @@ def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, s
                 a = c['attach']
                 peripherals.append({'componentId': c['id'], 'pinNumber': a['pin'],
                                     'attachTo': {'componentId': refs[a['ref']]['id'], 'pinNumber': a['pin_number']}})
-        layout_modules.append({'id': m['id'], 'title': m['title'], 'coreComponentId': refs[m['core_ref']]['id'],
+        # coreComponentId is the geometric anchor. Other logical cores retain
+        # canonical core ownership and are placed using explicit primary links.
+        reached = {m['coreComponents'][0]}
+        pending = set(m['coreComponents'][1:])
+        relations = []
+        for path in plan.get('primary_paths', []):
+            for link in path['links']:
+                a, b = link['from'], link['to']
+                if a['componentId'] in member_ids and b['componentId'] in member_ids:
+                    relations.extend([(a, b), (b, a)])
+        while pending:
+            previous = set()
+            while previous != reached:
+                previous = reached.copy()
+                for entry in peripherals:
+                    if entry['attachTo']['componentId'] in reached:
+                        reached.add(entry['componentId'])
+            usable = next(((a, b) for a, b in relations
+                           if a['componentId'] in reached and b['componentId'] in pending), None)
+            if usable is None:
+                raise Refused('joint group cores need explicit primary attachment links for lib-layout; provide a complete authored composition')
+            a, b = usable
+            peripherals.append({'componentId': b['componentId'], 'pinNumber': b['pinNumber'], 'attachTo': dict(a)})
+            pending.remove(b['componentId'])
+            reached.add(b['componentId'])
+        layout_modules.append({'id': m['id'], 'title': m['name'], 'coreComponentId': m['coreComponents'][0],
                                'netPolicies': policies, 'peripherals': peripherals})
     # Raw snapshot is unchanged. Pin net annotations below are authored target
     # intent in a derived source, never substituted as observed readback.
@@ -355,6 +383,8 @@ class DesignBridge:
         dump(self.root / 'measurement-evidence.json', {'files': {n: file_digest(self.root / n) for n in names},
                                                      'authored_net_intent': True, 'original_snapshot_modified': False})
         self.adapter.run(['sch', 'lib-layout', '--from', self.root / 'layout-input.json', '--out', self.root / 'composition.json'], json_output=False, timeout=120)
+        from .workflow import check_source
+        check_source(plan, load(self.root / 'composition.json'), target)
         state.update(state='layout-compiled', composition_sha256=file_digest(self.root / 'composition.json'),
                      measured_scene_sha256=snapshot_fingerprint(snapshot),
                      measurement_manifest_sha256=file_digest(self.root / 'measurement-evidence.json'))

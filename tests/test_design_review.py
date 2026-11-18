@@ -314,7 +314,9 @@ class DesignReviewTests(unittest.TestCase):
         self.cli('contract', self.root / 'requirements.json', '--out', self.root / 'contract.json')
         self.cli('plan', self.root / 'contract.json', '--out', self.root / 'plan.json')
         c = load(self.root / 'contract.json')
-        self.assertEqual(load(self.root / 'plan.json'), make_plan(c))
+        generated = load(self.root / 'plan.json')
+        self.assertEqual(electrical_intent(generated), electrical_intent(make_plan(c)))
+        self.assertEqual(generated['knowledge_evidence'], make_plan(c)['knowledge_evidence'])
         r['knowledge']['circuits'][0]['parameters']['supply_voltage_v'] = 100
         d['requirements_sha256'] = requirements_digest(r)
         self.publish(r, d)
@@ -357,6 +359,42 @@ class DesignReviewTests(unittest.TestCase):
                 {'component_id': cid, 'package': 'TEST', 'reason': 'synthetic package source exception', 'source_ids': ['source']}
                 for cid in design['assembly']['passive_component_ids']]
         return r, design
+
+    def test_reviewed_knowledge_and_composition_paths_keep_exact_evidence(self):
+        from test_knowledge import fixture as knowledge_fixture
+        from test_knowledge_composition import combined_fixture
+        from eso.design_review import plan_from_design
+        from eso.knowledge_design import check_knowledge_plan
+        from eso.planner import make_plan
+        from eso.workflow import validate_plan
+        for kind in ('knowledge', 'composition'):
+            with self.subTest(kind=kind):
+                original = knowledge_fixture(self.root) if kind == 'knowledge' else combined_fixture(self.root)
+                legacy = contract_from(original)
+                legacy_plan = make_plan(legacy)
+                changed_legacy = deepcopy(legacy_plan)
+                changed_legacy['modules'][0]['title'] = 'changed'
+                with self.assertRaises(Refused): check_knowledge_plan(changed_legacy, legacy)
+                r, design = self.mixed_fixture(original)
+                pins = [(c['id'], p['number'], p['net']) for c in design['electrical_intent']['components']
+                        for p in c['pins'] if p['net'] is not None]
+                a, b = next((a,b) for i,a in enumerate(pins) for b in pins[i+1:] if a[2] == b[2])
+                design['electrical_intent']['primary_paths'] = [{'id': 'reviewed', 'title': 'Reviewed link', 'links': [
+                    {'from': {'componentId': a[0], 'pinNumber': a[1]},
+                     'to': {'componentId': b[0], 'pinNumber': b[1]}, 'net': a[2]}]}]
+                contract = self.contract_cli(self.publish(r, design))
+                plan = plan_from_design(contract)
+                self.assertEqual(plan['primary_paths'], design['electrical_intent']['primary_paths'])
+                self.assertEqual(plan['knowledge_evidence'], make_plan(contract)['knowledge_evidence'])
+                plan['modules'][0]['title'] = 'Reviewed drawing title'
+                plan['drawing_groups'] = [{'id': 'joined', 'title': 'Joined', 'modules': [m['id'] for m in plan['modules']]}]
+                validate_plan(plan, contract)
+                for defect in ('path', 'net', 'evidence'):
+                    changed = deepcopy(plan)
+                    if defect == 'path': changed['primary_paths'][0]['links'][0]['net'] = 'OTHER'
+                    if defect == 'net': changed['components'][0]['pins'][0]['net'] = 'OTHER'
+                    if defect == 'evidence': changed['knowledge_evidence'] = {}
+                    with self.subTest(defect=defect), self.assertRaises(Refused): validate_plan(changed, contract)
 
     def test_mixed_policy_pins_all_knowledge_datasheets_and_revalidates_history(self):
         from test_knowledge import fixture as knowledge_fixture

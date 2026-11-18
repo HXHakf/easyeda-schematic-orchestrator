@@ -65,10 +65,10 @@ def make_bindings(contract):
 def check_knowledge_plan(plan, contract, *, evidence_root=None):
     from .knowledge import knowledge_document_scope
     with knowledge_document_scope(contract['requirements'], (evidence_root,) if evidence_root else ()):
-        return _check_knowledge_plan(plan, contract)
+        return _check_knowledge_plan(plan, contract, evidence_root=evidence_root)
 
 
-def _check_knowledge_plan(plan, contract):
+def _check_knowledge_plan(plan, contract, *, evidence_root=None):
     if 'knowledge' not in contract['requirements']:
         if 'knowledge_evidence' in plan: raise Refused('orphan knowledge plan evidence')
         return
@@ -77,6 +77,21 @@ def _check_knowledge_plan(plan, contract):
         expected=make_composed_plan(contract)[0]
     else:
         expected=make_knowledge_plan(contract)
-    # Deterministic topology, provenance and model selection must survive host edits.
-    if plan != expected:
+    # Legacy runs keep the original complete deterministic comparison.
+    observed = plan
+    if contract.get('design_evidence', {}).get('policy_version') == 1:
+        from copy import deepcopy
+        from .design_review import validate_design_evidence
+        from .main_paths import validate_primary_paths
+        validate_design_evidence(contract, plan, search_paths=(evidence_root,) if evidence_root else ())
+        validate_primary_paths(plan)
+        observed = deepcopy(plan)
+        observed.pop('drawing_groups', None)
+        observed.pop('primary_paths', None)
+        titles = {m['id']: m['title'] for m in expected['modules']}
+        for module in observed['modules']:
+            if module['id'] in titles:
+                module['title'] = titles[module['id']]
+    # Every remaining field, including complete knowledge evidence, stays exact.
+    if observed != expected:
         raise Refused('knowledge plan differs from checked topology/evidence; regenerate from requirements')

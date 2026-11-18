@@ -153,8 +153,17 @@ def _check_review_layer(layer, entry, report, root, *, current=True):
         physical = next(p for p in part['pins'] if p['pinNumber'] == number)
         if pin['at'] != [physical['x'],physical['y']]:
             raise Refused('scene pin geometry differs from final snapshot')
-    if {f['moduleId'] for f in scene.get('moduleFrames',[])} != {m['id'] for m in plan['modules']}:
-        raise Refused('supplementary module frame inventory incomplete')
+    from .main_paths import check_audit_target, check_native_frames
+    modern = ('primary_paths' in plan or 'drawing_groups' in plan
+              or load(root / 'contract.json').get('design_evidence', {}).get('policy_version') == 1)
+    check_audit_target(plan, target, modern=modern)
+    check_native_frames(plan, scene, data, modern=modern)
+    if current and modern:
+        from .main_paths import audit_tools
+        audit, readability_audit = audit_tools()
+        for checked in (audit.audit_scene(target, scene), readability_audit.audit_readability(target, scene, strict=True)):
+            if not checked['passed']:
+                raise Refused('current primary path/group audit failed: ' + str(checked['findings']))
     from collections import Counter
     def segment(a, b):
         return tuple(sorted((tuple(a), tuple(b))))
@@ -168,7 +177,8 @@ def _check_review_layer(layer, entry, report, root, *, current=True):
         raise Refused('scene bodies differ from final snapshot')
     actual_labels = {c['primitiveId']:(c['net'],[c['pins'][0]['x'],c['pins'][0]['y']])
                      for c in data['components'] if c.get('componentType') in ('netflag','netport')}
-    if {l['id']:(l['net'],l['at']) for l in scene['labels']} != actual_labels:
+    net_names = {n['id']: n['name'] for n in target['nets']}
+    if {l['id']:(net_names.get(l['net']),l['at']) for l in scene['labels']} != actual_labels:
         raise Refused('scene labels differ from final snapshot')
     target_edges = {(pair[0],pair[1],n['name']) for n in target['nets'] for pair in n['pins']}
     if target_edges != {(cid,num,p['net']) for (cid,num),p in pins.items() if p['net'] is not None}:

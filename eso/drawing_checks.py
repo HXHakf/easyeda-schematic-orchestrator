@@ -121,7 +121,7 @@ def drawing_obstacles(scene):
             touches_horizontal = ((bottom - EPS <= y0 <= top + EPS or bottom - EPS <= y1 <= top + EPS)
                                   and max(left, x0) <= min(right, x1) + EPS)
             if touches_vertical or touches_horizontal:
-                collisions.append({'text': text['id'], 'module': frame['moduleId'],
+                collisions.append({'text': text['id'], 'module': frame.get('drawingGroupId', frame.get('moduleId')),
                                    'page': text['page'], 'bbox': list(text['bbox'])})
     return {'crossings': crossings, 'text_frame_collisions': collisions,
             **object_collisions(scene, segments)}

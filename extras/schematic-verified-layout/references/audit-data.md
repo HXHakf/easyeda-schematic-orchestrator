@@ -27,7 +27,7 @@
 
 - `pins` 是准确物理脚号字符串，所有脚恰好属于一个 net 或 `nc`。未知/待确认状态不能通过。
 - component `id` 稳定，`ref` 是当前位号。可选 `device:{libraryUuid,uuid}` 使对账同时校验库身份；真实落图目标应具有它们。
-- `modules[].members` 恰好分配每件器件一次；`core` 必须非空且属于该模块。`direct` 每项至少两个同网引脚，它们必须处于同一物理线树。`modules` 同时是可读性审计的模块归属来源（配合 `scene.moduleFrames`）。
+- `modules[].members` 恰好分配每件器件一次；`core` 必须非空且属于该模块。`direct` 每项至少两个同网引脚，它们必须处于同一物理线树。`modules` 同时是可读性审计的逻辑归属来源（配合 `scene.moduleFrames`）。
 - `nets[].scope` 仅支持 `global`、`page`，必须映射到官方实际作用域。跨页本地信号用各自 net ID；层级网/总线不在此检查器支持范围。
 - 可选 `context:{projectUuid,documentUuid}`：对账时锁定工程和单页，正式现场证据必须填写。演示省略不证明目标窗口正确。
 - 元件参数、手册证据、电流等可附字段，但通用审计器**不理解电路物理功能**。LED 电流估算由例子单独算，不证明保护、时序、模拟稳定性或额定值。
@@ -60,9 +60,9 @@
 - 可选 `paper:{"name":"A4","usable":[minX,minY,maxX,maxY]}`：给出实际绘图可用区（已扣图框/图签的实测值），
   可读性审计用它判越界并算占地；缺省时跳过纸张检查并计入 `coverage.unverified`。`usable` 与 pin/wire 同单位、y-UP。
 - 可选 `moduleFrames:[{"moduleId":"lamp","page":"P1","bbox":[minX,minY,maxX,maxY],"titleTextId":"t1"}]`：
-  模块化布局的框。`moduleId` 必须是 target `modules[].id`，每个模块至多一个框；`titleTextId` 指向
+  旧输入的模块化布局框。`moduleId` 必须是 target `modules[].id`，每个模块至多一个框；`titleTextId` 指向
   `texts` 里的标题文字。缺省时框相关规则（越框/重叠/缺框/空带/标题）跳过并计入
-  `coverage.unverified`；跨模块实体穿透与模块跨页不依赖它，始终检查。
+  `coverage.unverified`；跨模块精确端点授权与模块跨页不依赖它，始终检查。
   框本身不是导线（用分区/矩形图元画），框内包含该模块的引脚、body、文字和本模块导线。
 
 ## 可读性审计（readability_audit.py）
@@ -95,3 +95,26 @@
 
 本检查器没有覆盖：纸张/图签、铜/PCB、复杂总线/层级、ERC 方向类型、模拟/数字仿真、器件额定值、测量完备性、未声明的外围归属、保存持久化。它也没有通用寻路或装箱功能。缺少某项证据时报告未验证，继续使用 easyeda-agent 与原生导图补足，不扩大 `passed` 的含义。
 纸张适配由可读性审计在提供 `paper.usable` 时判越界，但那只证明「内容框在可用区内」，不证明图签/图框正确、也不证明版面好看。
+
+
+## 主路径和联合绘图组扩展
+
+新 target 可携带 `primary_paths` 和 `drawing_groups`。主路径格式示例为
+`[{"id":"main","title":"Main","links":[{"from":{"componentId":"a","pinNumber":"2"},"to":{"componentId":"b","pinNumber":"1"},"net":"series"}]}]`。
+这里 `net` 必须使用 target 的精确网络 ID。ESO plan 中同字段保存网络名，
+`eso.main_paths.audit_projection` 按完整脚清单和名字转换，保留 link 顺序。
+同名跨页网络必须使用不同身份。每段主路径两端须同页且处于同一无标签物理树。
+
+`drawing_groups` 示例为 `[{"id":"joint","title":"Main","modules":["source","load"]}]`。
+逻辑 modules 保留唯一 members/core/direct，组声明唯一覆盖全部逻辑模块。
+跨模块实体树中每个实际接触端点都须能通过已声明主路径与同模块 direct 组关联。
+同组或同网本身无法扩大授权。与计划关联时，direct 仅从审阅过的 attach 关系派生。
+`module-physical-crossing` 列出未授权实体树的全部端点，`primary-path-required`
+列出缺少实体连线或跨页的路径、网络、端点和页面。
+
+新 scene 外框使用
+`{"drawingGroupId":"joint","primitiveId":"native-rectangle","page":"P1","bbox":[0,0,100,100],"titleTextId":"native-title"}`。
+每个组恰好一个框，`drawingGroupId` 与旧 `moduleId` 互斥。框覆盖联合成员与主路径树导线，
+净空规则作用于实际组框。ESO 交付还核对原生矩形清单及未旋转矩形的
+`TopLeftX/TopLeftY/Width/Height/Rotation`，按 y-UP 还原边界，标题核对原生 `Content`。
+字段缺失或不支持的旋转会拒绝。旧无扩展输入沿用 moduleId 与既有规则。

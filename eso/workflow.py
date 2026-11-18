@@ -66,6 +66,8 @@ def validate_electrical_inventory(plan):
                 raise Refused("attachment must be within a module and already on the same net")
     if not plan["evidence"]:
         raise Refused("a circuit plan requires component/electrical evidence")
+    from .main_paths import validate_primary_paths
+    validate_primary_paths(plan)
     return plan
 
 
@@ -115,15 +117,17 @@ def check_source(plan, source, target):
     if set(edges) - valid_keys:
         raise Refused("extra composition connection")
     # Compare ownership explicitly, not by shared power net or screen proximity.
-    expected_modules = {m["id"]: {
-        "core": {c["id"] for c in plan["components"] if c["ref"] == m["core_ref"]},
-        "peripheral": {c["id"] for c in plan["components"] if c["module"] == m["id"] and c["ref"] != m["core_ref"]}
-    } for m in plan["modules"]}
+    from .main_paths import project_drawing_groups
+    expected_modules = {m['id']: {'core': set(m['coreComponents']),
+                                 'peripheral': set(m['peripheralComponents'])}
+                        for m in project_drawing_groups(plan)}
     observed_modules = {m["id"]: {"core": set(m.get("coreComponents", [])),
                                    "peripheral": set(m.get("peripheralComponents", []))}
                         for m in ir.get("modules", [])}
     if expected_modules != observed_modules:
         raise Refused("composition module ownership differs from reviewed plan")
+    from .main_paths import check_source_paths
+    check_source_paths(plan, source)
     return ir
 
 

@@ -221,7 +221,6 @@ def _check_design(design, requirements, search_paths, pinned_paths=()):
     probe = {**intent, 'schema_version': 1, 'contract_sha256': '0' * 64,
              'template': 'reviewed-generic', 'evidence': [{'url': s['url'], 'section': s['section']} for s in sources.values()], 'notes': []}
     probe['modules'] = [dict(m, title=m['id']) for m in probe['modules']]
-    probe.pop('primary_paths')  # Task 3 owns path schema/physical continuity checks.
     validate(probe, 'plan')
     from .workflow import validate_electrical_inventory
     validate_electrical_inventory(probe)
@@ -408,12 +407,13 @@ def plan_from_design(contract):
     if 'knowledge' in contract['requirements']:
         from .planner import make_plan
         plan = make_plan(contract)
+        plan['primary_paths'] = deepcopy(design['electrical_intent']['primary_paths'])
+        plan['drawing_groups'] = [dict(id=m['id'], title=m['title'], modules=[m['id']]) for m in plan['modules']]
         validate_design_evidence(contract, plan)
         return plan
     intent = deepcopy(design['electrical_intent'])
     intent['modules'] = [dict(m, title=m['id']) for m in intent['modules']]
-    if not intent['primary_paths']:
-        intent.pop('primary_paths')
+    intent['drawing_groups'] = [dict(id=m['id'], title=m['title'], modules=[m['id']]) for m in intent['modules']]
     return {**intent, 'schema_version': 1, 'contract_sha256': digest(contract),
             'template': 'reviewed-generic',
             'evidence': [{'url': s['url'], 'section': s['section']} for s in design['sources']],

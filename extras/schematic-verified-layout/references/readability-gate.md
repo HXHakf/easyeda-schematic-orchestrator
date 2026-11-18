@@ -38,7 +38,7 @@ python <skill>/scripts/readability_audit.py --target target.json --scene scene.j
 | `two-terminal-bends` | hard | 两端网络折弯数 >`--max-bends`（默认 2） | 缩短路径、改画法角色、拆块 |
 | `net-not-physically-connected` | hard | 非电源网、无标签、却分散在多个接触树 | 补实体线；确认不是该用标签的出页网 |
 | `out-of-usable` | hard | 内容框越出 `scene.paper.usable` | 缩小间距/换图幅/分页 |
-| `label-bridged-net` | advisory | 同模块内部网络靠标签跨树连接，或边界树缺少匹配标签 | 同模块优先实体直连。已声明跨模块边界只有在每模块内该网各有一棵物理树、且每棵树都有同名标签时通过；direct 组和跨模块实体线检查独立执行 |
+| `label-bridged-net` | advisory | 同模块内部网络靠标签跨树连接，或边界树缺少匹配标签 | 同模块优先实体直连。已声明跨模块边界只有在每模块内该网各有一棵物理树、且每棵树都有同名标签时通过；direct 组和未经声明的跨模块实体线检查独立执行 |
 | `parallel-spacing` | advisory | 异网平行段中心距 <`min-spacing-grid`×grid | 拉开到 ≥2g |
 | `short-pin-exit` | advisory | 引脚首段 <2g 就拐弯 | 先沿引脚向外走满再拐 |
 | `redundant-overlap` | advisory | 同网共线重叠（可被静默合并） | 合并成一根或错开 |
@@ -59,13 +59,14 @@ python <skill>/scripts/readability_audit.py --target target.json --scene scene.j
 
 ### 模块化硬门（G0）
 
-模块归属来自 target `modules`，所以**边界规则始终生效**，不需要任何场景扩展：模块之间只准
-标签/netport，禁止连续实体线；模块不得跨页。声明 `scene.moduleFrames` 后再加框相关规则；
+模块归属来自 target `modules`，**边界规则始终生效**。
+跨模块实体线按显式主路径和本地 direct 关系检查准确端点，其他边界使用标签/netport。
+模块不得跨页。声明 `scene.moduleFrames` 后再加实际绘图组的框规则；
 不声明 frames 时框规则跳过并计入 `coverage.unverified`（「未验证」，不是「通过」）。
 
 | 规则 | 级别 | 前置 | 阈值 / 触发条件 | 修复方向 |
 | --- | --- | --- | --- | --- |
-| `module-physical-crossing` | hard | 始终 | 一棵物理接触树里含 ≥2 个模块的引脚 | 断开成标签/netport；GND 各模块内落地 |
+| `module-physical-crossing` | hard | 始终 | 跨逻辑模块的物理树含主路径及本地 direct 关系未授权的端点 | 按准确端点重构连接或标签边界 |
 | `module-split-pages` | hard | 始终 | 同一模块的引脚分布在多页 | 拆页，不拆模块 |
 | `module-out-of-frame` | hard | 需 frames | 模块的引脚/body/文字/本模块导线越出框 | 扩框或收回内容，不要删掉框 |
 | `module-overlap` | hard | 需 frames | 两块框相交或相切（间距 ≤0） | 拉开到 ≥`--min-module-gutter-grid`×g |
@@ -147,3 +148,10 @@ O1/O2/O3/O5 这些规则**没有检查器**，只能在原生 SVG/PNG 上追路�
 
 报告字段必须自证范围：`checkerVersion`、`strict`、`thresholds`、`inputSha256`、`scope`、
 `coverage.unverified`、`liveVerified:false`。离线 PASS 不是现场 PASS，也不是硬件可用。
+
+
+主路径扩展使用 `primary_paths` 精确声明物理脚关系。检查器复用无标签接触图，
+逐段要求同页同树，并检查树上全部逻辑端点。授权只沿显式路径与经计划核验的本地 direct 关系扩展。
+`drawing_groups` 仅决定联合外框，不能扩大电气授权。scene 的新外框使用 `drawingGroupId`，
+组覆盖、跨页、重叠、标题与净空按实际联合组判断。`primary-path-required` 是 hard 失败。
+最终交付会重跑这些规则，并核对原生框位置、框数及标题文字。

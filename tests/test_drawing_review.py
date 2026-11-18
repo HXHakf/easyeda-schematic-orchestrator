@@ -41,7 +41,7 @@ def bound_visual(workflow, report, root, svg_source='<svg/>'):
     return raw, reviews, visual
 
 
-def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None):
+def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None, modern=False):
     """A synthetic two-terminal drawing with real audit reports and a simulated EDA adapter."""
     import sys
     from eso.core import confirm
@@ -60,6 +60,14 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None):
                             'module': 'm', 'pins': [{'number': '1', 'name': '1', 'net': 'SIGNAL', 'nc_reason': None}]}
                            for cid, ref in [('a', 'J1'), ('b', 'J2')]],
             'evidence': [{'url': 'https://example.test/synthetic', 'section': 'Test fixture only'}], 'notes': []}
+    if modern:
+        plan['primary_paths'] = [{'id': 'main', 'title': 'Terminal connection', 'links': [
+            {'from': {'componentId': 'a', 'pinNumber': '1'},
+             'to': {'componentId': 'b', 'pinNumber': '1'}, 'net': 'SIGNAL'}]}]
+        plan['modules'] = [{'id': mid, 'core_ref': ref, 'title': mid} for mid, ref in [('left', 'J1'), ('right', 'J2')]]
+        for component, mid in zip(plan['components'], ['left', 'right']):
+            component['module'] = mid
+        plan['drawing_groups'] = [{'id': 'joined', 'title': 'Terminal connection', 'modules': ['left', 'right']}]
     bindings = {ref: {'libraryUuid': '1' * 32, 'deviceUuid': '2' * 32,
                      'verified_model': 'synthetic-terminal', 'evidence': 'synthetic only'} for ref in ('J1', 'J2')}
     ir = bind_plan(plan, bindings, fixtures.TARGET)
@@ -70,11 +78,17 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None):
             'bbox': dict(zip(('minX', 'minY', 'maxX', 'maxY'), bounds)),
             'pins': [{'primitiveId': part['id'] + '-pin', 'pinNumber': '1', 'x': x, 'y': 0}]})
     snapshot['result']['wires'] = [{'x0': 10, 'y0': 0, 'x1': 40, 'y1': 0}]
+    if modern:
+        snapshot['result']['components'].append({'componentType': 'netport', 'primitiveId': 'marker', 'net': 'SIGNAL',
+            'pins': [{'primitiveId': 'marker-pin', 'x': 25, 'y': 0}]})
     if junction:
         split = 30 if junction == 'moved' else 25
         snapshot['result']['wires'] = [{'x0': 10, 'y0': 0, 'x1': split, 'y1': 0},
                                      {'x0': split, 'y0': 0, 'x1': 40, 'y1': 0}]
-    snapshot['result']['pagePrimitives']['texts'] = [{'primitiveId': 'title'}]
+    snapshot['result']['pagePrimitives']['texts'] = [{'primitiveId': 'title', 'Content': 'Terminal connection'}]
+    if modern:
+        snapshot['result']['pagePrimitives']['rectangles'] = [
+            {'primitiveId': 'frame', 'TopLeftX': -10, 'TopLeftY': 20, 'Width': 70, 'Height': 40, 'Rotation': 0}]
     snapshot['result']['pagePrimitives']['attributes'] = [
         {'primitiveId': cid + '-text', 'ParentPrimitiveId': cid, 'Key': 'Designator'} for cid in ('a', 'b')]
     class Adapter(fixtures.FakeAdapter):
@@ -87,7 +101,13 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None):
                 self.applied = True
             return value
     adapter = Adapter(actual=ir)
-    dump(root / 'source.json', {'connectivity': ir})
+    source = {'connectivity': ir}
+    if modern:
+        source['modules'] = [{'id': 'joined', 'placements': [
+            {'designator': c['ref'], 'pins': [{'number': '1', 'x': x, 'y': 0}]}
+            for c, x in zip(plan['components'], [10, 40])],
+            'wires': [{'points': [[10, 0], [40, 0]]}]}]
+    dump(root / 'source.json', source)
     dump(root / 'before.json', fixtures.blank())
     workflow = Workflow(adapter, root / 'run')
     workflow.prepare(contract, confirm(contract, digest(contract), 'synthetic human'), plan,
@@ -117,6 +137,12 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None):
                        {'id': 'b-text', 'page': 'p', 'componentId': 'b', 'role': 'designator', 'bbox': [42, 5, 51, 9]}],
              'textInventory': ['title', 'a-text', 'b-text'],
              'moduleFrames': [{'moduleId': 'm', 'page': 'p', 'bbox': [-10, -20, 60, 20], 'titleTextId': 'title'}]}
+    if modern:
+        from eso.main_paths import audit_projection
+        target.update(audit_projection(plan, target['nets']))
+        scene['labels'] = [{'id': 'marker', 'net': 'signal', 'page': 'p', 'at': [25, 0]}]
+        scene['moduleFrames'] = [{'drawingGroupId': 'joined', 'primitiveId': 'frame', 'page': 'p',
+                                  'bbox': [-10, -20, 60, 20], 'titleTextId': 'title'}]
     if junction:
         split = 30 if junction == 'moved' else 25
         scene['wires'] = [{'id': 'left', 'page': 'p', 'points': [[10, 0], [split, 0]]},
@@ -149,6 +175,34 @@ def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None):
 
 
 class DrawingReviewTests(unittest.TestCase):
+    def test_modern_delivery_rechecks_native_groups_and_target_permissions(self):
+        for defect in (None, 'direct', 'core', 'group', 'native-frame', 'native-title'):
+            with self.subTest(defect=defect), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                workflow, path = drawing_run(root, modern=True)
+                reviews = load(path)
+                layer = reviews['layers']['geometry']
+                if defect:
+                    target = load(root / 'target.json')
+                    scene = load(root / 'scene.json')
+                    if defect == 'direct': target['modules'][0]['direct'] = [[['a','1'],['b','1']]]
+                    if defect == 'core': target['modules'][0]['core'] = ['b']
+                    if defect == 'group': target['drawing_groups'][0]['title'] = 'fake'
+                    if defect == 'native-frame': scene['moduleFrames'][0]['bbox'][0] = -15
+                    if defect == 'native-title': scene['moduleFrames'][0]['titleTextId'] = 'a-text'
+                    dump(root / 'target.json', target)
+                    dump(root / 'scene.json', scene)
+                    for name in ('target', 'scene'):
+                        layer['files'][name]['sha256'] = file_digest(layer['files'][name]['path'])
+                    for name in ('report', 'readability'):
+                        report = load(layer['files'][name]['path'])
+                        report['inputSha256'] = {key: layer['files'][key]['sha256'] for key in ('target', 'scene')}
+                        dump(layer['files'][name]['path'], report)
+                        layer['files'][name]['sha256'] = file_digest(layer['files'][name]['path'])
+                    dump(path, reviews)
+                manifest = cli.delivery_manifest(workflow.root, root / 'manifest.json', path)
+                self.assertEqual(manifest['state'], 'verified' if defect is None else 'incomplete', manifest)
+
     def test_final_delivery_rechecks_text_against_wires_bodies_and_other_text(self):
         for bounds in ([20, -2, 30, 2], [1, -2, 6, 2], [0, 6, 5, 8]):
             with self.subTest(bounds=bounds), tempfile.TemporaryDirectory() as directory:

@@ -83,3 +83,29 @@ prepare 将所选页复制到运行包并纳入摘要。原文件后续变化不
 既有不传此参数的入口保持原行为。
 
 日志格式差异、连续恢复历史及接线阶段恢复的适用边界见[放置与执行恢复](live-recovery.md#放置与执行恢复)。
+
+
+## 主路径与联合分组
+
+`plan.primary_paths` 每项声明 `id/title/links`，link 使用 `from/to/net`。
+端点为 `{componentId,pinNumber}`，net 为计划中的网络名。不同网络逐段列出。
+`drawing_groups` 每项声明 `id/title/modules`，所有逻辑模块唯一归属一个绘图组。
+省略时按逻辑模块一对一投影。原始逻辑模块、核心与 attach 关系保存在受保护 plan 中。
+
+`eso.main_paths.project_drawing_groups` 统一提供 canonical 模块投影。
+联合组的多个逻辑核心全部保留在 `coreComponents`，测量 bridge 的 `coreComponentId`
+选取第一个核心作为布局锚点，其他核心沿显式主路径引脚关系定位。
+现有 CLI 已通过两个核心的真实离线 lib-layout、compose 和 apply dry-run 验证。
+缺少可用于定位的主路径关系时返回具体错误，可提供完整 authored composition。
+
+主路径网络优先采用 `direct`，其余逻辑边界采用标签策略。上游策略作用于整个网络，
+可能同时连接未声明支路。collect 与 prepare 会从完整 source 的物理引脚和导线重建线树，
+检查每段主路径与全部接触端点。额外分支失败时调整分组或提供完整 composition，
+并通过同一审计。标签无法满足实体主路径。
+
+补充审计 target 保留逻辑 modules，并通过 `audit_projection(plan,target_nets)`
+生成精确 direct、primary_paths 与 drawing_groups。target 的 link.net 使用审计网络 ID，
+转换依据完整脚清单与网络名，禁止猜测 `net-` 前缀。
+新 scene 每个组只有一个 `drawingGroupId` 外框，需提供真实矩形 `primitiveId` 与标题 `titleTextId`。
+交付核对原生矩形数量、位置、实际标题内容、全量文字测量和受保护 plan，
+并重跑当前主路径及可读性检查。改变分组后旧框和旧图面证据需要重建。

@@ -123,8 +123,7 @@ def bind_plan(plan, bindings, target):
         components.append({"id": c["id"], "ref": c["ref"], "role": c["role"],
                            "device": {"libraryUuid": b["libraryUuid"], "deviceUuid": b["deviceUuid"], "name": c["query"]},
                            "pins": pins, "placement": {"x": 150 + index % 5 * 200, "y": 650 - index // 5 * 160, "rotation": 0, "mirror": False}})
-    modules = [{"id": m["id"], "name": m["title"],
-                "coreComponents": [c["id"] for c in plan["components"] if c["ref"] == m["core_ref"]],
-                "peripheralComponents": [c["id"] for c in plan["components"] if c["module"] == m["id"] and c["ref"] != m["core_ref"]]} for m in plan["modules"]]
+    from .main_paths import validate_primary_paths
+    modules = validate_primary_paths(plan)
     return {"schemaVersion": "1.4", "projectId": target["project_uuid"], "documentId": target["document_uuid"],
             "components": components, "nets": list(nets.values()), "connections": connections, "modules": modules}
