@@ -84,7 +84,8 @@ def _comparison(event, state):
             or len(manifest['candidates']) != 2 or manifest['author_context_id'] != author):
         raise Refused('extra comparison must review the retained and one new candidate')
     calculated = compare_layouts(manifest['candidates'], manifest['max_candidates'],
-                                 visual_comparison=manifest['visual_comparison'], author_context_id=author)
+                                 visual_comparison=manifest['visual_comparison'], author_context_id=author,
+                                 contract=contract, plan=load(retained_root / 'plan.json'))
     if report != calculated or not report.get('comparison_subject_sha256'):
         raise Refused('extra comparison report no longer matches the actual review and inputs')
     rows = {item['id']: item for item in report['candidates']}

@@ -27,7 +27,8 @@ class IterationTests(unittest.TestCase):
         reviews = load(self.reviews)
         visual = reviews['layers']['visual']
         report = load(visual['report'])
-        independent = independent_review(self.root, {'binding': report['binding'], 'files': report['files']})
+        independent = independent_review(self.root, {'binding': report['binding'], 'files': report['files']},
+                                         outcome={k: report[k] for k in ('passed', 'coverage', 'drawing_review')})
         report.update(reviewer='visual-test', independent_review=independent)
         dump(visual['report'], report)
         visual['files'].update(report=artifact(visual['report']), invocation=independent['invocation'])

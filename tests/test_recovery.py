@@ -442,8 +442,34 @@ class SimulatedDrawingAdapter:
                 playbook = compiled_revision(before, self.final, self.target, edits=edits)
             else:
                 playbook = self.first_queue()
+            # The synthetic compiler publishes a layout and final guards, just
+            # like the real compiler already exercised by test_upstream_cli.
+            page = self.final['result']['pagePrimitives']
+            parts = [part for part in self.final['result']['components'] if part['componentType'] == 'part']
+            source = load(args[args.index('--from') + 1])
+            module = source['modules'][0]
+            layout = {
+                'placements': [{'designator': part['designator'],
+                                'pins': [{'number': pin['pinNumber'], 'x': pin['x'], 'y': pin['y']}
+                                         for pin in part['pins']]} for part in parts],
+                'wires': [{'points': [start, end]} for start, end in (
+                    ([wire['x0'], wire['y0']], [wire['x1'], wire['y1']]) for wire in self.final['result']['wires'])],
+                'flags': [step['payload'] for step in playbook['steps'] if step.get('action') == 'schematic.power.connect_pin'],
+                'frames': [{'id': module['id'], 'title': module['title'],
+                            'rect': {k: page['rectangles'][0][k] for k in ('TopLeftX', 'TopLeftY', 'Width', 'Height')}}],
+            }
+            frame = next(step for step in playbook['steps'] if step.get('run') == 'sch frame apply')
+            frame.update(id='apply-module-frames', flags={'data': json.dumps(
+                {'documentId': self.target['document_uuid'], 'frames': layout['frames']})})
+            guard = next((step for step in playbook['steps'] if step['id'] == 'verify-all-pins-nets-nc'), None)
+            if guard is None:
+                guard = {'id': 'verify-all-pins-nets-nc', 'action': 'schematic.components.list', 'payload': {},
+                         'expectSchematic': {'parts': {
+                             part['designator']: {'pins': {pin['pinNumber']: pin for pin in part['pins']}} for part in parts}}}
+                playbook['steps'].append(guard)
+            guard['expectSchematic']['drawing'] = {'wires': layout['wires'], 'flags': layout['flags']}
             dump(args[args.index('--playbook') + 1], playbook)
-            dump(args[args.index('--out') + 1], {})
+            dump(args[args.index('--out') + 1], {'layout': layout})
         elif args[:2] == ['sch', 'apply'] and '--journal' in args:
             self.apply(args[2], args[args.index('--journal') + 1])
         elif args[:2] == ['sch', 'save']:
@@ -503,6 +529,8 @@ class SimulatedDrawingAdapter:
                 capture['eso-drawing-readback'] = json.dumps(self.final['result'])
             elif 'eso-saved-readback' in step.get('capture', {}):
                 capture['eso-saved-readback'] = json.dumps(self.final['result'])
+            elif 'eso-drawing-readback' in step.get('capture', {}):
+                capture['eso-drawing-readback'] = json.dumps(self.final['result'])
             elif step.get('run') == 'sch frame apply':
                 page = self.final['result']['pagePrimitives']
                 capture['eso-frames'] = json.dumps([{'rectangle': {'id': page['rectangles'][0]['primitiveId']},
