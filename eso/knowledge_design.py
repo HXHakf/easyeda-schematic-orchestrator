@@ -62,7 +62,13 @@ def make_bindings(contract):
     return {c['ref']:dict(materials[circuits[c['module']]['roles'][c['role']]]['library']) for c in plan['components']}
 
 
-def check_knowledge_plan(plan, contract):
+def check_knowledge_plan(plan, contract, *, evidence_root=None):
+    from .knowledge import knowledge_document_scope
+    with knowledge_document_scope(contract['requirements'], (evidence_root,) if evidence_root else ()):
+        return _check_knowledge_plan(plan, contract)
+
+
+def _check_knowledge_plan(plan, contract):
     if 'knowledge' not in contract['requirements']:
         if 'knowledge_evidence' in plan: raise Refused('orphan knowledge plan evidence')
         return

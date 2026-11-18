@@ -36,7 +36,8 @@ PROFILE_FIELDS = {
 
 def parse_seed(text):
     """Seed extraction only. Model semantic review still handles negation and unknown constraints."""
-    values = {'schema_version': 1, 'raw_request': text}
+    values = {'schema_version': 1, 'raw_request': text, 'function_description': text,
+              'design_review': {'policy_version': 1, 'status': 'pending'}}
     upper = text.upper()
     mcus = set(re.findall(r'STM32[A-Z0-9]+', upper))
     sensors = set(re.findall(r'(?<![A-Z0-9])(?:BMP280|BME280|SHT30|SHT31)(?![A-Z0-9])', upper))
@@ -93,6 +94,26 @@ def merge_answers(requirements, answers):
 def evaluate(requirements, require_target=False):
     validate(requirements, 'requirements')
     v = deepcopy(requirements)
+    if 'design_review' in v:
+        from .design_review import assess_design_review
+        review = assess_design_review(v)
+        questions = review['questions'] + list(v.get('unresolved', []))
+        knowledge_fields = {}
+        legacy_input = deepcopy(v)
+        legacy_input.pop('design_review')
+        bounded = evaluate(legacy_input)
+        if 'knowledge' in v or 'composition' in v:
+            if 'knowledge' in bounded:
+                knowledge_fields['knowledge'] = bounded['knowledge']
+            if not bounded['ready']:
+                review['ready'] = False
+                review['research_tasks'].append({'field': 'knowledge', 'action': str(bounded['errors'] or bounded['questions'] or bounded['selection_tasks'])})
+        if require_target and not v.get('target_project'):
+            questions.append({'field': 'target_project', 'question': PROMPTS['target_project'], 'reason': '绑定获准测试工程'})
+        return {**review, 'values': v, 'questions': questions, 'next_questions': questions[:3],
+                'ready': review['ready'] and not questions, 'errors': [], 'review_mode': 'new',
+                'default_candidates': bounded['defaults'],
+                'semantic_review_required': True, 'profile': v.get('circuit_type'), **knowledge_fields}
     # Rebuild every previously inferred field from its current dependencies. An explicit
     # changed value is preserved; merge_answers also handles reaffirming the same value.
     for record in v.pop('default_provenance', []):
@@ -190,7 +211,7 @@ def evaluate(requirements, require_target=False):
     v['default_provenance'] = defaults
     return {'values': v, 'defaults': defaults, 'questions': questions, 'next_questions': questions[:3],
             'selection_tasks': selections, 'errors': errors, 'ready': not questions and not selections and not errors,
-            'semantic_review_required': True, 'profile': profile,
+            'semantic_review_required': True, 'profile': profile, 'review_mode': 'legacy',
             **({'knowledge': knowledge_report} if knowledge_report is not None else {})}
 
 
@@ -200,6 +221,8 @@ def contract_from(requirements, target=None):
     contract = {'schema_version': 1, 'requirements': report['values'], 'defaults': report['defaults'],
                 'scope': 'test-project-only', 'acceptance': ['exact-pin-net-nc', 'native-drc', 'structural-check',
                 'bridge-check', 'geometry', 'save-reload-readback'], 'exclusions': ['pcb', 'firmware', 'hardware-validation']}
+    if report.get('review_mode') == 'new':
+        contract['design_evidence'] = report['evidence']
     if 'knowledge' in report:
         contract['knowledge_evidence'] = report['knowledge']['evidence']
     if target:
@@ -244,6 +267,8 @@ def contract_summary(contract):
         lines += ['', 'MCU 模块组合：', str(r['composition']['connections']),
                   '剩余 GPIO/端口预算审阅：' + r['composition']['budget_review'],
                   '控制器预算检查：' + str(contract['knowledge_evidence']['controller_budget'])]
+    from .design_review import design_summary
+    lines += design_summary(contract)
     target = contract.get('target')
     lines += ['', f"执行目标：{target['project_name']}（已内部绑定具体页面）。" if target else '执行目标：未绑定；当前仅为离线草稿。',
               '', '验收：逐脚连接/NC、规则、桥接和几何检查，保存并重载后重新回读。',

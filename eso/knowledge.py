@@ -3,12 +3,40 @@
 No PDF semantic inference, network retrieval, UUID invention, or live EDA writes.
 """
 import re
+from contextlib import contextmanager
+from contextvars import ContextVar
 import unicodedata
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 from .core import Refused, digest, file_digest, load
 
 CATALOG = Path(__file__).parent / 'data' / 'knowledge.json'
+
+
+_DOCUMENT_ROOTS = ContextVar('knowledge_document_roots', default=())
+
+
+@contextmanager
+def knowledge_document_scope(requirements, roots=()):
+    """Only new-policy operations may resolve reviewed documents from pinned runs."""
+    if requirements.get('design_review', {}).get('policy_version') != 1:
+        yield
+        return
+    token = _DOCUMENT_ROOTS.set(tuple(roots) or _DOCUMENT_ROOTS.get())
+    try:
+        yield
+    finally:
+        _DOCUMENT_ROOTS.reset(token)
+
+
+def pinned_knowledge_document(sha):
+    for root in _DOCUMENT_ROOTS.get():
+        candidate = Path(root) / ('design-evidence--' + sha)
+        if candidate.is_file():
+            if file_digest(candidate) != sha:
+                raise Refused('pinned knowledge document changed: ' + sha)
+            return str(candidate.resolve())
+    return None
 
 
 def normalized(value):
@@ -104,6 +132,7 @@ def assess_materials(materials):
         path = ds.get('path')
         if isinstance(path, str) and path:
             try:
+                path = pinned_knowledge_document(ds.get('sha256', '')) or path
                 if not Path(path).is_absolute() or not Path(path).is_file(): raise OSError('需要可读绝对文件路径')
                 if file_digest(path) != ds.get('sha256'): issue(prefix + '.datasheet.sha256', '手册内容变更，需要重新审阅')
             except OSError as error: issue(prefix + '.datasheet.path', str(error))
@@ -219,7 +248,13 @@ def assess_knowledge(knowledge):
             'semantic_review_required': True, 'level': 'offline-checked' if not issues else 'incomplete'}
 
 
-def check_contract_knowledge(contract):
+def check_contract_knowledge(contract, *, evidence_root=None):
+    roots = (evidence_root,) if evidence_root else ()
+    with knowledge_document_scope(contract['requirements'], roots):
+        return _check_contract_knowledge(contract)
+
+
+def _check_contract_knowledge(contract):
     k = contract['requirements'].get('knowledge')
     if k is None:
         if 'knowledge_evidence' in contract: raise Refused('orphan knowledge evidence')

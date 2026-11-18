@@ -20,8 +20,59 @@ def rectangle(values):
     return bounds
 
 
+def on(p, a, b):
+    return (min(a[0], b[0]) - EPS <= p[0] <= max(a[0], b[0]) + EPS
+            and min(a[1], b[1]) - EPS <= p[1] <= max(a[1], b[1]) + EPS
+            and abs((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])) <= EPS)
+
+
+def boxes_touch(a, b):
+    return a[0] <= b[2] + EPS and b[0] <= a[2] + EPS and a[1] <= b[3] + EPS and b[1] <= a[3] + EPS
+
+
+def segment_hits_box(a, b, rect, closed=True):
+    # Accepted wire segments are axis aligned. Body interior is open, text is closed.
+    if closed:
+        return (max(a[0], b[0]) >= rect[0] - EPS and min(a[0], b[0]) <= rect[2] + EPS
+                and max(a[1], b[1]) >= rect[1] - EPS and min(a[1], b[1]) <= rect[3] + EPS)
+    return (max(a[0], b[0]) > rect[0] + EPS and min(a[0], b[0]) < rect[2] - EPS
+            and max(a[1], b[1]) > rect[1] + EPS and min(a[1], b[1]) < rect[3] - EPS)
+
+
+def object_collisions(scene, segments):
+    """Reuse the full geometry audit's body/text rules at every drawing gate."""
+    texts, bodies = scene.get('texts', []), scene.get('bodies', [])
+    boxes = [(obj, rectangle(obj['bbox'])) for obj in bodies + texts]
+    text_ids = {text['id'] for text in texts}
+    if {body['id'] for body in bodies} & text_ids:
+        raise ValueError('body/text object IDs must be disjoint')
+    labels = {label['id']: label for label in scene.get('labels', [])}
+    findings = {'object_overlaps': [], 'wire_text_overlaps': [],
+                'wire_body_overlaps': [], 'invalid_wire_exemptions': []}
+    for i, (obj, rect) in enumerate(boxes):
+        exemptions = obj.get('allowWireIds', [])
+        marker = labels.get(obj.get('markerId'))
+        valid_exemption = (obj['id'] in text_ids and obj.get('role') == 'net-label' and marker is not None
+                           and marker['page'] == obj['page'] and len(exemptions) == 1
+                           and any(wid == exemptions[0] and page == obj['page'] and on(coordinates(marker['at'], 2), a, b)
+                                   for wid, page, a, b in segments))
+        if exemptions and not valid_exemption:
+            findings['invalid_wire_exemptions'].append({'objects': [obj['id']]})
+            exemptions = []
+        for other, rect2 in boxes[:i]:
+            if obj['page'] == other['page'] and boxes_touch(rect, rect2):
+                findings['object_overlaps'].append({'objects': [obj['id'], other['id']]})
+        for wid, page, a, b in segments:
+            if wid in exemptions:
+                continue
+            if obj['page'] == page and segment_hits_box(a, b, rect, obj['id'] in text_ids):
+                rule = 'wire_text_overlaps' if obj['id'] in text_ids else 'wire_body_overlaps'
+                findings[rule].append({'objects': [wid, obj['id']]})
+    return findings
+
+
 def drawing_obstacles(scene):
-    """Find unjoined interior X crossings and text touching any module frame edge."""
+    """Recheck crossings, frames and full body/text geometry from current inputs."""
     segments = []
     for wire in scene['wires']:
         points = []
@@ -72,7 +123,8 @@ def drawing_obstacles(scene):
             if touches_vertical or touches_horizontal:
                 collisions.append({'text': text['id'], 'module': frame['moduleId'],
                                    'page': text['page'], 'bbox': list(text['bbox'])})
-    return {'crossings': crossings, 'text_frame_collisions': collisions}
+    return {'crossings': crossings, 'text_frame_collisions': collisions,
+            **object_collisions(scene, segments)}
 
 
 def check_visual_review(review):

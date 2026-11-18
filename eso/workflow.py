@@ -14,16 +14,23 @@ VERIFICATION_FILES = ('save.json', 'reload.json', 'actual-connectivity.json', 'd
                       'structure-command.json', 'bridge-command.json', 'geometry-command.json')
 
 
-def validate_plan(plan, contract):
+def validate_plan(plan, contract, *, evidence_root=None):
     validate(plan, "plan")
+    from .design_review import validate_design_evidence
+    evidence = validate_design_evidence(contract, plan, search_paths=(evidence_root,) if evidence_root else ())
     from .knowledge_design import check_knowledge_plan
-    check_knowledge_plan(plan, contract)
-    from .planner import net_definitions
-    net_definitions(plan)
+    check_knowledge_plan(plan, contract, evidence_root=evidence_root)
     if plan["contract_sha256"] != digest(contract):
         raise Refused("plan refers to an old contract")
-    if not evaluate(contract["requirements"])["ready"]:
+    if evidence["review_mode"] == "legacy" and not evaluate(contract["requirements"])["ready"]:
         raise Refused("contract requirements are incomplete")
+    return validate_electrical_inventory(plan)
+
+
+def validate_electrical_inventory(plan):
+    """Validate the physical inventory before review or after binding a contract."""
+    from .planner import net_definitions
+    net_definitions(plan)
     ids, refs, modules = set(), set(), {m["id"] for m in plan["modules"]}
     if len(modules) != len(plan["modules"]):
         raise Refused("duplicate module IDs")
@@ -171,8 +178,10 @@ class Workflow:
     def prepare(self, contract, approval, plan, composition_path, before_path, placement_run=None, *, layout_page=None):
         if (self.root / "bundle.json").exists() or (self.root / "execution-started.lock").exists():
             raise Refused("prepare requires a fresh run directory; preserve prior execution and verification records")
-        check_confirmation(contract, approval)
-        validate_plan(plan, contract)
+        check_confirmation(contract, approval, evidence_root=placement_run)
+        validate_plan(plan, contract, evidence_root=placement_run)
+        from .design_review import pin_design_evidence
+        design_artifacts = pin_design_evidence(contract, self.root, search_paths=(placement_run,) if placement_run else ())
         target = contract.get("target")
         if not target:
             raise Refused("execution contract must bind exact live project/document UUIDs")
@@ -258,6 +267,7 @@ class Workflow:
         self.adapter.run(["sch", "apply", queue, "--dry-run"], json_output=False)
         artifacts = {name: file_digest(self.root / name) for name in
                      ("contract.json", "approval.json", "plan.json", "expected.json", "composition.json", "before.json", "apply.json", "upstream-plan.json")}
+        artifacts.update(design_artifacts)
         if layout_page is not None:
             artifacts['layout-page.json'] = file_digest(page_copy)
         if placement_run:
@@ -311,7 +321,7 @@ class Workflow:
             if Path(name).name != name or file_digest(self.root / name) != sha:
                 raise Refused("prepared artifact changed; recompile and review")
         contract = load(self.root / "contract.json")
-        check_confirmation(contract, load(self.root / "approval.json"))
+        check_confirmation(contract, load(self.root / "approval.json"), evidence_root=self.root)
         if bundle["target"] != contract.get("target"):
             raise Refused("bundle target changed")
         validate_queue(load(self.root / "apply.json"), bundle["target"])

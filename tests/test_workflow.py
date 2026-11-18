@@ -180,6 +180,35 @@ class SafetyTests(unittest.TestCase):
             self.assertNotIn("shell", run.call_args.kwargs)
             self.assertEqual(run.call_args.kwargs["env"]["EASYEDA_NO_AUTOSTART"], "1")
 
+    def test_schematic_adapter_rejects_pcb_entry_points_before_dispatch(self):
+        commands = [
+            ['pcb', 'import-changes'], ['pcb', 'modify'], ['pcb', 'autoroute'],
+            ['pcb', 'drc'], ['board', 'new'], ['apply', 'pcb-playbook.json'],
+            ['call', 'pcb.component.modify'], ['call', 'board.create'],
+        ]
+        with patch('eso.adapter.shutil.which', return_value='/usr/bin/fake-easyeda'), patch('eso.adapter.subprocess.run') as run:
+            run.return_value.returncode = 0
+            run.return_value.stdout = '{"ok":true,"result":{}}'
+            run.return_value.stderr = ''
+            adapter = EasyEDA('fake-easyeda')
+            for command in commands:
+                with self.subTest(command=command), self.assertRaisesRegex(Refused, 'schematic-only'):
+                    adapter.run(command)
+            self.assertEqual(run.call_count, 0)
+
+    def test_schematic_adapter_retains_schematic_and_library_calls(self):
+        commands = [['sch', 'save'], ['lib', 'device', 'get'], ['doc', 'reload', 'schematic-page'],
+                    ['project', 'info'], ['call', 'schematic.components.list']]
+        with patch('eso.adapter.shutil.which', return_value='/usr/bin/fake-easyeda'), patch('eso.adapter.subprocess.run') as run:
+            run.return_value.returncode = 0
+            run.return_value.stdout = '{"ok":true,"result":{}}'
+            run.return_value.stderr = ''
+            adapter = EasyEDA('fake-easyeda')
+            for command in commands:
+                adapter.run(command)
+            self.assertEqual(run.call_count, len(commands))
+            self.assertEqual(run.call_args.kwargs["env"]["EASYEDA_NO_AUTOSTART"], "1")
+
 
 class FakeAdapter:
     def __init__(self, fail=False, saved=True, actual=None): self.calls=[]; self.fail=fail; self.saved=saved; self.actual=actual

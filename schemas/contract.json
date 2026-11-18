@@ -224,6 +224,66 @@
         },
         "composition": {
           "type": "object"
+        },
+        "design_review": {
+          "type": "object",
+          "required": [
+            "policy_version"
+          ],
+          "properties": {
+            "policy_version": {
+              "const": 1
+            },
+            "status": {
+              "enum": [
+                "pending",
+                "analyzed"
+              ]
+            },
+            "design": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "review": {
+              "type": "object",
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              },
+              "additionalProperties": false
+            },
+            "search_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -245,6 +305,12 @@
           },
           "depends_on": {
             "type": "object"
+          },
+          "source_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -296,6 +362,61 @@
     },
     "knowledge_evidence": {
       "type": "object"
+    },
+    "design_evidence": {
+      "type": "object",
+      "required": [
+        "policy_version",
+        "design",
+        "review",
+        "electrical_intent_sha256"
+      ],
+      "properties": {
+        "policy_version": {
+          "const": 1
+        },
+        "design": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "review": {
+          "type": "object",
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        },
+        "electrical_intent_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [

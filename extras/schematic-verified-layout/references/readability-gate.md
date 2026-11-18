@@ -31,6 +31,10 @@ python <skill>/scripts/readability_audit.py --target target.json --scene scene.j
 | `foreign-net-crossing` | hard | 异网导线在两者**内部**正交相交（默认 `--max-crossings 0`） | 重排支路或拆块；禁止加标签掩盖 |
 | `same-net-crossing` | hard | 同网导线形成无显式接点的内部 X，计入同一交叉上限 | 优先重排为可直接追踪的支路；真实连接节点按电气意图表达 |
 | `text-frame-overlap` | hard | 任意可见文字 bbox 与同页模块框线相交或相切，包含自由说明 | 将完整文字移到净空区域，或按内容重新安排模块 |
+| `object-overlap` | hard | 同页文字与文字、文字与器件或器件之间 bbox 相交或相切 | 移开对象并重新测量完整外部文字 |
+| `wire-text-overlap` | hard | 导线接触文字 bbox | 重排文字或导线路径 |
+| `wire-body-overlap` | hard | 导线穿过器件 body 内部 | 核对引脚出口，重排器件或导线 |
+| `invalid-wire-exemption` | hard | 声明的导线豁免缺少同页、同线的真实网络标记绑定 | 修正标记绑定，保留其他碰撞检查 |
 | `two-terminal-bends` | hard | 两端网络折弯数 >`--max-bends`（默认 2） | 缩短路径、改画法角色、拆块 |
 | `net-not-physically-connected` | hard | 非电源网、无标签、却分散在多个接触树 | 补实体线；确认不是该用标签的出页网 |
 | `out-of-usable` | hard | 内容框越出 `scene.paper.usable` | 缩小间距/换图幅/分页 |
@@ -43,6 +47,12 @@ python <skill>/scripts/readability_audit.py --target target.json --scene scene.j
 - `crossings` 统计同网与异网的无接点内部 X，`sameNetCrossings` 单独列出同网数量，
   `textFrameCollisions` 列出文字穿框数量。显式连接节点和 T 形接触按连接模型核对。
   完整 ESO 分发中的 `eso.drawing_checks` 由本审计、候选比较和交付检查共同复用。
+- `objectOverlaps`、`wireTextOverlaps` 和 `wireBodyOverlaps` 记录当前碰撞数。
+  候选与交付入口直接重查当前 scene，旧报告即使记录通过也无法放行这些碰撞。
+  `contentAreaRaw2` 和 `totalWireLengthRaw` 与折弯统计用于比较紧凑候选。
+  所有候选仍需通过零碰撞检查及同尺度原生预览审阅。
+- 器件移动、旋转或元数据更新后重新回读与测量外部文字。保存重开后的最终导图必须包含位号、
+  数值、型号、网络名和自由说明。原生 `sch gate` 的 INFO 交叉仍计入本门。
 - 豁免只允许写进交付说明的文字理由，**不能改输入数据绕过**。单页超过 3 处间距豁免即判不通过。
 - 报告里的 `coverage.unverified` 必须原样进交付说明，至少包括：渲染阅读路径、无 paper 时的纸张
   适配、模块分组意图、符号内部文字、原生 DRC、save/reload、额定值。

@@ -30,7 +30,7 @@ import circuit_audit as ca  # noqa: E402  (same directory, shared contact model)
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from eso.drawing_checks import drawing_obstacles
 
-VERSION = '1.2.0'
+VERSION = '1.3.0'
 EPS = ca.EPS
 OBJECT_CAP = 40
 POWER_PATTERNS = (
@@ -364,7 +364,7 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
         if any(label['net'] not in nets for label in labels):
             raise ValueError('marker refers to unknown net')
 
-        # 2. Unjoined crossings and all visible text against module frame edges.
+        # 2. Current crossings, module frame edges and body/text obstacles.
         obstacles = drawing_obstacles(scene)
         wire_nets = {segment[0]: seg_net[i] for i, segment in enumerate(segments)}
         crossings = obstacles['crossings']
@@ -378,6 +378,10 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
         if obstacles['text_frame_collisions']:
             add(findings, 'text-frame-overlap', 'hard',
                 [f'{item["text"]}/{item["module"]}:{item["bbox"]}' for item in obstacles['text_frame_collisions']])
+        for key, rule in [('object_overlaps', 'object-overlap'), ('wire_text_overlaps', 'wire-text-overlap'),
+                          ('wire_body_overlaps', 'wire-body-overlap'), ('invalid_wire_exemptions', 'invalid-wire-exemption')]:
+            if obstacles[key]:
+                add(findings, rule, 'hard', ['/'.join(item['objects']) for item in obstacles[key]])
 
         # 3. Two-terminal nets must be traceable with few bends.
         pins_by_net = defaultdict(list)
@@ -472,6 +476,9 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
             'crossings': len(crossings), 'crossingsByPage': dict(Counter(item['page'] for item in crossings)),
             'sameNetCrossings': sum(wire_nets[item['wires'][0]] == wire_nets[item['wires'][1]] for item in crossings),
             'textFrameCollisions': len(obstacles['text_frame_collisions']),
+            'objectOverlaps': len(obstacles['object_overlaps']),
+            'wireTextOverlaps': len(obstacles['wire_text_overlaps']),
+            'wireBodyOverlaps': len(obstacles['wire_body_overlaps']),
             'bendsHistogram': dict(sorted(bend_histogram.items())),
             'maxBends': max(bend_histogram, default=None),
             'unresolvedBends': unresolved_bends,
@@ -481,6 +488,8 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
             'longestSegmentRaw': max((abs(a[0] - b[0]) + abs(a[1] - b[1]) for _, _, a, b in segments), default=0),
             'labels': len(labels), 'labelBridgedNets': bridged,
             'contentBBox': content,
+            'contentAreaRaw2': None if content is None else (content[2] - content[0]) * (content[3] - content[1]),
+            'totalWireLengthRaw': sum(abs(a[0] - b[0]) + abs(a[1] - b[1]) for _, _, a, b in segments),
             'paperName': paper.get('name') if paper else None,
             'occupancy': (None if not (paper and content) else
                           round((content[2] - content[0]) * (content[3] - content[1])

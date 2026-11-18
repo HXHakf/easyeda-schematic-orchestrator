@@ -80,16 +80,20 @@ def confirm(contract, supplied_hash, actor):
     validate(contract, "contract")
     from .knowledge import check_contract_knowledge
     check_contract_knowledge(contract)
+    from .design_review import validate_design_evidence
+    validate_design_evidence(contract)
     if digest(contract) != supplied_hash or not actor.strip():
         raise Refused("confirmation must name the human and match the exact reviewed contract hash")
     return {"schema_version": 1, "contract_sha256": supplied_hash,
             "actor": actor, "confirmed_at": now()}
 
 
-def check_confirmation(contract, approval):
+def check_confirmation(contract, approval, *, evidence_root=None):
     validate(contract, "contract")
     from .knowledge import check_contract_knowledge
-    check_contract_knowledge(contract)
+    check_contract_knowledge(contract, evidence_root=evidence_root)
+    from .design_review import validate_design_evidence
+    validate_design_evidence(contract, search_paths=(evidence_root,) if evidence_root else ())
     validate(approval, "approval")
     if approval["contract_sha256"] != digest(contract):
         raise Refused("contract changed or was not confirmed; review the new contract")

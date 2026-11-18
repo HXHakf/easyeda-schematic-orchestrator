@@ -60,6 +60,8 @@ def base_plan(requirements):
     r = deepcopy(requirements)
     r.pop("knowledge", None)
     r.pop("composition", None)
+    # This internal base topology is checked within the complete reviewed composition.
+    r.pop("design_review", None)
     return make_plan(contract_from(r))
 
 

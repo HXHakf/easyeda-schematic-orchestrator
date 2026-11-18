@@ -66,6 +66,9 @@ def main(argv=None):
             parser.add_argument('--attempt', help='audit one retained attempt independently of current inputs')
     intake = sub.add_parser("intake", help="conservative seed extraction; agent semantic review still required")
     intake.add_argument("--text", required=True); intake.add_argument("--out", required=True)
+    evidence = sub.add_parser('design-evidence-check', help='recheck source files, independent electrical review and optional plan')
+    evidence.add_argument('contract'); evidence.add_argument('--plan')
+    evidence.add_argument('--search-path', action='append', default=[])
     assess = sub.add_parser("assess", help="dynamic questions/defaults and electrical conflicts")
     assess.add_argument("requirements"); assess.add_argument("--out")
     assess.add_argument("--for-execution", action="store_true", help="also require the authorized test project name")
@@ -151,6 +154,10 @@ def main(argv=None):
             from .knowledge_design import make_bindings
             output = make_bindings(load(args.contract)); dump(args.out, output)
         elif args.command == "intake": output = parse_seed(args.text); dump(args.out, output)
+        elif args.command == 'design-evidence-check':
+            from .design_review import validate_design_evidence
+            checked = validate_design_evidence(load(args.contract), load(args.plan) if args.plan else None, search_paths=args.search_path)
+            output = {'valid': True, 'review_mode': checked['review_mode'], 'cost': checked.get('cost')}
         elif args.command == "assess":
             output = evaluate(load(args.requirements), require_target=args.for_execution)
             if args.out: dump(args.out, output)
@@ -170,7 +177,14 @@ def main(argv=None):
         elif args.command == "confirm":
             output = confirm(load(args.contract), args.sha256, args.actor); dump(args.out, output)
         elif args.command in ("demo-plan", "plan"):
-            output = make_plan(load(args.contract)); dump(args.out, output)
+            contract = load(args.contract)
+            if 'design_review' in contract['requirements']:
+                from .design_review import plan_from_design
+                output = plan_from_design(contract)
+                validate_plan(output, contract)
+            else:
+                output = make_plan(contract)
+            dump(args.out, output)
         elif args.command == "validate-plan":
             validate_plan(load(args.plan), load(args.contract)); output = {"valid": True, "level": "offline-verified"}
         elif args.command == "discover":

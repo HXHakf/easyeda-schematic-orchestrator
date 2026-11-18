@@ -41,7 +41,7 @@ def bound_visual(workflow, report, root, svg_source='<svg/>'):
     return raw, reviews, visual
 
 
-def drawing_run(root, *, crosses_frame=False, junction=None):
+def drawing_run(root, *, crosses_frame=False, junction=None, text_bbox=None):
     """A synthetic two-terminal drawing with real audit reports and a simulated EDA adapter."""
     import sys
     from eso.core import confirm
@@ -104,7 +104,7 @@ def drawing_run(root, *, crosses_frame=False, junction=None):
     target = {'schemaVersion': 1, 'components': [{'id': cid, 'ref': ref, 'pins': ['1']} for cid, ref in [('a', 'J1'), ('b', 'J2')]],
               'nets': [{'id': 'signal', 'name': 'SIGNAL', 'scope': 'global', 'pins': [['a', '1'], ['b', '1']]}],
               'nc': [], 'modules': [{'id': 'm', 'members': ['a', 'b'], 'core': ['a'], 'direct': [[['a', '1'], ['b', '1']]]}]}
-    bounds = [55, 10, 70, 15] if crosses_frame else [0, 10, 30, 15]
+    bounds = text_bbox if text_bbox is not None else ([55, 10, 70, 15] if crosses_frame else [0, 10, 30, 15])
     scene = {'schemaVersion': 1, 'units': 'raw', 'grid': 5, 'evidence': 'synthetic-fixture', 'geometryScope': 'full',
              'pins': [{'pin': [cid, '1'], 'page': 'p', 'at': [x, 0], 'direction': direction}
                       for cid, x, direction in [('a', 10, 'right'), ('b', 40, 'left')]],
@@ -126,11 +126,14 @@ def drawing_run(root, *, crosses_frame=False, junction=None):
     dump(root / 'scene.json', scene)
     hashes = {'target': file_digest(root / 'target.json'), 'scene': file_digest(root / 'scene.json')}
     geometry = circuit_audit.audit_scene(target, scene)
+    if text_bbox is not None:
+        # A retained passing report must never bypass current geometry rechecks.
+        geometry.update(passed=True, findings=[])
     geometry.update(binding=raw['binding'], inputSha256=hashes)
     dump(root / 'geometry.json', geometry)
     readability = readability_audit.audit_readability(target, scene, strict=True)
     readability['inputSha256'] = hashes
-    if crosses_frame:
+    if crosses_frame or text_bbox is not None:
         # Simulate a previously accepted report with identical source hashes but no frame-edge rule.
         readability.update(passed=True, findings=[], checkerVersion='1.1.1')
     dump(root / 'readability.json', readability)
@@ -146,6 +149,48 @@ def drawing_run(root, *, crosses_frame=False, junction=None):
 
 
 class DrawingReviewTests(unittest.TestCase):
+    def test_final_delivery_rechecks_text_against_wires_bodies_and_other_text(self):
+        for bounds in ([20, -2, 30, 2], [1, -2, 6, 2], [0, 6, 5, 8]):
+            with self.subTest(bounds=bounds), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                workflow, reviews = drawing_run(root, text_bbox=bounds)
+                manifest = cli.delivery_manifest(workflow.root, root / 'manifest.json', reviews)
+                self.assertEqual(manifest['core_state'], 'verified')
+                self.assertEqual(manifest['state'], 'incomplete')
+                self.assertIn('body/text overlaps', str(manifest['unverified']))
+
+    def test_current_text_geometry_rejects_old_passing_candidate_reports(self):
+        base = {'wires': [{'id': 'wire', 'page': 'p', 'points': [[0, 0], [30, 0]]}],
+                'bodies': [{'id': 'body', 'page': 'p', 'bbox': [40, 5, 50, 15]}],
+                'texts': [{'id': 'value', 'page': 'p', 'bbox': [0, 20, 10, 25]}],
+                'moduleFrames': []}
+        variants = [
+            ('clear', copy.deepcopy(base), True),
+            ('value-reset-onto-wire', dict(base, texts=[{'id': 'value', 'page': 'p', 'bbox': [10, -2, 20, 2]}]), False),
+            ('value-inside-body', dict(base, texts=[{'id': 'value', 'page': 'p', 'bbox': [42, 8, 48, 12]}]), False),
+            ('net-name-over-value', dict(base, texts=base['texts'] + [{'id': 'net-name', 'page': 'p', 'bbox': [5, 22, 15, 27]}]), False),
+        ]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dump(root / 'target.json', {'synthetic': True})
+            candidates = []
+            for name, scene, expected_pass in variants:
+                scene_path = root / (name + '-scene.json')
+                dump(scene_path, scene)
+                hashes = {'target': file_digest(root / 'target.json'), 'scene': file_digest(scene_path)}
+                geometry = root / (name + '-geometry.json')
+                readability = root / (name + '-readability.json')
+                dump(geometry, {'scope': 'declared-topology-pin-exit-and-obstacle-geometry',
+                                'geometryScope': 'full', 'passed': True, 'inputSha256': hashes})
+                dump(readability, {'scope': 'offline-readability', 'strict': True,
+                                   'passed': True, 'inputSha256': hashes})
+                candidate = {'id': name, 'target': str(root / 'target.json'), 'scene': str(scene_path),
+                             'geometry_report': str(geometry), 'readability_report': str(readability)}
+                candidates.append(candidate)
+                result = compare_layouts([candidate], 1)
+                self.assertEqual(result['candidates'][0]['passed'], expected_pass, name)
+            self.assertEqual(compare_layouts(candidates, len(candidates))['selected'], 'clear')
+
     def test_scene_junctions_require_matching_observed_svg_dots(self):
         for junction in ('invented', 'observed', 'moved', 'transparent', 'alpha', 'paint-server', 'current-color'):
             with self.subTest(junction=junction), tempfile.TemporaryDirectory() as directory:

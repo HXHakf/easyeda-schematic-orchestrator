@@ -136,7 +136,7 @@ def _check_review_layer(layer, entry, report, root, *, current=True):
         from .native_text import validate_junctions
         validate_junctions(files['svg']['path'], scene.get('junctions', []))
         if any(drawing_obstacles(scene).values()):
-            raise Refused('current drawing has unjoined crossings or text-frame collisions')
+            raise Refused('current drawing has crossings, frame collisions or body/text overlaps')
     plan = load(root / 'plan.json')
     actual = {c['designator']:c for c in data['components'] if c.get('componentType') == 'part'}
     expected = {c['id']:c for c in plan['components']}

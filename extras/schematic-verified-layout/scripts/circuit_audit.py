@@ -5,6 +5,10 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from eso.drawing_checks import boxes_touch, object_collisions, on, segment_hits_box
 
 VERSION = '1.1.0'
 EPS = 1e-7
@@ -112,12 +116,6 @@ def same(a, b):
     return all(abs(x - y) <= EPS for x, y in zip(a, b))
 
 
-def on(p, a, b):
-    return (min(a[0], b[0]) - EPS <= p[0] <= max(a[0], b[0]) + EPS
-            and min(a[1], b[1]) - EPS <= p[1] <= max(a[1], b[1]) + EPS
-            and abs((b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])) <= EPS)
-
-
 def normalized_points(points):
     result = []
     for p in map(point, points):
@@ -187,19 +185,6 @@ def box(value):
     if a[0] >= b[0] or a[1] >= b[1]:
         raise ValueError('empty or inverted bbox')
     return (*a, *b)
-
-
-def boxes_touch(a, b):
-    return a[0] <= b[2] + EPS and b[0] <= a[2] + EPS and a[1] <= b[3] + EPS and b[1] <= a[3] + EPS
-
-
-def segment_hits_box(a, b, rect, closed=True):
-    # All accepted wire segments are axis aligned. Body interior is open; text is closed.
-    if closed:
-        return (max(a[0], b[0]) >= rect[0] - EPS and min(a[0], b[0]) <= rect[2] + EPS
-                and max(a[1], b[1]) >= rect[1] - EPS and min(a[1], b[1]) <= rect[3] + EPS)
-    return (max(a[0], b[0]) > rect[0] + EPS and min(a[0], b[0]) < rect[2] - EPS
-            and max(a[1], b[1]) > rect[1] + EPS and min(a[1], b[1]) < rect[3] - EPS)
 
 
 def audit_scene(target, scene):
@@ -329,30 +314,11 @@ def audit_scene(target, scene):
             designator_owners = Counter(t.get('componentId') for t in scene['texts'] if t.get('role') == 'designator')
             if set(designator_owners) != component_ids or any(v != 1 for v in designator_owners.values()):
                 finding(issues, 'text-coverage', 'require one bound designator bbox per component')
-        boxes = [(obj, box(obj['bbox'])) for obj in scene['bodies'] + scene['texts']]
-        text_ids = {t['id'] for t in scene['texts']}
-        body_ids = {b['id'] for b in scene['bodies']}
-        if body_ids & text_ids:
-            raise ValueError('body/text object IDs must be disjoint')
-        label_by_id = {label['id']: label for label in labels}
-        for i, (obj, rect) in enumerate(boxes):
-            exemptions = obj.get('allowWireIds', [])
-            marker = label_by_id.get(obj.get('markerId'))
-            valid_exemption = (obj['id'] in text_ids and obj.get('role') == 'net-label' and marker is not None
-                               and marker['page'] == obj['page'] and len(exemptions) == 1
-                               and any(wid == exemptions[0] and page == obj['page'] and on(point(marker['at']), a, b)
-                                       for wid, page, a, b in segments))
-            if exemptions and not valid_exemption:
-                finding(issues, 'invalid-wire-exemption', obj['id'])
-                exemptions = []
-            for other, rect2 in boxes[:i]:
-                if obj['page'] == other['page'] and boxes_touch(rect, rect2):
-                    finding(issues, 'object-overlap', obj['id'], other['id'])
-            for wid, page, a, b in segments:
-                if wid in exemptions:
-                    continue  # Explicit object-ID exemption, e.g. a native label on its own wire.
-                if obj['page'] == page and segment_hits_box(a, b, rect, obj['id'] in text_ids):
-                    finding(issues, 'wire-text-overlap' if obj['id'] in text_ids else 'wire-body-overlap', wid, obj['id'])
+        collisions = object_collisions(scene, segments)
+        for key, rule in [('object_overlaps', 'object-overlap'), ('wire_text_overlaps', 'wire-text-overlap'),
+                          ('wire_body_overlaps', 'wire-body-overlap'), ('invalid_wire_exemptions', 'invalid-wire-exemption')]:
+            for item in collisions[key]:
+                finding(issues, rule, *item['objects'])
         result = report(issues, 'declared-topology-pin-exit-and-obstacle-geometry')
         result['geometryEvidence'] = scene['evidence']
         result['geometryScope'] = geometry_scope

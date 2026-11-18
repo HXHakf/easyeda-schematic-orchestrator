@@ -97,6 +97,23 @@ def two_modules(frame_gap=20.0, with_frames=True, titles=True):
 
 
 class ReadabilityTests(unittest.TestCase):
+    def test_current_text_obstacles_are_hard_failures(self):
+        target, scene = straight_pair(20)
+        scene['bodies'] = [{'id': 'body', 'page': 'p', 'bbox': [50, 0, 60, 10]}]
+        scene['texts'] = [{'id': 'fixed', 'page': 'p', 'bbox': [0, 30, 10, 35]},
+                          {'id': 'moved', 'page': 'p', 'bbox': [20, 30, 30, 35]}]
+        clear = read.audit_readability(target, scene, strict=True)
+        self.assertTrue(clear['passed'], clear['findings'])
+        self.assertEqual(clear['metrics']['totalWireLengthRaw'], 80)
+        for bounds, rule in [([10, -2, 20, 2], 'wire-text-overlap'),
+                             ([52, 2, 58, 8], 'object-overlap'),
+                             ([5, 32, 15, 37], 'object-overlap')]:
+            with self.subTest(rule=rule, bounds=bounds):
+                scene['texts'][1]['bbox'] = bounds
+                result = read.audit_readability(target, scene)
+                self.assertFalse(result['passed'])
+                self.assertIn(rule, self.codes(result, 'hard'))
+
     def test_same_net_crossing_needs_a_visible_junction(self):
         target = target_of([('a', 'A1'), ('b', 'B1'), ('c', 'C1'), ('d', 'D1')],
                            [('g', 'GND', [['a', '1'], ['b', '1'], ['c', '1'], ['d', '1']])])

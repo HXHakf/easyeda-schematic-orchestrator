@@ -25,7 +25,12 @@ class EasyEDA:
         self.counter = 0
 
     def run(self, args, *, target=None, json_output=True, timeout=90, check=True):
-        argv = [self.binary, *map(str, args)]
+        args = list(map(str, args))
+        allowed = {'sch', 'lib', 'project', 'doc', 'bom', 'api', 'actions', 'health', 'version', '--version'}
+        schematic_call = len(args) >= 2 and args[0] == 'call' and args[1].startswith('schematic.')
+        if not args or (args[0] not in allowed and not schematic_call):
+            raise Refused('schematic-only adapter refuses commands outside schematic scope')
+        argv = [self.binary, *args]
         if target:
             argv += ["--project", target["project_uuid"], "--doc", target["document_uuid"]]
             if self.window:

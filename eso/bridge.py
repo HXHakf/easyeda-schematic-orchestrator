@@ -120,9 +120,9 @@ def layout_budget(value):
 
 
 def build_layout_input(contract, plan, bindings, snapshot, designators, sheet, svg_path, *,
-                       text_measurements=None, max_candidates=20000):
+                       text_measurements=None, max_candidates=20000, evidence_root=None):
     max_candidates = layout_budget(max_candidates)
-    validate_plan(plan, contract)
+    validate_plan(plan, contract, evidence_root=evidence_root)
     target = contract.get('target')
     if not target: raise Refused('measurement bridge requires an exact target')
     canonical = bind_plan(plan, bindings, target)
@@ -240,6 +240,8 @@ class DesignBridge:
         if (self.root / 'stage.json').exists(): raise Refused('placement already started; inspect actual state before retrying')
         target = contract.get('target')
         if not target: raise Refused('placement requires an exact approved target')
+        from .design_review import pin_design_evidence
+        design_artifacts = pin_design_evidence(contract, self.root)
         ir = bind_plan(plan, bindings, target)
         self.adapter.guard(target)
         before = self.adapter.snapshot(target)
@@ -267,7 +269,7 @@ class DesignBridge:
         validate_queue(load(self.root / 'place.json'), target)
         self.adapter.run(['sch', 'apply', self.root / 'place.json', '--dry-run'], json_output=False)
         state = {'state': 'placing', 'contract_sha256': digest(contract), 'plan_sha256': digest(plan),
-                 'bindings_sha256': digest(bindings), 'target': target}
+                 'bindings_sha256': digest(bindings), 'target': target, 'design_evidence_artifacts': design_artifacts}
         try:
             fd = os.open(self.root / 'placement-started.lock', os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
             os.close(fd)
@@ -319,7 +321,10 @@ class DesignBridge:
         contract, plan, bindings = (load(self.root / (n + '.json')) for n in ('contract', 'plan', 'bindings'))
         for name, data in (('contract', contract), ('plan', plan), ('bindings', bindings)):
             if digest(data) != state[name + '_sha256']: raise Refused('staging input changed: ' + name)
-        check_confirmation(contract, load(self.root / 'approval.json'))
+        check_confirmation(contract, load(self.root / 'approval.json'), evidence_root=self.root)
+        for name, sha in state.get('design_evidence_artifacts', {}).items():
+            if file_digest(self.root / name) != sha:
+                raise Refused('staged design evidence changed')
         target = state['target']; snapshot = self.adapter.snapshot(target)
         parts = observed_parts(plan, snapshot, bindings, target)
         if {ref: p['primitiveId'] for ref, p in parts.items()} != state['primitive_ids']: raise Refused('staged native instances changed')
@@ -343,7 +348,7 @@ class DesignBridge:
             _, coverage = validate(snapshot, svg, text)
             dump(self.root / 'native-text-coverage.json', coverage)
         source = build_layout_input(contract, plan, bindings, snapshot, labels, sheet, svg,
-                                    text_measurements=text, max_candidates=max_candidates)
+                                    text_measurements=text, max_candidates=max_candidates, evidence_root=self.root)
         dump(self.root / 'layout-input.json', source)
         names = ('measured-snapshot.json', 'designators.json', 'measured-sheet.svg', 'sheet-export.json', 'sheet-geometry.json', 'layout-input.json')
         if text is not None: names += ('native-text-measurements.json', 'native-text-coverage.json')

@@ -427,6 +427,10 @@ class MaterialStore:
         return self.document(record["datasheet"]["sha256"])
 
     def document(self, sha):
+        from .knowledge import pinned_knowledge_document
+        pinned = pinned_knowledge_document(sha)
+        if pinned:
+            return pinned
         locator = self._path(sha, "documents")
         if not locator.is_file():
             raise Refused("document locator missing: " + sha)
