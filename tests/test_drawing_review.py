@@ -207,7 +207,9 @@ class DrawingReviewTests(unittest.TestCase):
                 self.assertEqual(manifest['state'], 'verified' if defect is None else 'incomplete', manifest)
 
     def test_legacy_missing_frame_page_inherits_observed_alias(self):
-        for modern, page in ((False, 'omitted'), (False, 'conflict'), (False, None), (True, 'omitted')):
+        cases = ((False, 'omitted'), (False, 'conflict'), (False, None), (True, 'omitted'),
+                 (False, []), (True, {}))
+        for modern, page in cases:
             with self.subTest(modern=modern, page=page), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 workflow, path = drawing_run(root, modern=modern)
@@ -230,6 +232,14 @@ class DrawingReviewTests(unittest.TestCase):
                 manifest = cli.delivery_manifest(workflow.root, root / 'manifest.json', path)
                 expected = 'verified' if not modern and page == 'omitted' else 'incomplete'
                 self.assertEqual(manifest['state'], expected, manifest)
+                if expected == 'incomplete':
+                    output = root / 'evidence-index.json'
+                    stderr = io.StringIO()
+                    with contextlib.redirect_stderr(stderr):
+                        self.assertEqual(cli.main(['evidence-index', '--run-dir', str(workflow.root),
+                                                   '--reviews', str(path), '--out', str(output)]), 2)
+                    self.assertIn('frame must share the single observed document page', stderr.getvalue())
+                    self.assertFalse(output.exists())
 
     def test_final_delivery_rechecks_text_against_wires_bodies_and_other_text(self):
         for bounds in ([20, -2, 30, 2], [1, -2, 6, 2], [0, 6, 5, 8]):

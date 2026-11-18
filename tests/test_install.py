@@ -221,13 +221,26 @@ class InstallTests(unittest.TestCase):
             if check.returncode:
                 self.skipTest('copied offline dependencies unavailable in disposable venv: ' + check.stderr)
             self.assertEqual(json.loads(check.stdout), versions)
-            bootstrap = subprocess.run([str(python), '-I', '-m', 'ensurepip', '--default-pip'],
-                                       capture_output=True, text=True, cwd=root)
-            if bootstrap.returncode:
-                self.skipTest('offline pip bootstrap unavailable: ' + bootstrap.stderr)
-            wheel = next(wheels.glob('*.whl'))
-            installed = subprocess.run([str(python), '-I', '-m', 'pip', 'install', '--no-index', '--no-deps',
-                                        str(wheel)], capture_output=True, text=True, cwd=root)
+            outside_target = root / 'ambient-target'
+            outside_prefix = root / 'ambient-prefix'
+            outside_config_target = root / 'ambient-config-target'
+            pip_config = root / 'pip.conf'
+            pip_config.write_text('[install]\ntarget = ' + str(outside_config_target) + '\n', encoding='utf-8')
+            with patch.dict(os.environ, PIP_TARGET=str(outside_target), PIP_PREFIX=str(outside_prefix),
+                            PIP_CONFIG_FILE=str(pip_config)):
+                # Python's isolated mode leaves pip's own environment and config active.
+                pip_env = {key: value for key, value in os.environ.items() if not key.upper().startswith('PIP_')}
+                pip_env['PIP_CONFIG_FILE'] = os.devnull
+                bootstrap = subprocess.run([str(python), '-I', '-m', 'ensurepip', '--default-pip'],
+                                           capture_output=True, text=True, cwd=root, env=pip_env)
+                if bootstrap.returncode:
+                    self.skipTest('offline pip bootstrap unavailable: ' + bootstrap.stderr)
+                wheel = next(wheels.glob('*.whl'))
+                installed = subprocess.run([str(python), '-I', '-m', 'pip', 'install', '--no-index',
+                                            '--no-deps', '--no-cache-dir', str(wheel)],
+                                           capture_output=True, text=True, cwd=root, env=pip_env)
+            for path in (outside_target, outside_prefix, outside_config_target):
+                self.assertFalse(path.exists(), f'offline wheel install touched {path.name}')
             self.assertEqual(installed.returncode, 0, installed.stderr)
             for name in ('circuit_audit.py', 'readability_audit.py'):
                 self.assertTrue((runtime / 'share/eso/auditors' / name).is_file())

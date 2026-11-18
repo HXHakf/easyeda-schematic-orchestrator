@@ -242,7 +242,8 @@ def check_scene_page(scene, snapshot, target):
     for frame in scene.get('moduleFrames', []):
         if 'page' not in frame and 'moduleId' in frame and 'drawingGroupId' not in frame:
             continue
-        if frame.get('page') not in pages:
+        page = frame.get('page')
+        if not isinstance(page, str) or not page or page not in pages:
             raise Refused('current scene frame must share the single observed document page')
 
 
