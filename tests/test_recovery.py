@@ -343,7 +343,12 @@ def compiled_revision(before, after, target, *, edits=None):
                          'includePagePrimitives', 'includePins', 'includeWires'), True)
     page = before['result']['pagePrimitives']
     drawing_ids = {obj['primitiveId'] for kind in ('wires', 'rectangles', 'texts') for obj in page[kind]}
-    retained = {k: [row for row in rows if row['primitiveId'] not in drawing_ids] for k, rows in page.items()}
+    drawing_ids.update(obj['primitiveId'] for obj in page['components']
+                       if obj.get('componentType') in ('netflag', 'netport', 'netlabel'))
+    marker_owners = {pid for part in before['result']['components'] if part['componentType'] in ('netflag', 'netport', 'netlabel')
+                     for pid in [part['primitiveId'], *[pin['primitiveId'] for pin in part['pins']]]}
+    retained = {k: [row for row in rows if row['primitiveId'] not in drawing_ids
+                    and (k != 'attributes' or row.get('ParentPrimitiveId') not in marker_owners)] for k, rows in page.items()}
 
     def guard(snapshot, *, clear=False):
         data = snapshot['result']
@@ -359,10 +364,10 @@ def compiled_revision(before, after, target, *, edits=None):
                                           'persistent': {k: q[k] for k in PHYSICAL_PIN_FIELDS}}
                          for q in p['pins']},
             }
-        owners = sorted([row['primitiveId'] for row in data['components']] +
+        owners = sorted([row['primitiveId'] for row in data['components'] if row['componentType'] in ('part', 'sheet')] +
                         [pin['primitiveId'] for part in parts for pin in part['pins']])
         attributes = {row['primitiveId']: {k: v for k, v in row.items() if k not in ('X', 'Y', 'Rotation')}
-                      for row in data['pagePrimitives']['attributes']}
+                      for row in data['pagePrimitives']['attributes'] if row.get('ParentPrimitiveId') in owners}
         return {'exactParts': True, 'parts': geometry,
                 'ownedAttributes': {'owners': owners, 'attributes': attributes}}
 
@@ -494,6 +499,8 @@ class SimulatedDrawingAdapter:
                     break
             elif 'eso-placed-readback' in step.get('capture', {}):
                 capture['eso-placed-readback'] = json.dumps(unwire(self.final)['result'])
+            elif 'eso-drawing-readback' in step.get('capture', {}):
+                capture['eso-drawing-readback'] = json.dumps(self.final['result'])
             elif 'eso-saved-readback' in step.get('capture', {}):
                 capture['eso-saved-readback'] = json.dumps(self.final['result'])
             elif step.get('run') == 'sch frame apply':
@@ -505,6 +512,77 @@ class SimulatedDrawingAdapter:
         if self.timeout:
             raise Refused('CLI timed out: write may have landed')
         self.current = copy.deepcopy(self.final)
+
+
+class PartialMarkerAdapter(SimulatedDrawingAdapter):
+    """A captured marker succeeds, then a later wire and failure readback fail."""
+    fail_read = False
+    omit_drawing_checkpoint = False
+    wrong_created_net = False
+    recheckpoint_mutation = False
+
+    def first_queue(self):
+        queue = super().first_queue()
+        position = next(i for i, step in enumerate(queue['steps'])
+                        if step['id'] == 'verify-physical-pins-before-wiring') + 1
+        queue['steps'].insert(position, {'id': 'marker-main', 'action': 'schematic.power.connect_pin',
+            'payload': {'pinX': 200, 'pinY': 100, 'direction': 'up', 'offset': 20,
+                        'kind': 'net_port_bi', 'net': 'MAIN'}})
+        if self.recheckpoint_mutation:
+            queue['steps'].insert(position + 1, {'id': 'extra-drawing-read', 'action': 'schematic.components.list',
+                'payload': {}, 'capture': {'eso-drawing-readback': '$'}})
+        return queue
+
+    def snapshot(self, target):
+        if self.fail_read:
+            self.fail_read = False
+            raise OSError('synthetic readback unavailable')
+        return super().snapshot(target)
+
+    def apply(self, queue_path, journal_path):
+        queue = load(queue_path)
+        rows = [{'playbookSha256': file_digest(queue_path), 'project': self.target['project_uuid'],
+                 'doc': self.target['document_uuid']}]
+        parts = {part.get('designator'): part for part in self.final['result']['components']}
+        for position, step in enumerate(queue['steps'], 1):
+            captures = {}
+            if step.get('action') == 'schematic.component.place':
+                ref = step['payload']['designator']
+                captures[ref] = parts[ref]['primitiveId']
+            elif 'eso-placed-readback' in step.get('capture', {}):
+                captures['eso-placed-readback'] = json.dumps(unwire(self.final)['result'])
+            elif step['id'] == 'marker-main':
+                self.current = unwire(self.final)
+                data, page = self.current['result'], self.current['result']['pagePrimitives']
+                page['components'] = copy.deepcopy(page['components'])
+                data['wires'] = [{'primitiveId': 'captured-wire', 'net': 'MAIN',
+                                 'x0': 200, 'y0': 100, 'x1': 200, 'y1': 120}]
+                page['wires'] = [{'primitiveId': 'captured-wire', 'Net': 'MAIN', 'Line': [200, 100, 200, 120]}]
+                marker = {'primitiveId': 'captured-marker', 'componentType': 'netport',
+                          'net': 'WRONG' if self.wrong_created_net else 'MAIN', 'x': 200, 'y': 120,
+                          'bbox': {'minX': 195, 'minY': 115, 'maxX': 205, 'maxY': 125},
+                          'pins': [{'primitiveId': 'marker-pin', 'x': 200, 'y': 120, 'net': None}]}
+                data['components'].append(marker)
+                page['components'].append({k: v for k, v in marker.items() if k not in ('pins', 'bbox')})
+                page['attributes'].extend([
+                    {'primitiveId': 'marker-text', 'ParentPrimitiveId': 'captured-marker', 'Key': 'Net',
+                     'Value': 'MAIN', 'FontSize': 10, 'ValueVisible': True},
+                    {'primitiveId': 'marker-pin-text', 'ParentPrimitiveId': 'marker-pin', 'Key': 'Pin', 'Value': '1'}])
+                data['connectivitySummary'].update(wires=1, netports=1)
+                captures = {'eso-wire': 'captured-wire', 'eso-marker': 'captured-marker'}
+            elif 'eso-drawing-readback' in step.get('capture', {}) and not self.omit_drawing_checkpoint:
+                captures['eso-drawing-readback'] = json.dumps(self.current['result'])
+                if self.recheckpoint_mutation and step['id'].startswith('eso-read-drawing-after-'):
+                    next(a for a in self.current['result']['pagePrimitives']['attributes']
+                         if a['primitiveId'] == 'marker-text')['Value'] = 'MANUAL'
+            else:
+                rows.append({'idx': position, 'id': step['id'], 'status': 'fail',
+                             'error': 'synthetic known failure', 'captured': {}})
+                break
+            rows.append({'idx': position, 'id': step['id'], 'status': 'ok', 'captured': captures})
+        Path(journal_path).write_text(''.join(json.dumps(row) + '\n' for row in rows))
+        self.fail_read = True
+        raise Refused('synthetic known failure')
 
 
 class DrawingRevisionTests(unittest.TestCase):
@@ -527,6 +605,50 @@ class DrawingRevisionTests(unittest.TestCase):
             parent.execute()
             self.assertEqual(parent.verify()['state'], 'verified')
         return target, source_path, adapter, parent
+
+    def test_partial_marker_requires_unchanged_native_semantics(self):
+        from eso.workflow import Workflow
+        for mutation in (None, 'pin net cache', 'net', 'position', 'attribute', 'pin attribute',
+                         'missing checkpoint', 'wrong created net', 'attribute recheckpoint'):
+            with self.subTest(mutation=mutation), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                target, contract, plan, source, wired = revision_fixture()
+                blank = unwire(wired, remove_parts=True)
+                adapter = PartialMarkerAdapter(target, blank, wired, source['connectivity'])
+                adapter.omit_drawing_checkpoint = mutation == 'missing checkpoint'
+                adapter.wrong_created_net = mutation == 'wrong created net'
+                adapter.recheckpoint_mutation = mutation == 'attribute recheckpoint'
+                dump(root / 'source.json', source)
+                dump(root / 'blank.json', blank)
+                parent = Workflow(adapter, root / 'parent')
+                parent.prepare(contract, confirm(contract, digest(contract), 'synthetic human'), plan,
+                               root / 'source.json', root / 'blank.json')
+                with self.assertRaisesRegex(Refused, 'synthetic known failure'):
+                    parent.execute()
+                marker = next(p for p in adapter.current['result']['components'] if p['primitiveId'] == 'captured-marker')
+                native = next(p for p in adapter.current['result']['pagePrimitives']['components'] if p['primitiveId'] == 'captured-marker')
+                if mutation == 'net':
+                    marker['net'] = native['net'] = 'MANUAL'
+                if mutation == 'position':
+                    marker.update(x=900, y=900)
+                    native.update(x=900, y=900)
+                    marker['pins'][0].update(x=900, y=900)
+                if mutation == 'pin net cache':
+                    marker['pins'][0]['net'] = 'MAIN'
+                if mutation in ('attribute', 'pin attribute'):
+                    pid = 'marker-text' if mutation == 'attribute' else 'marker-pin-text'
+                    next(a for a in adapter.current['result']['pagePrimitives']['attributes'] if a['primitiveId'] == pid)['Value'] = 'MANUAL'
+                dump(root / 'fresh.json', adapter.current)
+                child = Workflow(adapter, root / 'child')
+                if mutation in (None, 'pin net cache'):
+                    child.prepare_revision(parent.root, root / 'source.json', root / 'fresh.json')
+                    self.assertIn('captured-marker', load(child.root / 'revision-proof.json')['owned_drawing'])
+                    self.assertTrue((child.root / 'bundle.json').is_file())
+                else:
+                    with self.assertRaises(Refused):
+                        child.prepare_revision(parent.root, root / 'source.json', root / 'fresh.json')
+                    self.assertFalse((child.root / 'bundle.json').exists())
+                self.assertEqual(sum('--journal' in call for call in adapter.calls), 1)
 
     def test_normal_verified_revision_uses_new_apply_and_verification(self):
         from eso.workflow import Workflow

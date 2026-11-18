@@ -610,6 +610,17 @@ def add_ownership_captures(queue):
         if captures:
             step.setdefault('capture', {}).update(captures)
             changed = True
+    checkpointed = []
+    existing = {step['id'] for step in queue['steps']}
+    for step in queue['steps']:
+        checkpointed.append(step)
+        if step.get('action') == 'schematic.power.connect_pin' or step.get('run') == 'sch frame apply':
+            ident = 'eso-read-drawing-after-' + step['id']
+            if ident not in existing:
+                checkpointed.append({'id': ident, 'action': 'schematic.components.list',
+                                     'payload': RICH_READ.copy(), 'capture': {'eso-drawing-readback': '$'}})
+                changed = True
+    queue['steps'] = checkpointed
     if changed and not any('eso-saved-readback' in step.get('capture', {}) for step in queue['steps']):
         queue['steps'].append({'id': 'eso-read-saved-drawing', 'action': 'schematic.components.list',
                                'payload': RICH_READ, 'capture': {'eso-saved-readback': '$'}})
@@ -748,6 +759,43 @@ def _wire_coverage(segments):
     return coverage, diagonals
 
 
+def _drawing_semantics(inventory):
+    """Retain native drawing content and owned attributes, without netlist caches."""
+    result = {}
+    for pid, kind in inventory['drawing'].items():
+        if kind == 'wires':
+            continue
+        if kind in MARKERS:
+            native = next(row for row in inventory['page']['components'] if row['primitiveId'] == pid)
+            pins = inventory['components'][pid]['pins']
+            owners = {pid} | {p['primitiveId'] for p in pins}
+            persistent_pins = [{k: v for k, v in pin.items() if k not in ('net', 'wirePrimitiveIds', 'netAmbiguous')}
+                               for pin in pins]
+        else:
+            native = next(row for row in inventory['page'][kind] if row['primitiveId'] == pid)
+            owners, persistent_pins = {pid}, []
+        attributes = sorted(digest(row) for row in inventory['page']['attributes']
+                            if row.get('ParentPrimitiveId') in owners)
+        result[pid] = {'native': native, 'pins': persistent_pins, 'attributes': attributes}
+    return result
+
+
+def _check_marker_intent(inventory, pid, step):
+    """A raw checkpoint must also match the action that created the marker."""
+    payload = step['payload']
+    endpoint = _step_segments(step)[0][1]
+    marker = inventory['components'].get(pid, {})
+    native = next((row for row in inventory['page']['components'] if row['primitiveId'] == pid), {})
+    expected_type = {'net_label': 'netlabel'}.get(payload['kind'],
+        'netport' if payload['kind'].startswith('net_port') else 'netflag')
+    pins = marker.get('pins', [])
+    if (marker.get('componentType') != expected_type or marker.get('net') != payload['net']
+            or native.get('net') != payload['net']
+            or any((row.get('x'), row.get('y')) != endpoint for row in (marker, native))
+            or len(pins) != 1 or (pins[0].get('x'), pins[0].get('y')) != endpoint):
+        raise Refused(f'{pid}: original marker readback differs from its captured action net or position')
+
+
 def _drawing_progress(accepted, pending, inventory, before, target, *, pending_may_have_landed):
     """Prove ownership from durable captures, with one bounded pending wire."""
     owned = {} if before is None else dict(before['drawing'])
@@ -756,6 +804,8 @@ def _drawing_progress(accepted, pending, inventory, before, target, *, pending_m
     final = None
     expected_wires = [] if before is None else _wire_segments(before['data'])
     allowed_nc = {}
+    marker_actions = {}
+    recorded_drawing = {} if before is None else _drawing_semantics(before)
     reset = False
     for step, captures in accepted:
         action, payload = step.get('action'), step.get('payload', {})
@@ -767,6 +817,8 @@ def _drawing_progress(accepted, pending, inventory, before, target, *, pending_m
         elif action == 'schematic.primitives.delete':
             reset = True
             owned.clear()
+            recorded_drawing.clear()
+            marker_actions.clear()
             expected_wires.clear()
         elif action in ('schematic.wire.create', 'schematic.power.connect_pin'):
             expected_wires.extend(_step_segments(step))
@@ -777,6 +829,7 @@ def _drawing_progress(accepted, pending, inventory, before, target, *, pending_m
                 pid = captures.get('eso-marker')
                 if not pid or pid == 'null':
                     raise Refused(f'{step["id"]}: original marker has no native ownership capture')
+                marker_actions[pid] = step
                 owned[pid] = {'net_label': 'netlabel'}.get(payload['kind'],
                     'netport' if payload['kind'].startswith('net_port') else 'netflag')
         elif action == 'schematic.pin.set_no_connect':
@@ -791,6 +844,14 @@ def _drawing_progress(accepted, pending, inventory, before, target, *, pending_m
             checkpoint = _checkpoint(captures['eso-placed-readback'], inventory['context'], target)
         if 'eso-saved-readback' in captures:
             final = _checkpoint(captures['eso-saved-readback'], inventory['context'], target)
+        if 'eso-drawing-readback' in captures:
+            captured = _checkpoint(captures['eso-drawing-readback'], inventory['context'], target)
+            for pid, marker_step in marker_actions.items():
+                _check_marker_intent(captured, pid, marker_step)
+            for pid, semantic in _drawing_semantics(captured).items():
+                if pid in recorded_drawing and recorded_drawing[pid] != semantic:
+                    raise Refused(f'{pid}: native drawing changed between original checkpoints')
+                recorded_drawing[pid] = semantic
     if original_parts != {ref: row['primitiveId'] for ref, row in inventory['parts'].items()}:
         raise Refused('current native parts lack the original captured or staged ownership')
     if pending and pending.get('action') == 'schematic.primitives.delete' and pending_may_have_landed:
@@ -813,6 +874,16 @@ def _drawing_progress(accepted, pending, inventory, before, target, *, pending_m
           or _attribute_rows(checkpoint) != _attribute_rows(inventory)):
         raise Refused('fresh instances, pose or retained attributes differ from the last owned checkpoint')
     actual = inventory['drawing']
+    if final is None:
+        for pid, marker_step in marker_actions.items():
+            _check_marker_intent(inventory, pid, marker_step)
+        current_drawing = _drawing_semantics(inventory)
+        for pid, kind in actual.items():
+            if kind != 'wires' and (pid not in recorded_drawing or recorded_drawing[pid] != current_drawing[pid]):
+                raise Refused(f'{pid}: partial drawing content lacks matching original native readback')
+    else:
+        for pid, marker_step in marker_actions.items():
+            _check_marker_intent(final, pid, marker_step)
     unknown = {pid: kind for pid, kind in actual.items() if owned.get(pid) != kind}
     landed = None
     if (len(unknown) == 1 and pending_may_have_landed and pending
