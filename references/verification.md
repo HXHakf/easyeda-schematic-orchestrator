@@ -9,6 +9,17 @@
 5. `sch save` 的 `result.saved` 必须严格为 true。`doc reload --json` 必须 status=passed、saved/closed=true，reloaded 匹配页面。
 6. 真实重载后重新采集；旧回读、autosave、截图、版本一致或 dry-run 均不证明完成。
 
+当前设计契约的实测放置与受保护修订，在调用 `eso execute --run-dir <目录> --drawing-scene <scene.json>`
+前提供与编译结果同页的完整 `measured` 场景。格式见
+[审计数据](../extras/schematic-verified-layout/references/audit-data.md)。场景需包含所有编译后的器件、物理脚、
+导线、旗标连线、标签锚点、分区框、实测文字及图纸可用区与禁入区。候选导线在实际接点拆段；
+预检拒绝在场景里另加节点来豁免交叉。标注与版面以保护后的编译坐标为准。
+
+执行入口重算引脚线段接触、几何及严格可读性。器件引脚线段取自原生 SVG 的 `pin-bar`，只按同一姿态平移，
+旗标使用标准符号的短线长度估计。换朝向时需要先补采原生几何。缺失、无法解释的原生线段和违规接触均阻断写入。
+报告保留在 `drawing-preflight.json`，通过时把报告与输入场景绑定到本次执行。保存重开后的原生 SVG
+再核对器件引脚及旗标短线的实际线段，归档 `native-pin-strokes.json`。
+
 `verify` 的 live-verified 只表示它所列的机器检查，不表示硬件功能或完整发布验收。
 官方导出图仍需人工/模型审阅可见文字与阅读顺序；若缺机器几何证据，标为未覆盖，不能用“看过了”代替。
 完整交付还需要当前安装支持的官方预览、网表/BOM、原生工程导出；未产生文件明确列缺项。

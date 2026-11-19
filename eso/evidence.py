@@ -12,7 +12,11 @@ def check_attempt(root, report):
     archive = Path(root) / 'verification-history' / attempt
     files = report.get('attempt_files')
     bundle = load(archive / 'bundle.json')
-    required = set(bundle['artifacts']) | set(VERIFICATION_FILES) | {'bundle.json', 'initial-snapshot.json', 'final-snapshot.json'}
+    preflight = bundle.get('drawing_preflight', {})
+    required = (set(bundle['artifacts']) | set(preflight) | set(VERIFICATION_FILES)
+                | {'bundle.json', 'initial-snapshot.json', 'final-snapshot.json'})
+    if preflight:
+        required.add('native-pin-strokes.json')
     if not isinstance(files, dict) or not required.issubset(files):
         raise Refused('attempt evidence inventory incomplete')
     for name, sha in files.items():
@@ -25,7 +29,7 @@ def check_attempt(root, report):
         raise Refused('final snapshot digest differs from attempt report')
     if report.get('bundle_artifacts_sha256') != digest(bundle['artifacts']):
         raise Refused('attempt report input digest changed')
-    if any(files.get(name) != sha for name, sha in bundle['artifacts'].items()):
+    if any(files.get(name) != sha for name, sha in {**bundle['artifacts'], **preflight}.items()):
         raise Refused('attempt input differs from prepared input')
     if digest(load(archive / 'verification.json')) != digest(report):
         raise Refused('archived report differs from current report')
@@ -231,6 +235,18 @@ def _check_review_layer(layer, entry, report, root, *, current=True, independent
     measurements = load(files['native_texts']['path'])
     if measurements.get('svgSha256') != files['svg']['sha256']:
         raise Refused('native text measurements refer to another SVG')
+    if current:
+        # Wire names rendered by EDA may have no component attribute or marker in the scene.
+        from .drawing_checks import branch_text_contacts
+        page = load(root / 'contract.json')['target']['document_uuid']
+        segments = [(w['id'], w['page'], tuple(a), tuple(b)) for w in scene['wires']
+                    for a, b in zip(w['points'], w['points'][1:])]
+        junctions = [(j['page'], tuple(j['at'])) for j in scene['junctions']]
+        names = set(net_names.values())
+        wire_texts = [dict(t, page=page) for t in measurements['texts'] if t.get('text', '').strip() in names]
+        contacts = branch_text_contacts(segments, junctions, wire_texts)
+        if contacts:
+            raise Refused(f'native network text covers junction: {contacts}')
     measured = {t['id']:t['bbox'] for t in measurements['texts']}
     if set(scene.get('textInventory',[])) != {t['id'] for t in scene['texts']}:
         raise Refused('scene text inventory incomplete')

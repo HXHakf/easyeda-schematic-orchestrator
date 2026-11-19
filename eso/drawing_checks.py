@@ -71,6 +71,34 @@ def object_collisions(scene, segments):
     return findings
 
 
+def branch_text_contacts(segments, junctions, texts):
+    """Find text covering an electrical branch, including a T with no explicit dot record."""
+    if not texts:
+        return []
+    # A corner or a split straight line has only two outgoing directions.
+    # An interior X without a junction is handled separately by the crossing check.
+    branches = set(junctions)
+    candidates = {(page, endpoint) for _, page, a, b in segments for endpoint in (a, b)}
+    for page, point in candidates:
+        directions = set()
+        for _, wire_page, a, b in segments:
+            if wire_page == page and on(point, a, b):
+                for x, y in (a, b):
+                    if x < point[0] - EPS: directions.add('left')
+                    if x > point[0] + EPS: directions.add('right')
+                    if y < point[1] - EPS: directions.add('down')
+                    if y > point[1] + EPS: directions.add('up')
+        if len(directions) >= 3:
+            branches.add((page, point))
+    findings = []
+    for text in texts:
+        left, bottom, right, top = rectangle(text['bbox'])
+        for page, (x, y) in sorted(branches):
+            if text['page'] == page and left - EPS <= x <= right + EPS and bottom - EPS <= y <= top + EPS:
+                findings.append({'text': text['id'], 'page': page, 'at': [x, y]})
+    return findings
+
+
 def drawing_obstacles(scene):
     """Recheck crossings, frames and full body/text geometry from current inputs."""
     segments = []
@@ -124,6 +152,7 @@ def drawing_obstacles(scene):
                 collisions.append({'text': text['id'], 'module': frame.get('drawingGroupId', frame.get('moduleId')),
                                    'page': text['page'], 'bbox': list(text['bbox'])})
     return {'crossings': crossings, 'text_frame_collisions': collisions,
+            'text_on_junction': branch_text_contacts(segments, junctions, scene.get('texts', [])),
             **object_collisions(scene, segments)}
 
 

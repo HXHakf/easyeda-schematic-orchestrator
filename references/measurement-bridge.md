@@ -14,16 +14,16 @@
 
 ## 调用链
 
+放置测量结束后由宿主完成候选审查、编译及实测 scene。保存重开通过后，宿主继续独立审图和额外一轮候选比较，再调用交付命令。
+
 ```bash
 eso stage --contract contract.json --approval approval.json --plan plan.json \
-  --bindings bindings.json --run-dir runs/staging
-eso collect --run-dir runs/staging
+  --bindings bindings.json --run-dir runs/staging --collect
 eso prepare --contract contract.json --approval approval.json --plan plan.json \
   --composition runs/staging/composition.json --before runs/staging/measured-snapshot.json \
   --placement-run runs/staging --run-dir runs/final
-eso execute --run-dir runs/final
-eso verify --run-dir runs/final
-eso deliver --run-dir runs/final --reviews runs/reviews.json --out runs/manifest.json
+eso execute --run-dir runs/final --drawing-scene runs/scene.json --verify
+eso deliver --run-dir runs/final --reviews runs/reviews.json --iteration-dir runs/iterations --out runs/manifest.json
 ```
 
 `reviews.json` 关联本轮完整几何与逐项图面审阅，格式见[辅助工具](workflow-assistance.md)。

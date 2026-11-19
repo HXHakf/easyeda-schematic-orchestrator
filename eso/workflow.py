@@ -219,7 +219,19 @@ class Workflow:
                     raise Refused("revision baseline differs from fresh readback")
                 revision = prove_revision(parent, fresh, target, self.root,
                                           window=getattr(self.adapter, "window", None))
-                return self._prepare(load(parent / "contract.json"), load(parent / "approval.json"),
+                contract = load(parent / "contract.json")
+                if contract.get('design_evidence', {}).get('policy_version') == 1:
+                    from .bridge import check_target
+                    from .drawing_preflight import REVISION_SVG
+                    svg = self.root / REVISION_SVG
+                    receipt = self.adapter.run(["sch", "export-image", "--scope", "page", "--format", "svg",
+                                                "--out", svg], target=target)
+                    check_target(receipt, target)
+                    if (result(receipt).get('format') != 'svg' or result(receipt).get('scope') != 'page'
+                            or result(receipt).get('bytes') != svg.stat().st_size):
+                        raise Refused('revision SVG differs from its official page export receipt')
+                    dump(self.root / 'revision-svg-export.json', receipt)
+                return self._prepare(contract, load(parent / "approval.json"),
                                      load(parent / "plan.json"), composition_path, before_path,
                                      layout_page=layout_page, revision=revision, parent=parent)
             except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
@@ -357,6 +369,10 @@ class Workflow:
         if revision is not None:
             for name in ("revision-proof.json", "revision-readback.json", *revision["evidence"]):
                 artifacts[name] = file_digest(self.root / name)
+            if contract.get('design_evidence', {}).get('policy_version') == 1:
+                from .drawing_preflight import REVISION_SVG
+                for name in (REVISION_SVG, 'revision-svg-export.json'):
+                    artifacts[name] = file_digest(self.root / name)
             if revision["pin_changes"]:
                 artifacts[edits.name] = file_digest(edits)
         bundle = {"schema_version": 1, "state": "prepared", "target": target, "artifacts": artifacts,
@@ -367,20 +383,39 @@ class Workflow:
         dump(self.root / "bundle.json", bundle)
         return bundle
 
-    def execute(self):
+    def execute(self, *, drawing_scene=None, verify=False):
         from .locking import target_lock
         target = load(self.root / 'bundle.json')['target']
         with target_lock(target):
             if load(self.root / 'bundle.json')['target'] != target:
                 raise Refused('target changed while acquiring lock')
-            return self._execute_locked()
+            applied = self._execute_locked(drawing_scene=drawing_scene)
+            if verify:
+                return self._verify_locked()
+            return applied
 
-    def _execute_locked(self):
+    def _execute_locked(self, *, drawing_scene=None):
         bundle = load(self.root / "bundle.json")
         self._check_bundle(bundle)
         if bundle["state"] != "prepared":
             raise Refused("bundle is not prepared; no automatic resume/retry")
-        # Process lock persists on failure. A human must reconcile actual state.
+        from .drawing_preflight import measurement_file, preflight
+        contract = load(self.root / "contract.json")
+        current = contract.get('design_evidence', {}).get('policy_version') == 1
+        if current and (measurement_file(bundle) or 'revision-proof.json' in bundle['artifacts']):
+            scene = load(drawing_scene) if drawing_scene else None
+            review = preflight(self.root, bundle, scene)
+            filename = 'drawing-preflight.json'
+            dump(self.root / filename, review)
+            if not review['passed']:
+                hits = review['wire_pin_contacts']
+                reason = f"{len(hits)} wire contacts with visible pin strokes" if hits else "strict geometry or readability failed"
+                raise Refused(f"drawing preflight blocked Apply: {reason}; see {filename}")
+            dump(self.root / 'drawing-preflight-scene.json', scene)
+            bundle['drawing_preflight'] = {name: file_digest(self.root / name)
+                                           for name in (filename, 'drawing-preflight-scene.json')}
+            dump(self.root / "bundle.json", bundle)
+        # Process lock persists on failure. Recovery must reconcile actual state before any new write.
         try:
             fd = os.open(self.root / "execution-started.lock", os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError as e:
@@ -414,6 +449,12 @@ class Workflow:
         for name, sha in bundle["artifacts"].items():
             if Path(name).name != name or file_digest(self.root / name) != sha:
                 raise Refused("prepared artifact changed; recompile and review")
+        preflight = bundle.get('drawing_preflight')
+        if preflight is not None and (
+            set(preflight) != {'drawing-preflight.json', 'drawing-preflight-scene.json'}
+            or any(file_digest(self.root / name) != sha for name, sha in preflight.items())
+        ):
+            raise Refused('pre-write drawing evidence changed')
         contract = load(self.root / "contract.json")
         check_confirmation(contract, load(self.root / "approval.json"), evidence_root=self.root)
         if bundle["target"] != contract.get("target"):
@@ -461,6 +502,8 @@ class Workflow:
         try:
             self._check_bundle(bundle)
             for name in bundle['artifacts']:
+                (history / name).write_bytes((self.root / name).read_bytes())
+            for name in bundle.get('drawing_preflight', {}):
                 (history / name).write_bytes((self.root / name).read_bytes())
             dump(history / 'bundle.json', bundle)
             report = self._verify_once(bundle, history)
@@ -535,6 +578,18 @@ class Workflow:
         if load(self.root / 'contract.json').get('design_evidence', {}).get('policy_version') == 1:
             from .visual_review import capture_attempt_images
             native_export = capture_attempt_images(self.adapter, target, initial_snapshot, history)
+        if bundle.get('drawing_preflight'):
+            from .pin_strokes import native_pin_strokes, stroke_contacts
+            if not native_export or native_export['passed'] is not True:
+                raise Refused('native pin stroke verification requires the official page export')
+            data = result(initial_snapshot)
+            if data.get('wiresAvailable') is not True or not isinstance(data.get('wires'), list):
+                raise Refused('native pin stroke verification requires complete wire readback')
+            stems = native_pin_strokes(history / 'native-page.svg', data['components'])
+            wires = [(w.get('primitiveId'), (w['x0'], w['y0']), (w['x1'], w['y1'])) for w in data['wires']]
+            hits = stroke_contacts(stems, wires)
+            evidence['native_pin_strokes'] = {'passed': not hits, 'strokes': len(stems), 'contacts': hits}
+            record('native-pin-strokes.json', evidence['native_pin_strokes'])
         final_snapshot = self.adapter.snapshot(target)
         record('final-snapshot.json', final_snapshot)
         if snapshot_fingerprint(initial_snapshot) != snapshot_fingerprint(final_snapshot):

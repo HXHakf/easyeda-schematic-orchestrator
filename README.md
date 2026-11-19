@@ -4,7 +4,7 @@
 
 **面向嘉立创 EDA 专业版的 AI 原理图绘制工作流**
 
-[![CI](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml/badge.svg)](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml) [![Version](https://img.shields.io/badge/version-0.6.1-2563eb)](docs/VALIDATION.md) [![Python](https://img.shields.io/badge/Python-%E2%89%A53.10-3776ab?logo=python&logoColor=white)](pyproject.toml) [![License](https://img.shields.io/badge/license-MIT-64748b)](LICENSE)
+[![CI](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml/badge.svg)](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml) [![Version](https://img.shields.io/badge/version-0.7.0-2563eb)](docs/VALIDATION.md) [![Python](https://img.shields.io/badge/Python-%E2%89%A53.10-3776ab?logo=python&logoColor=white)](pyproject.toml) [![License](https://img.shields.io/badge/license-MIT-64748b)](LICENSE)
 
 [快速安装](#快速安装) · [开始设计](#开始设计) · [常用元件知识库](#常用元件知识库) · [现场样例](#现场样例与图面复核) · [文档导航](#文档导航)
 
@@ -113,8 +113,8 @@ eso kb-search '三极管低侧驱动'
 ```text
 需求与选型 → 获取手册、审阅官方应用电路 → 匹配知识卡与参数核验
     → 中文设计确认 → 电路计划与真实库绑定
-    → stage 放置 → collect 实测与布局 → prepare / dry-run
-    → execute → verify 保存重开与回读 → deliver 证据交付
+    → stage --collect 放置、实测与布局 → prepare / dry-run
+    → execute --verify 写入、保存重开与回读 → 独立审图与候选比较 → deliver
 ```
 
 </details>
@@ -137,8 +137,8 @@ Typical Application / Application Circuit / Reference Schematic 所在图页，
 正式绘图前生成中文 Design Contract，展示功能、型号、工况、设计依据、假设、目标页面与验收范围。
 用户确认具体版本后进入执行，影响电路或目标的变更需要重新核验和确认。
 
-宿主根据当前状态调用分阶段命令，核对测量、编译与回读结果。中断后先诊断并读取现场，
-初始放置恢复使用 `recover-stage` 保留已有实例、补放缺件。
+方案确认后，宿主接续放置、测量、写入和保存重开。中断后用 `status` 查看停在哪一步，结合现场回读诊断后继续。
+初始放置缺件时，`recover-stage` 保留已有实例并补放缺件。
 最终交付通过 `deliver --reviews` 关联同轮几何和六项图面审阅。
 同网无接点交叉、文字穿框、缺失审阅或未关闭问题会阻断交付，具体复盘见[图面可读性](references/live-recovery.md#图面可读性复盘)。
 命令与证据要求见[工作流](docs/WORKFLOW.md)、[测量衔接](references/measurement-bridge.md)和[现场恢复](references/live-recovery.md)。
@@ -201,7 +201,7 @@ eso kb-search '三极管低侧驱动' --kind circuit
 
 ### 已有验证记录
 
-**225 项主测试 · 75 项附加审计 · 3 套离线演示**
+**304 项主测试 · 76 项附加审计 · 3 套离线演示**
 
 - 软件验证包含完整回归、离线演示与独立打包检查。主测试为软件回归，真实上游离线集成为可选配置。[验证记录](docs/VALIDATION.md)
 - CI 覆盖 Python 3.10 / 3.13 单元测试，以及 Linux、macOS、Windows 的独立安装、重复安装和安装后回归。[GitHub Actions](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml)

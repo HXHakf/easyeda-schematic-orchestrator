@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from . import __version__
 from .adapter import EasyEDA
+from .continuation import assessment_action, iteration_action, run_status
 from .core import Refused, confirm, digest, dump, load
 from .planner import make_plan
 from .requirements import contract_from, contract_summary, evaluate, merge_answers, parse_seed
@@ -71,6 +72,7 @@ def main(argv=None):
             parser.add_argument('--attempt', help='audit one retained attempt independently of current inputs')
     intake = sub.add_parser("intake", help="conservative seed extraction; agent semantic review still required")
     intake.add_argument("--text", required=True); intake.add_argument("--out", required=True)
+    intake.add_argument('--assess', action='store_true', help='also assess the saved seed and return the next action')
     evidence = sub.add_parser('design-evidence-check', help='recheck source files, independent electrical review and optional plan')
     evidence.add_argument('contract'); evidence.add_argument('--plan')
     evidence.add_argument('--search-path', action='append', default=[])
@@ -109,6 +111,7 @@ def main(argv=None):
     stage = sub.add_parser("stage", help="place reviewed library parts only in an approved blank test page")
     for field in ("contract", "approval", "plan", "bindings", "run-dir"):
         stage.add_argument("--" + field, required=True)
+    stage.add_argument('--collect', action='store_true', help='continue directly to measurement and layout after placement')
     collect = sub.add_parser("collect", help="read measured parts/designators/sheet, then call upstream lib-layout")
     collect.add_argument("--run-dir", required=True)
     collect.add_argument("--max-candidates", type=int, default=20000, help="bounded upstream layout search, 1..1000000")
@@ -118,6 +121,9 @@ def main(argv=None):
     for action in ("execute", "verify", "status", "deliver"):
         a = sub.add_parser(action)
         a.add_argument("--run-dir", required=True)
+        if action == "execute":
+            a.add_argument("--verify", action="store_true", help="save, reload and verify immediately after successful Apply")
+            a.add_argument("--drawing-scene", help="full measured audit scene for the exact compiled current drawing")
         if action == "deliver":
             a.add_argument("--out", required=True)
             a.add_argument("--reviews", help="bound geometry and object-specific visual review files")
@@ -163,16 +169,23 @@ def main(argv=None):
         elif args.command == "kb-bindings":
             from .knowledge_design import make_bindings
             output = make_bindings(load(args.contract)); dump(args.out, output)
-        elif args.command == "intake": output = parse_seed(args.text); dump(args.out, output)
+        elif args.command == "intake":
+            output = parse_seed(args.text)
+            dump(args.out, output)
+            if args.assess:
+                output = evaluate(output)
+                output['next_action'] = assessment_action(output)
         elif args.command == 'design-evidence-check':
             from .design_review import validate_design_evidence
             checked = validate_design_evidence(load(args.contract), load(args.plan) if args.plan else None, search_paths=args.search_path)
             output = {'valid': True, 'review_mode': checked['review_mode'], 'cost': checked.get('cost')}
         elif args.command == "assess":
             output = evaluate(load(args.requirements), require_target=args.for_execution)
+            output["next_action"] = assessment_action(output)
             if args.out: dump(args.out, output)
         elif args.command == "update":
             output = evaluate(merge_answers(load(args.requirements), load(args.answers)))
+            output["next_action"] = assessment_action(output)
             dump(args.out, output["values"])
         elif args.command == "contract":
             output = contract_from(load(args.requirements), load(args.target) if args.target else None)
@@ -222,6 +235,7 @@ def main(argv=None):
             from .iteration import iteration_status, record_iteration
             output = (record_iteration(args.iteration_dir, load(args.event)) if args.command == 'iteration-record'
                       else iteration_status(args.iteration_dir))
+            output = {**output, "next_action": iteration_action(output["state"])}
         elif args.command == 'evidence-index':
             from .evidence import evidence_index
             output = evidence_index(args.run_dir, load(args.reviews) if args.reviews else None, attempt=args.attempt)
@@ -240,7 +254,7 @@ def main(argv=None):
         elif args.command == 'text-restore-apply':
             from .assistance import apply_text_restore
             output = apply_text_restore(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir, args.preview, args.out)
-        elif args.command == "status": output = load(Path(args.run_dir) / "bundle.json")
+        elif args.command == "status": output = run_status(args.run_dir)
         elif args.command == "deliver":
             output = delivery_manifest(args.run_dir, args.out, args.reviews, iteration_dir=args.iteration_dir,
                                        adapter_factory=lambda: EasyEDA(args.easyeda, args.evidence, window=args.window))
@@ -251,7 +265,7 @@ def main(argv=None):
             from .bridge import DesignBridge
             bridge = DesignBridge(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir)
             if args.command == "stage":
-                output = bridge.stage(load(args.contract), load(args.approval), load(args.plan), load(args.bindings))
+                output = bridge.stage(load(args.contract), load(args.approval), load(args.plan), load(args.bindings), collect=args.collect)
             else: output = bridge.collect(max_candidates=args.max_candidates)
         else:
             workflow = Workflow(EasyEDA(args.easyeda, args.evidence, window=args.window), args.run_dir)
@@ -267,10 +281,12 @@ def main(argv=None):
                     output = workflow.prepare(load(args.contract), load(args.approval), load(args.plan),
                                               args.composition, args.before, args.placement_run,
                                               layout_page=args.layout_page)
-            elif args.command == "execute": output = workflow.execute()
+            elif args.command == "execute": output = workflow.execute(drawing_scene=args.drawing_scene, verify=args.verify)
             elif args.command == "verify": output = workflow.verify()
+        if args.command in ('stage', 'collect', 'prepare', 'execute', 'verify'):
+            output = {**output, 'next_action': run_status(args.run_dir)['next_action']}
         print(json.dumps(output, ensure_ascii=False, indent=2))
-        if args.command in ("verify", "deliver") and output.get("state") != "verified":
+        if (args.command in ("verify", "deliver") or args.command == "execute" and args.verify) and output.get("state") != "verified":
             return 3
         return 0
     except (Refused, OSError, ValueError, KeyError) as e:

@@ -125,10 +125,14 @@ def layout_modules_for(plan, canonical):
     refs = {c['ref']: c for c in plan['components']}
     net_ids = {n['name']: n['id'] for n in canonical['nets']}
     from .main_paths import project_drawing_groups
-    primary_nets = {link['net'] for path in plan.get('primary_paths', []) for link in path['links']}
+    links = [link for path in plan.get('primary_paths', []) for link in path['links']]
     for m in project_drawing_groups(plan):
         member_ids = set(m['coreComponents'] + m['peripheralComponents'])
         members = [c for c in plan['components'] if c['id'] in member_ids]
+        # A named rail may also feed an unrelated drawing group. A primary
+        # link justifies direct routing only in the group containing its endpoints.
+        primary_nets = {link['net'] for link in links
+                        if link['from']['componentId'] in member_ids and link['to']['componentId'] in member_ids}
         policies = {}
         for c in members:
             for p in c['pins']:
@@ -264,10 +268,13 @@ class DesignBridge:
         self.adapter, self.root = adapter, Path(root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def stage(self, contract, approval, plan, bindings):
+    def stage(self, contract, approval, plan, bindings, *, collect=False):
         from .locking import target_lock
         with target_lock(contract.get('target')):
-            return self._stage_locked(contract, approval, plan, bindings)
+            placed = self._stage_locked(contract, approval, plan, bindings)
+            if collect:
+                return self._collect_locked()
+            return placed
 
     def _stage_locked(self, contract, approval, plan, bindings):
         check_confirmation(contract, approval); validate_plan(plan, contract)
