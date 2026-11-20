@@ -17,8 +17,9 @@ frame must contain everything that belongs to that module and must not overlap a
 frame.
 """
 import argparse
-from collections import Counter, defaultdict, deque
+from collections import Counter, defaultdict
 import hashlib
+from heapq import heappop, heappush
 import json
 import math
 from pathlib import Path
@@ -30,7 +31,7 @@ import circuit_audit as ca  # noqa: E402  (same directory, shared contact model)
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 from eso.drawing_checks import drawing_obstacles
 
-VERSION = '1.3.0'
+VERSION = '1.4.0'
 EPS = ca.EPS
 OBJECT_CAP = 40
 POWER_PATTERNS = (
@@ -74,6 +75,7 @@ def resolve_nets(segments, pins, labels, junctions, states):
 
 
 def split_pairs(pairs, split_points):
+    split_points = set(split_points)
     out = []
     for a, b in pairs:
         pts = [a, b]
@@ -86,33 +88,48 @@ def split_pairs(pairs, split_points):
     return out
 
 
-def path_bends(pairs, start, goal):
-    """Minimum-bend orthogonal path over split segments; None when not connected."""
-    if start == goal:
-        return 0
-    adjacency = defaultdict(list)
+def path_metrics(pairs, start, goal):
+    """Find the fewest turns, then the shortest length, over split physical segments."""
+    adjacency = defaultdict(set)
     for a, b in pairs:
-        adjacency[a].append(b)
-        adjacency[b].append(a)
-    if start not in adjacency or goal not in adjacency:
-        return None
-    previous = {start: None}
-    queue = deque([start])
+        adjacency[a].add(b)
+        adjacency[b].add(a)
+    best = {(start, ''): (0, 0)}
+    queue = [(0, 0, start, '')]
     while queue:
-        current = queue.popleft()
-        for nxt in adjacency[current]:
-            if nxt in previous:
-                continue
-            previous[nxt] = current
-            if nxt == goal:
-                path = [nxt]
-                while previous[path[-1]] is not None:
-                    path.append(previous[path[-1]])
-                path.reverse()
-                return sum(1 for i in range(2, len(path))
-                           if orientation(path[i - 2], path[i - 1]) != orientation(path[i - 1], path[i]))
-            queue.append(nxt)
+        bends, length, at, incoming = heappop(queue)
+        if best[at, incoming] != (bends, length):
+            continue
+        if at == goal:
+            return bends, length
+        for other in adjacency[at]:
+            axis = orientation(at, other)
+            cost = (bends + int(bool(incoming) and incoming != axis), length + math.dist(at, other))
+            key = (other, axis)
+            if key not in best or cost < best[key]:
+                best[key] = cost
+                heappush(queue, (*cost, other, axis))
     return None
+
+
+def pin_alignment_hint(name, pins, starts, bends, length, refs):
+    """Opposing pins are worth checking together, including moving the symbol."""
+    if not bends or pins[0]['pin'][0] == pins[1]['pin'][0]:
+        return None
+    a, b = starts
+    left, right = sorted(zip(starts, pins), key=lambda item: item[0][0])
+    low, high = sorted(zip(starts, pins), key=lambda item: item[0][1])
+    if abs(a[0] - b[0]) > EPS and [p['direction'] for _, p in (left, right)] == ['right', 'left']:
+        axis, offset = 'horizontal', abs(a[1] - b[1])
+    elif abs(a[1] - b[1]) > EPS and [p['direction'] for _, p in (low, high)] == ['up', 'down']:
+        axis, offset = 'vertical', abs(a[0] - b[0])
+    else:
+        return None
+    return {'net': name, 'page': pins[0]['page'],
+            'pins': [f'{refs[cid]}.{number}' for cid, number in (p['pin'] for p in pins)],
+            'at': [list(a), list(b)], 'axis': axis, 'offsetRaw': round(offset, 4),
+            'bends': bends, 'routeLengthRaw': round(length, 4),
+            'extraLengthRaw': round(max(0, length - abs(a[0] - b[0]) - abs(a[1] - b[1])), 4)}
 
 
 def parallel_spacing(segments, seg_net, grid, limit):
@@ -329,6 +346,7 @@ def report(findings, thresholds, metrics, strict):
             'liveVerified': False,
             'coverage': {'unverified': ['rendered reading path (O1/O2/O3/O5)', 'paper/title block without scene.paper',
                                         'module grouping intent and frame semantics',
+                                        'clearance after moving or rotating a symbol',
                                         'symbol-internal text', 'native DRC', 'save/reload', 'electrical ratings']}}
 
 
@@ -400,7 +418,8 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
             for net_id in states[ca.pin_key(pin['pin'])]:
                 if net_id is not None:
                     pins_by_net[net_id].append(pin)
-        bend_histogram, unresolved_bends = Counter(), []
+        bend_histogram, unresolved_bends, alignment_review = Counter(), [], []
+        refs = {c['id']: c['ref'] for c in target['components']}
         for net_id, net_pins in sorted(pins_by_net.items()):
             if len(net_pins) != 2 or len({p['page'] for p in net_pins}) != 1:
                 continue
@@ -410,12 +429,17 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
                      if wpage == page and seg_net.get(i) == net_id]
             if not pairs:
                 continue
-            split = split_pairs(pairs, starts + [p for pair in pairs for p in pair])
-            bends = path_bends(split, starts[0], starts[1])
-            if bends is None:
+            junctions = [ca.point(j['at']) for j in scene['junctions'] if j['page'] == page]
+            split = split_pairs(pairs, starts + junctions + [p for pair in pairs for p in pair])
+            path = path_metrics(split, starts[0], starts[1])
+            if path is None:
                 unresolved_bends.append(net_id)
                 continue
+            bends, length = path
             bend_histogram[bends] += 1
+            hint = pin_alignment_hint(nets[net_id]['name'], net_pins, starts, bends, length, refs)
+            if hint:
+                alignment_review.append(hint)
             if bends > max_bends:
                 add(findings, 'two-terminal-bends', 'hard',
                     [f'{net_id}:{bends}' + ''.join(f'@{p["pin"][0]}.{p["pin"][1]}' for p in net_pins)])
@@ -493,6 +517,7 @@ def audit_readability(target, scene, strict=False, min_spacing_grid=2.0, max_ben
             'bendsHistogram': dict(sorted(bend_histogram.items())),
             'maxBends': max(bend_histogram, default=None),
             'unresolvedBends': unresolved_bends,
+            'pinAlignmentReview': alignment_review,
             'minParallelGapRaw': minimum_gap,
             'minParallelGapGrid': None if minimum_gap is None else round(minimum_gap / grid, 4),
             'wireIslands': len({full.root(i) for i in range(len(segments))}),

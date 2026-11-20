@@ -81,7 +81,7 @@
   `--min-module-gutter-grid`（默认 4.0，模块框之间的空带）。
 - 退出码：0=PASS / 2=FAIL。默认只有 hard 失败才 FAIL；`--strict` 时 advisory 也失败。
 - 报告字段：`checkerVersion`、`passed`、`scope:"offline-readability"`、`strict`、`thresholds`、
-  `findings[{rule,severity,objects}]`、`metrics`（含 crossings/bendsHistogram/minParallelGapGrid/modules/
+  `findings[{rule,severity,objects}]`、`metrics`（含 crossings/bendsHistogram/pinAlignmentReview/minParallelGapGrid/modules/
   moduleFrames/minModuleGapGrid/paperName/occupancy）、`coverage.unverified`、`inputSha256`、`liveVerified:false`。
   `--out` 拒绝覆盖已有文件。
 - 它**不覆盖**：O1/O2/O3/O5 这类语义（页面流向、锚点选择、归属、绕行合理性）、模块分组的业务意图、

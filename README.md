@@ -4,7 +4,7 @@
 
 **面向嘉立创 EDA 专业版的 AI 原理图绘制工作流**
 
-[![CI](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml/badge.svg)](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml) [![Version](https://img.shields.io/badge/version-0.7.0-2563eb)](docs/VALIDATION.md) [![Python](https://img.shields.io/badge/Python-%E2%89%A53.10-3776ab?logo=python&logoColor=white)](pyproject.toml) [![License](https://img.shields.io/badge/license-MIT-64748b)](LICENSE)
+[![CI](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml/badge.svg)](https://github.com/HXHakf/easyeda-schematic-orchestrator/actions/workflows/tests.yml) [![Version](https://img.shields.io/badge/version-0.7.1-2563eb)](docs/VALIDATION.md) [![Python](https://img.shields.io/badge/Python-%E2%89%A53.10-3776ab?logo=python&logoColor=white)](pyproject.toml) [![License](https://img.shields.io/badge/license-MIT-64748b)](LICENSE)
 
 [快速安装](#快速安装) · [开始设计](#开始设计) · [常用元件知识库](#常用元件知识库) · [现场样例](#现场样例与图面复核) · [文档导航](#文档导航)
 

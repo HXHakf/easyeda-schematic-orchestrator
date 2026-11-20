@@ -97,6 +97,35 @@ def two_modules(frame_gap=20.0, with_frames=True, titles=True):
 
 
 class ReadabilityTests(unittest.TestCase):
+    def test_pin_alignment_review_flags_a_two_bend_offset_without_rejecting_it(self):
+        target, scene = bent_net(2)
+        result = read.audit_readability(target, scene, strict=True)
+        self.assertTrue(result['passed'], result['findings'])
+        self.assertEqual(result['metrics']['pinAlignmentReview'], [{
+            'net': 'N', 'page': 'p', 'pins': ['A1.1', 'B1.1'],
+            'at': [[0, 0], [60, 20]], 'axis': 'horizontal',
+            'offsetRaw': 20, 'bends': 2, 'routeLengthRaw': 80,
+            'extraLengthRaw': 0,
+        }])
+        scene['pins'][1]['at'] = [60, 0]
+        scene['wires'][0]['points'] = [[0, 0], [60, 0]]
+        self.assertEqual(read.audit_readability(target, scene)['metrics']['pinAlignmentReview'], [])
+
+    def test_pin_alignment_review_reports_extra_length_with_collinear_endpoints(self):
+        target, scene = bent_net(2)
+        scene['pins'][1]['at'] = [60, 0]
+        scene['wires'][0]['points'] = [[0, 0], [10, 0], [10, 20], [50, 20], [50, 0], [60, 0]]
+        hint, = read.audit_readability(target, scene)['metrics']['pinAlignmentReview']
+        self.assertEqual((hint['offsetRaw'], hint['bends'], hint['extraLengthRaw']), (0, 4, 40))
+        scene['pins'][1]['direction'] = 'down'
+        self.assertEqual(read.audit_readability(target, scene)['metrics']['pinAlignmentReview'], [])
+
+    def test_route_metrics_prefer_fewer_bends_regardless_of_waypoint_count(self):
+        pairs = [((x, 0), (x + 10, 0)) for x in range(0, 60, 10)]
+        pairs += [((0, 0), (0, 20)), ((0, 20), (60, 20)), ((60, 20), (60, 0))]
+        self.assertEqual(read.path_metrics(pairs, (0, 0), (60, 0)), (0, 60))
+        self.assertIsNone(read.path_metrics(pairs, (0, 0), (70, 0)))
+
     def test_current_text_obstacles_are_hard_failures(self):
         target, scene = straight_pair(20)
         scene['bodies'] = [{'id': 'body', 'page': 'p', 'bbox': [50, 0, 60, 10]}]
