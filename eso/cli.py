@@ -70,6 +70,10 @@ def main(argv=None):
         else:
             parser.add_argument('--reviews')
             parser.add_argument('--attempt', help='audit one retained attempt independently of current inputs')
+    review_netlist = sub.add_parser('review-netlist', help='run optional official EasyEDA rules on a local .enet')
+    review_netlist.add_argument('--netlist', required=True)
+    review_netlist.add_argument('--out', required=True, help='new private report directory')
+    review_netlist.add_argument('--review-skill', help='path to the validated official review checkout')
     intake = sub.add_parser("intake", help="conservative seed extraction; agent semantic review still required")
     intake.add_argument("--text", required=True); intake.add_argument("--out", required=True)
     intake.add_argument('--assess', action='store_true', help='also assess the saved seed and return the next action')
@@ -169,6 +173,9 @@ def main(argv=None):
         elif args.command == "kb-bindings":
             from .knowledge_design import make_bindings
             output = make_bindings(load(args.contract)); dump(args.out, output)
+        elif args.command == 'review-netlist':
+            from .netlist_review import review_netlist
+            output = review_netlist(args.netlist, args.out, skill=args.review_skill)
         elif args.command == "intake":
             output = parse_seed(args.text)
             dump(args.out, output)
